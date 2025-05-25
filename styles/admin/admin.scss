@@ -1,0 +1,63 @@
+@use "../colors" as *;
+
+.admin-page {
+  select,
+  input {
+    border: 1px solid rgb(180, 180, 180);
+    border-radius: 6px;
+    height: 36px;
+    padding: 4px 8px;
+    margin-bottom: 12px;
+    & + button {
+      margin-left: 8px;
+    }
+  }
+
+  .basic-multi-select {
+    [aria-hidden="true"] {
+      display: inline-block;
+    }
+  }
+
+  label {
+    display: block;
+    font-size: 15px;
+  }
+
+  h2 {
+    font-weight: 300;
+    margin: 0 0 8px;
+
+    b {
+      font-weight: 600;
+    }
+  }
+
+  .subtitle {
+    margin-bottom: 32px;
+  }
+}
+
+.quiz-table {
+  thead, tbody tr:last-child {
+    @apply text-right border-b border-black;
+  }
+  th, td {
+    @apply text-right;
+  }
+  th, td:last-child {
+    padding-right: 8px;
+  }
+  tfoot th, tfoot td {
+    padding: 8px;
+  }
+
+  tfoot td.arrow {
+    @apply text-center border-t border-black;
+
+    svg {
+      display: block;
+      margin: 10px auto 0 auto;
+    }
+  }
+}
