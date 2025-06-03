@@ -33,7 +33,4 @@ yarn-error.log*
 # vercel
 .vercel
 
-# lock files
-*.lock
-
 /public/books*
