@@ -35,3 +35,5 @@ yarn-error.log*
 
 # lock files
 *.lock
+
+/public/books*
