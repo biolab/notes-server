@@ -5,6 +5,7 @@ import { ImHome, ImList2 } from "react-icons/im";
 import { useIntl } from "../i18n";
 import { ContentIndex } from "./Book/ContentIndex";
 import React from "react";
+import { ChapterDef } from "@/types/types";
 
 export const HomeIcon = () => {
   const { t } = useIntl();
@@ -18,32 +19,41 @@ export const HomeIcon = () => {
   );
 };
 
-export default function Layout(
-  { title = null,
-    showHome = false,
-    chapters = [],
-    isChapterIndexVisible = {},
-    children }) {
+export default function Layout({
+  title = null,
+  showHome = false,
+  chapters = [],
+  isChapterIndexVisible = {},
+  children,
+}: {
+  title: string | null;
+  showHome?: boolean;
+  chapters?: ChapterDef[];
+  isChapterIndexVisible?: { [key: number]: boolean };
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col min-h-screen mt-14">
       <header className="main-header">
-        { showHome ? <HomeIcon />
-          : chapters.length ? <div className="header-content-index">
-            <ImList2 style={{marginRight: "4em"}}/>
+        {showHome ? (
+          <HomeIcon />
+        ) : chapters.length ? (
+          <div className="header-content-index">
+            <ImList2 style={{ marginRight: "4em" }} />
             <ContentIndex
               className="content-index-at-header prose"
-              contentTitle={title}
+              contentTitle={title!}
               chapters={chapters}
               isChapterIndexVisible={isChapterIndexVisible}
-              showQuizProgress={false}/>
+              /*showQuizProgress={false}*/
+            />
           </div>
-          : <div/>
-        }
+        ) : (
+          <div />
+        )}
         <span className="page-title">{title}</span>
-        { /* <UserDropdown /> */ }
       </header>
-      <main className="container mx-auto flex-1">
-        {children}</main>
+      <main className="container mx-auto flex-1">{children}</main>
     </div>
   );
 }

@@ -1,12 +1,14 @@
 import {visit} from "unist-util-visit";
-import dict from "../i18n/dict.json";
+import dictJson from "../i18n/dict.json";
+
+const dict: Record<string, any> = dictJson;
 
 const replacements = {
     " -- ": " — ",
     " ...": " …"
 };
 
-export const replacer = ({language, extra_replacements}) => () => (tree) => {
+export const replacer = ({language, extra_replacements}: {language: string, extra_replacements?: [string, string][]}) => () => (tree: any) => {
     const all_replacements =
       Object.entries({...replacements,
                       ...(dict[language]?.["text-replacements"] || {}),

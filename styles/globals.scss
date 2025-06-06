@@ -1,10 +1,14 @@
 @use "./colors" as *;
 @use "quiz/quiz" as quiz;
 /*@use "admin/admin" as admin; */
-@use "content-index/content-index";
+@use "content-index/content-index" as *;
 
+@use "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@plugin "@tailwindcss/typography";
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap");
-
 
 .test-postcss {
   display: flex;
@@ -243,8 +247,7 @@ img.expanding-side-img.retina {
 /////////////////////////
 // Home page, Collection page
 /////////////////////////
-.home,
-.series {
+.collection {
   h1 {
     font-size: 34px;
     font-weight: 300;
@@ -269,18 +272,7 @@ img.expanding-side-img.retina {
   }
 }
 
-.home {
-  max-width: 1170px;
-  margin: 0 auto;
-
-  h1 {
-    margin-bottom: 62px;
-    margin-top: 15px;
-    text-align: center;
-  }
-}
-
-.series {
+.collection {
   max-width: 882px;
 
   h1 {

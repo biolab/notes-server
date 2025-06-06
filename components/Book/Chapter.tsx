@@ -1,21 +1,26 @@
+'use client';
+
 import React from "react";
-import { useOnScreen } from "../../hooks/useOnScreen";
-import { useIntl } from "../../i18n";
 import slugify from "slugify";
-import { MdxContent } from "./MdxContent";
-/* import { QuizContext } from "../../contexts/QuizContext"; */
+import { MdxContent } from "../MdxContent";
+
+import { useOnScreen } from "@/hooks/useOnScreen";
+import { useIntl } from "@/i18n";
+import { ChapterDef } from "@/types/types";
 
 export const Chapter = ({
   frontmatter,
   content,
   index,
   setIsChapterIndexVisible,
-  hideQuestions,
   chapterNumber,
-}) => {
+} : ChapterDef & { 
+  index: number,
+  setIsChapterIndexVisible: React.Dispatch<React.SetStateAction<{ [key: number]: boolean }>>,
+  chapterNumber: number}
+) => {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const isVisible = useOnScreen(ref);
-/*  const { quizState } = React.useContext(QuizContext); */
   const { t } = useIntl();
 
   React.useEffect(() => {
@@ -27,12 +32,10 @@ export const Chapter = ({
       <MdxContent
         chapterIndex={index}
         content={content}
-        hideQuestions={false /* hideQuestions */}
-        showQuiz={false /* quizState.activeChapters.includes(index)} */}
         chapterTitle={frontmatter.title}
       />
     );
-  }, [content, frontmatter.title, hideQuestions, index, /* quizState.activeChapters */]);
+  }, [content, frontmatter.title, index]);
 
   return (
     <div ref={ref} className="flex-container">

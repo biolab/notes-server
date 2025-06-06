@@ -1,5 +1,9 @@
+'use client';
+
 import React from "react";
-import dict from "./dict.json";
+import dictJson from "./dict.json";
+
+const dict: {[key: string]: any} = dictJson;
 
 const IntlContext = React.createContext<{
   t: (key: string) => string;
@@ -12,10 +16,10 @@ export const IntlContextProvider = ({
   lang = "en",
 }: {
   children: React.ReactNode;
-  lang: string;
+  lang?: string;
 }) => {
   const t = React.useCallback(
-    (key: string) => dict[lang]?.[key] || key,
+    (key: string) => dict[lang || "en"]?.[key] || key,
     [lang]
   );
 
