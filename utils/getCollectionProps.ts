@@ -4,6 +4,7 @@ import path from "path";
 import { serialize } from "next-mdx-remote/serialize";
 import rehypeKatex from "rehype-katex";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
+import { Database } from "sqlite";
 
 import {
   checkedMatter,
@@ -23,6 +24,7 @@ import {
 import { bookMatter } from "@/utils/getBookProps";
 
 const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
+const DB_FILE = path.join(process.cwd(), "db", "notes.sqlite");
 
 export type CollectionProps = {
   books: { slug: string; frontmatter: BookFrontmatter }[];
@@ -40,16 +42,20 @@ const collectionMatter = (indexMd: string, slug: string) =>
     extraCollectionMatter,
   );
 
-export const getCollectionProps = async (
-  pathParts: string[],
-): Promise<CollectionProps> => {
+export const getCollectionProps = async (pathParts: string[], db?: Database, buildId?: number): Promise<CollectionProps> => {
+  const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts, "collection")!, "utf-8");
-
-  const { frontmatter, content } = collectionMatter(
-    indexMd,
-    pathParts.join("/"),
-  );
+  const { frontmatter, content } = collectionMatter(indexMd, fullPath);
   const local_replacer = replacer({ language: frontmatter.language });
+  const { id: collectionId } = db ? await db.get(`
+    INSERT INTO collections (path, title, lastBuildId)
+    VALUES (?, ?, ?)
+    ON CONFLICT DO UPDATE SET
+        title = excluded.title,
+        lastBuildId = excluded.lastBuildId
+    RETURNING id
+  `, [fullPath, frontmatter.title, buildId]) : { id: undefined };
+
   const mdxSource = await serialize(
     parseMd(content, path.join(path.sep, ...pathParts)),
     {
@@ -94,13 +100,7 @@ export const getCollectionProps = async (
       slug,
       frontmatter: bookMatter(fs.readFileSync(indexName, "utf-8"), slug)
         .frontmatter,
-    }))
-    .filter(
-      ({ frontmatter: bookfrontmatter }) =>
-        showUnpublished ||
-        !!frontmatter.books ||
-        (bookfrontmatter.public ?? true),
-    );
+    }));
 
   const collections = (
     frontmatter.collections?.map(resolveManualPath) ||
@@ -111,19 +111,59 @@ export const getCollectionProps = async (
       slug,
       frontmatter: collectionMatter(fs.readFileSync(indexName, "utf-8"), slug)
         .frontmatter,
-    }))
-    .filter(
-      ({ frontmatter: frontmattercoll }) =>
-        showUnpublished ||
-        !!frontmatter.collections ||
-        (frontmattercoll.public ?? true),
+    }));
+
+  if (db) {
+    await Promise.all(
+        books.map(async ({slug, frontmatter}) => {
+          const {id} = await db.get(`
+                INSERT INTO books (path, title, lastBuildId)
+                VALUES (?, ?, ?)
+                ON CONFLICT DO UPDATE SET title       = excluded.title,
+                                          lastBuildId = excluded.lastBuildId
+                RETURNING id`,
+              [slug, frontmatter.title, buildId]);
+          await db.run(`
+                INSERT INTO collections_books (collectionId, bookId, lastBuildId)
+                VALUES (?, ?, ?)
+                ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId`,
+              [collectionId, id, buildId]);
+        })
     );
+
+    await Promise.all(
+        collections.map(async ({slug, frontmatter}) => {
+          const {id} = await db.get(`
+                INSERT INTO collections (path, title, lastBuildId)
+                VALUES (?, ?, ?)
+                ON CONFLICT DO UPDATE SET title       = excluded.title,
+                                          lastBuildId = excluded.lastBuildId
+                RETURNING id`,
+              [slug, frontmatter.title, buildId]);
+          await db.run(`
+                INSERT INTO collections_collections (collectionId, subCollectionId, lastBuildId)
+                VALUES (?, ?, ?)
+                ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId`,
+              [collectionId, id, buildId]);
+        })
+    );
+  }
 
   return {
     frontmatter,
     content: mdxSource,
-    books,
-    collections,
+    books: books.filter(
+        ({ frontmatter: bookfrontmatter }) =>
+            showUnpublished ||
+            !!frontmatter.books ||
+            (bookfrontmatter.public ?? true),
+    ),
+    collections: collections.filter(
+        ({ frontmatter: frontmattercoll }) =>
+            showUnpublished ||
+            !!frontmatter.collections ||
+            (frontmattercoll.public ?? true),
+    ),
     slug: pathParts.join("/"),
   };
 };

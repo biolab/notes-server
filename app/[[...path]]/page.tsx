@@ -1,33 +1,15 @@
 import { Book } from "@/components/Book/Book";
 import { Collection } from "@/components/Collection/Collection";
-import { getMdFile, isDirectory, readPublicDir } from "@/utils/helpers";
+import { getMdFile } from "@/utils/helpers";
 import { getBookProps } from "@/utils/getBookProps";
 import { getCollectionProps } from "@/utils/getCollectionProps";
+import {getPaths} from "@/utils/getPaths";
 
-type PathList = { path: string[] };
+export type PathList = { path: string[] };
 
-export async function generateStaticParams() {
-  const getPaths = (path: string[]): { params: PathList }[] =>
-    readPublicDir(...path)
-      .filter((entry) => isDirectory(...path, entry) && entry !== "_chapters")
-      .flatMap((entry) => {
-        const newPath = [...path, entry];
-        const indexFile = getMdFile([...newPath]);
-        const collectionFile = getMdFile([...newPath], "collection");
-        if (indexFile && collectionFile) {
-          throw new Error(
-            `${newPath.join("/")} contains both index.md and collection.md`,
-          );
-        }
-        return [
-          ...(indexFile || collectionFile
-            ? [{ params: { path: newPath } }]
-            : []),
-          ...(!indexFile ? getPaths(newPath) : []),
-        ];
-      });
-  return getPaths([]);
-}
+export const generateStaticParams = async (): Promise<{params: PathList}[]> =>
+  getPaths([])
+      .map((path) => ({ params: { path } }));
 
 export async function generateMetadata({
   params,

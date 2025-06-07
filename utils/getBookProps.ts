@@ -9,6 +9,13 @@ import { checkedMatter, getMdFile, parseMd, readPublicDirMd } from "./helpers";
 import { replacer } from "./plugins";
 import { serialize } from "next-mdx-remote/serialize";
 import { getImageSize } from "./getImageSize";
+import {Database} from "sqlite";
+
+import { compile } from '@mdx-js/mdx';
+import * as babelParser from '@babel/parser';
+import * as t from '@babel/types';
+import traverse, {NodePath} from '@babel/traverse';
+
 import {
   BookFrontmatter,
   ChapterDef,
@@ -16,6 +23,49 @@ import {
   defaultChapterFrontmatter,
   extraBookMatter,
 } from "@/types/types";
+
+const extractQuizzes = async (mdxSource: string): Promise<{ quizId: string; question: string }[] >=> {
+  const compiledMdx = await compile(
+      mdxSource.replace(/[^\x00-\x7F]/g, ""),
+      {outputFormat: 'function-body',
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex, getImageSize]},
+  );
+  const ast = await babelParser.parse(`() => {${String(compiledMdx)}}`, {
+    sourceType: 'module',
+    plugins: [],
+  });
+
+  const quizzes: {quizId: string, question: string}[] = [];
+  traverse(ast, {
+    CallExpression(path: NodePath<t.CallExpression>) {
+      const args = path.node.arguments;
+      if (args.length > 1 &&
+          t.isIdentifier(args[0]) &&
+          args[0].name === "Quiz") {
+        const props = args[1];
+        if (t.isObjectExpression(props)) {
+          const getProp = (name: string): string | null => {
+            const prop = props.properties.find((prop): prop is t.ObjectProperty =>
+                t.isObjectProperty(prop) && t.isIdentifier(prop.key) && prop.key.name === name
+            );
+
+            if (prop && t.isStringLiteral(prop.value)) {
+              return prop.value.value;
+            }
+
+            return null;
+          };
+          quizzes.push({
+            quizId: getProp("id") || '',
+            question: getProp("question") || ''
+          });
+        }
+      }
+    },
+  });
+  return quizzes;
+}
 
 export type BookProps = {
   chapters: ChapterDef[];
@@ -30,9 +80,21 @@ export const bookMatter = (indexMd: string, slug: string) =>
 export const chapterMatter = (chapterMd: string, slug: string) =>
   checkedMatter(chapterMd, slug, defaultChapterFrontmatter);
 
-export const getBookProps = async (pathParts: string[]): Promise<BookProps> => {
+export const getBookProps = async (pathParts: string[], db?: Database, buildId?: number): Promise<BookProps> => {
+  const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts)!, "utf-8");
-  const { frontmatter, content } = bookMatter(indexMd, pathParts.join("/"));
+  const { frontmatter, content } = bookMatter(indexMd, fullPath);
+  const { id: bookId } = db
+  ? await db.get(`
+      INSERT INTO books (path, title, lastBuildId)
+      VALUES (?, ?, ?)
+      ON CONFLICT(path) DO UPDATE SET
+          title = excluded.title,
+          lastBuildId = excluded.lastBuildId
+      RETURNING id
+    `, [fullPath, frontmatter.title, buildId])
+  : { id: undefined };
+
   const local_replacer = replacer({ language: frontmatter.language });
   const mdxSource = await serialize(
     parseMd(content, path.join(path.sep, ...pathParts)),
@@ -65,16 +127,70 @@ export const getBookProps = async (pathParts: string[]): Promise<BookProps> => {
     }
     const chapterMd = fs.readFileSync(index, "utf-8");
     const { frontmatter, content } = chapterMatter(chapterMd, chapterDir);
-    const mdxSource = await serialize(parseMd(content, "/" + chapterDir), {
-      mdxOptions: {
-        remarkPlugins: [remarkMath, local_replacer],
-        rehypePlugins: [rehypeKatex, getImageSize],
-      },
-    });
+    const row = db && await db.get(`
+      SELECT id FROM chapters
+      WHERE path = ? AND lastBuildId = ?`,
+        [chapterDir, buildId]);
+    const chapterExists = !!row;
 
+    const chapterId =
+        chapterExists ? row && row.id
+                      : db && (await db.get(`
+        INSERT INTO chapters (path, title, lastBuildId)
+        VALUES (?, ?, ?)
+        ON CONFLICT(path) DO UPDATE SET
+          title = excluded.title,
+          lastBuildId = excluded.lastBuildId
+        RETURNING id`,
+    [chapterDir, frontmatter.title, buildId])).id;
+
+    if (db) {
+      await db.run(`
+        INSERT INTO books_chapters (bookId, chapterId, lastBuildId)
+        VALUES (?, ?, ?)
+        ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
+      `, [bookId, chapterId, buildId]);
+    }
+
+    const mdxSource = parseMd(content, "/" + chapterDir);
+    if (!chapterExists) {
+      const quizzes = await extractQuizzes(mdxSource);
+      const quizIds = quizzes.map(({quizId}) => quizId);
+      const noIds = quizzes
+          .filter(({quizId}) => !quizId)
+          .map(({question}) => question);
+      if (noIds.length) {
+        throw new Error(`\nQuiz ID is missing in ${chapterDir}:\n${noIds.join("\n")}`);
+      }
+      const duplicateIds = quizIds.filter((quizId, index) => !!quizId && quizIds.indexOf(quizId) !== index);
+      const duplicates = [...new Set(duplicateIds)];
+      if (duplicates.length) {
+        /* TODO: This should throw an exception! */
+        console.log(`\nWARNING: Duplicate quiz IDs found in ${chapterDir}: ${duplicates.join(", ")}`);
+      }
+      if (db) {
+        await Promise.all(
+            quizzes.map(async ({quizId, question}) =>
+                await db.run(`
+                      INSERT INTO questions (chapterId, questionId, question, lastBuildId)
+                      VALUES (?, ?, ?, ?)
+                      ON CONFLICT DO NOTHING`,
+                    [chapterId, quizId, question, buildId])
+            )
+        );
+      }
+    }
+    const serializedMdxSource = await serialize(
+        mdxSource, {
+          mdxOptions: {
+            remarkPlugins: [remarkMath, local_replacer],
+            rehypePlugins: [rehypeKatex, getImageSize],
+          },
+        }
+    );
     chapters.push({
       frontmatter,
-      content: mdxSource,
+      content: serializedMdxSource,
     });
   }
 
