@@ -6,9 +6,13 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "createDb": "node scripts/createDb.mjs",
+    "prebuild": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/prebuild.ts"
   },
   "dependencies": {
+    "@babel/parser": "^7.27.5",
+    "@babel/traverse": "^7.27.4",
     "gray-matter": "^4.0.3",
     "markdown-it": "^12.3.2",
     "next": "15.3.2",
@@ -16,21 +20,32 @@
     "probe-image-size": "^7.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-icons": "^5.5.0",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0",
+    "sass": "^1.89.1",
+    "slugify": "^1.6.6",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@tailwindcss/postcss": "^4.1.8",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/babel__traverse": "^7.20.7",
+    "@types/node": "^22.15.30",
     "@types/probe-image-size": "^7.2.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "postcss": "^8.5.4",
+    "tailwindcss": "^4.1.8",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3"
   }
 }

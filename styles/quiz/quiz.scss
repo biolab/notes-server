@@ -1,0 +1,263 @@
+@use "../colors" as *;
+
+.quiz {
+  position: relative;
+  margin: 24px 0;
+  border-left: 5px solid rgb(144, 144, 144);
+  border-top: 2px solid rgb(144, 144, 144);
+  padding: 12px;
+  transition: all;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+
+  &.correct {
+    border-color: $green;
+    background: $greenTransparent;
+
+    button.selected {
+      border-color: $green;
+      background: $green;
+      color: white;
+    }
+  }
+
+  &.incorrect {
+    border-color: $red;
+    background: $redTransparent;
+
+    button.selected {
+      border-color: $red;
+      background: $red;
+      color: white;
+    }
+  }
+
+  &.neutral {
+    border-color: $gray;
+    background: $grayTransparent;
+
+    button.selected {
+      border-color: $gray;
+      background: $gray;
+      color: white;
+    }
+  }
+
+  input,
+  textarea {
+    border: 1px solid $inputBorder;
+    border-radius: 6px;
+    padding: 4px 8px;
+  }
+
+  input {
+    height: 36px;
+
+    & + button {
+      margin-left: 8px;
+    }
+  }
+
+  textarea {
+    min-height: 100px;
+    width: 100%;
+  }
+
+  .buttons-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  fieldset {
+    &[disabled] {
+      pointer-events: none;
+    }
+  }
+
+  .quiz-message {
+    margin: 16px 0 0 0;
+    font-size: 16px;
+    font-weight: 400;
+  }
+
+  hr {
+    margin: 8px 0;
+  }
+}
+
+.submit-quiz-popup,
+.quiz {
+  button {
+    min-height: 36px;
+    border: 1px solid $inputBorder;
+    padding: 6px 8px;
+    border-radius: 6px;
+    text-align: left;
+    line-height: 1.2;
+
+    [disabled] {
+      border: 1px solid rgb(220, 220, 220);
+    }
+  }
+}
+
+.quiz-question {
+  position: relative;
+  margin-bottom: 12px;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0 32px 0 0;
+
+    span {
+      font-weight: 300;
+    }
+  }
+
+  svg {
+    position: absolute;
+    right: 0px;
+    top: 3px;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    margin-left: auto;
+    color: $green;
+
+    .incorrect & {
+      color: $red;
+    }
+  }
+}
+
+.quiz-countdown {
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: 0;
+  height: 2px;
+  width: 100%;
+  background: $red;
+  transform-origin: left;
+  transition: transform 0.3s ease-out;
+
+  .correct & {
+    background: $green;
+    transform: scale(1) !important;
+  }
+}
+
+.quiz-progress {
+  padding: 0 12px;
+  border-left: 5px solid rgb(144, 144, 144);
+  margin: 64px 0;
+}
+
+.prose .activate-quiz-warning {
+  display: flex;
+  gap: 12px;
+  margin-top: 48px;
+  border: 1px solid $gray;
+  padding: 12px;
+  border-radius: 6px;
+
+  svg {
+    color: $gray;
+    width: 24px;
+    height: 24px;
+  }
+
+  p {
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
+.activate-quiz-button {
+  margin-top: 48px;
+  display: flex;
+  gap: 6 px;
+  align-items: center;
+  border: 1px solid $gray;
+  padding: 12px;
+  border-radius: 6px;
+  svg {
+    color: $green;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.hidden-quiz-section {
+  display: none;
+}
+
+.quiz-progress-indicator-wrapper {
+  position: relative;
+  margin-top: 32px;
+  margin-right: 24px;
+  height: 14px;
+  border: 1px solid black;
+  border-radius: 6px;
+  overflow: hidden;
+
+  .quiz-progress-indicator-bar-threshold-line {
+    position: absolute;
+    height: 12px;
+    width: 1px;
+    background: black;
+  }
+
+  .quiz-progress-indicator-bar {
+    height: 100%;
+    opacity: 0.8;
+  }
+}
+
+.quiz-progress-indicator-threshold {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 12px;
+  transform: translateX(-100%);
+  font-size: 14px;
+}
+
+.submit-quiz-popup {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 20px 32px;
+  z-index: 100;
+  background: #f4f9f6;
+  border-top: 2px solid $green;
+  font-size: 20px;
+  min-height: 60vh;
+
+  &.minimized {
+    min-height: unset;
+  }
+
+  button {
+    padding: 18px;
+  }
+
+  .minimize-button {
+    position: absolute;
+    right: 30px;
+    top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    font-size: 18px;
+  }
+}

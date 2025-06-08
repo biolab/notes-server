@@ -2,6 +2,7 @@ import { Processor } from "unified";
 import { visit } from "unist-util-visit";
 import probe, { ProbeResult } from "probe-image-size";
 import { readFileSync } from "fs";
+import type { Node } from "unist";
 
 interface ImgNode {
   tagName: "img";
