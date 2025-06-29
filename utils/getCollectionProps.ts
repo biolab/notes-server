@@ -1,20 +1,15 @@
 import fs from "fs";
 import path from "path";
 
-import { serialize } from "next-mdx-remote/serialize";
-import rehypeKatex from "rehype-katex";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { Database } from "sqlite";
 
 import {
   checkedMatter,
   getMdFile,
   isDirectory,
   parseMd,
-  readPublicDir,
+  readPublicDir, serializedContent,
 } from "./helpers";
-import { replacer } from "./plugins";
-import { getImageSize } from "./getImageSize";
 import {
   BookFrontmatter,
   CollectionFrontmatter,
@@ -24,15 +19,21 @@ import {
 import { bookMatter } from "@/utils/getBookProps";
 
 const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
-const DB_FILE = path.join(process.cwd(), "db", "notes.sqlite");
 
-export type CollectionProps = {
+type CollectionPropsBase = {
   books: { slug: string; frontmatter: BookFrontmatter }[];
   collections: { slug: string; frontmatter: CollectionFrontmatter }[];
   frontmatter: CollectionFrontmatter;
-  content: MDXRemoteSerializeResult;
   slug: string;
 };
+
+export type CollectionProps = CollectionPropsBase & {
+  content: MDXRemoteSerializeResult;
+}
+
+export type RawCollectionProps = CollectionPropsBase & {
+  rawContent: string;
+}
 
 const collectionMatter = (indexMd: string, slug: string) =>
   checkedMatter(
@@ -42,29 +43,11 @@ const collectionMatter = (indexMd: string, slug: string) =>
     extraCollectionMatter,
   );
 
-export const getCollectionProps = async (pathParts: string[], db?: Database, buildId?: number): Promise<CollectionProps> => {
+export const getRawCollection = async (pathParts: string[]): Promise<RawCollectionProps> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts, "collection")!, "utf-8");
   const { frontmatter, content } = collectionMatter(indexMd, fullPath);
-  const local_replacer = replacer({ language: frontmatter.language });
-  const { id: collectionId } = db ? await db.get(`
-    INSERT INTO collections (path, title, lastBuildId)
-    VALUES (?, ?, ?)
-    ON CONFLICT DO UPDATE SET
-        title = excluded.title,
-        lastBuildId = excluded.lastBuildId
-    RETURNING id
-  `, [fullPath, frontmatter.title, buildId]) : { id: undefined };
-
-  const mdxSource = await serialize(
-    parseMd(content, path.join(path.sep, ...pathParts)),
-    {
-      mdxOptions: {
-        remarkPlugins: [local_replacer],
-        rehypePlugins: [rehypeKatex, getImageSize],
-      },
-    },
-  );
+  const mdxSource = parseMd(content, path.join(path.sep, ...pathParts));
 
   const recursivePaths = (spath: string, type: string): string[] =>
     readPublicDir(spath)
@@ -113,45 +96,9 @@ export const getCollectionProps = async (pathParts: string[], db?: Database, bui
         .frontmatter,
     }));
 
-  if (db) {
-    await Promise.all(
-        books.map(async ({slug, frontmatter}) => {
-          const {id} = await db.get(`
-                INSERT INTO books (path, title, lastBuildId)
-                VALUES (?, ?, ?)
-                ON CONFLICT DO UPDATE SET title       = excluded.title,
-                                          lastBuildId = excluded.lastBuildId
-                RETURNING id`,
-              [slug, frontmatter.title, buildId]);
-          await db.run(`
-                INSERT INTO collections_books (collectionId, bookId, lastBuildId)
-                VALUES (?, ?, ?)
-                ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId`,
-              [collectionId, id, buildId]);
-        })
-    );
-
-    await Promise.all(
-        collections.map(async ({slug, frontmatter}) => {
-          const {id} = await db.get(`
-                INSERT INTO collections (path, title, lastBuildId)
-                VALUES (?, ?, ?)
-                ON CONFLICT DO UPDATE SET title       = excluded.title,
-                                          lastBuildId = excluded.lastBuildId
-                RETURNING id`,
-              [slug, frontmatter.title, buildId]);
-          await db.run(`
-                INSERT INTO collections_collections (collectionId, subCollectionId, lastBuildId)
-                VALUES (?, ?, ?)
-                ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId`,
-              [collectionId, id, buildId]);
-        })
-    );
-  }
-
   return {
     frontmatter,
-    content: mdxSource,
+    rawContent: mdxSource,
     books: books.filter(
         ({ frontmatter: bookfrontmatter }) =>
             showUnpublished ||
@@ -167,3 +114,11 @@ export const getCollectionProps = async (pathParts: string[], db?: Database, bui
     slug: pathParts.join("/"),
   };
 };
+
+export const getCollectionProps = async (pathParts: string[]): Promise<CollectionProps> => {
+  const {rawContent, ...baseCollection} = await getRawCollection(pathParts);
+  return {
+    ...baseCollection,
+    content: await serializedContent(rawContent, baseCollection.frontmatter.language)
+  };
+}
