@@ -1,10 +1,9 @@
 import sqlite3 from "sqlite3";
 import path from "path";
 import { getMdFile } from "../utils/helpers";
-import { getBookProps } from "../utils/getBookProps";
-import { getCollectionProps } from "../utils/getCollectionProps";
 import { getPaths } from "../utils/getPaths";
 import { open } from "sqlite";
+import {prefly} from "@/utils/preflight";
 
 const DB_PATH = path.join(process.cwd(), "db");
 const DB_FILE = path.join(DB_PATH, "notes.sqlite");
@@ -18,13 +17,10 @@ async function prebuild(trigger: string) {
                                         VALUES (?)
                                         RETURNING id;`, [trigger]);
 
-  await Promise.all(
-    getPaths([]).map(async (path) =>
-      getMdFile(path)
-        ? await getBookProps(path, db, buildId)
-        : await getCollectionProps(path, db, buildId),
-    ),
-  );
+  const paths: [string[], boolean][] = getPaths([]).map((path) => [path, !!getMdFile(path)]);
+  const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
+  const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
+  await prefly(bookPaths, collectionPaths, db, buildId);
 }
 
 const trigger = process.argv[2] || "manual";

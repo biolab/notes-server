@@ -106,6 +106,9 @@ async function rebuildDatabase() {
            chapterId INTEGER NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
            questionId TEXT NOT NULL,
            question TEXT NOT NULL,
+           options TEXT,
+           answer TEXT,
+           questionType TEXT NOT NULL,
            lastBuildId INTEGER NOT NULL,
           
            UNIQUE(chapterId, questionId),

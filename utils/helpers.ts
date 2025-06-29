@@ -1,9 +1,17 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
+import {serialize} from "next-mdx-remote/serialize";
+import remarkMath from "remark-math";
+import {replacer} from "@/utils/plugins";
+import rehypeKatex from "rehype-katex";
+import {getImageSize} from "@/utils/getImageSize";
 
 const joinedPath = (spath: string | string[]) =>
   path.join("public", ...(typeof spath === "string" ? [spath] : spath));
+
+export const pathExists = (...spath: string[]) =>
+  fs.existsSync(joinedPath(spath));
 
 export const isDirectory = (...spath: string[]) =>
   fs.statSync(joinedPath(spath), { throwIfNoEntry: false })?.isDirectory();
@@ -112,3 +120,34 @@ export function checkedMatter<T>(
     content,
   };
 }
+
+
+export const serializedContent = async (rawContent: string, language: string) =>
+  await serialize(
+    rawContent,
+    {
+      mdxOptions: {
+        remarkPlugins: [remarkMath, replacer({ language })],
+        rehypePlugins: [rehypeKatex, getImageSize],
+      }}
+  );
+
+let error = false;
+
+export const logError = (where: string, message: string | Error) => {
+  if (!error) {
+    console.log("\n** Errors **\n")
+  }
+  console.log(`${where}: ${message instanceof Error ? message.message : message}`);
+  error = true;
+}
+
+export async function catchErrors<T>(where: string, func: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await func();
+  } catch (err) {
+    logError(where, err instanceof Error ? err : new Error(String(err)));
+  }
+}
+
+export const hasError = () => error;
