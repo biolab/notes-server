@@ -4,18 +4,16 @@ import React from "react";
 import { MdxRenderer } from "./MdxRenderer";
 import Image from "./Image";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
-
 import { useIntl } from "@/i18n";
 import CcByNcNd from "./CcByNcNd";
+import Quiz from "./Quiz/Quiz";
 
 export const MdxContent = ({
   content,
+  chapterIndex,
 }: {
   content: MDXRemoteSerializeResult;
-  hideQuestions?: boolean;
   chapterIndex?: number;
-  showQuiz?: boolean;
-  chapterTitle?: string;
 }) => {
   const { t } = useIntl();
 
@@ -23,7 +21,15 @@ export const MdxContent = ({
     <MdxRenderer
       content={content}
       components={{
-        Quiz: () => <div>Quiz</div>,
+        Quiz: (props) => {
+          if (chapterIndex === undefined) {
+            throw new Error("Introduction cannot contain questions");
+          }
+
+          return (
+            <Quiz chapterIndex={chapterIndex} showQuiz={true} {...props} />
+          );
+        },
         Explanation: () => <div>Explanation</div>,
         Sidenote: ({ children }: { children: React.ReactNode }) => (
           <div className="float-aside">{children}</div>
@@ -49,7 +55,7 @@ export const MdxContent = ({
           const [_src, setSrc] = React.useState(src ? src + "?" : null);
           const replay = React.useCallback(() => {
             setSrc(
-              (s: string | null) => `${s?.split("?")[0]}?${Math.random()}`,
+              (s: string | null) => `${s?.split("?")[0]}?${Math.random()}`
             );
           }, []);
 
@@ -79,7 +85,7 @@ export const MdxContent = ({
                 />
               </div>
             ),
-            [embedId],
+            [embedId]
           ),
         CcByNcNd,
         QuizSection: () => <div>Quiz Section</div>,

@@ -28,7 +28,9 @@
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.0.0",
+    "use-timer": "^2.0.1",
+    "uuid-by-string": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

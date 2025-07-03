@@ -21,12 +21,14 @@ import {
   defaultChapterFrontmatter,
   extraBookMatter,
 } from "@/types/types";
+import { extractQuizzes } from './preflight';
 
 
 export type BookPropsBase = {
   frontmatter: BookFrontmatter;
   slug: string;
 };
+
 
 export type BookProps = BookPropsBase & {
   content: MDXRemoteSerializeResult;
@@ -101,6 +103,7 @@ export const getBookProps = async (pathParts: string[]): Promise<BookProps> =>
       content: await serializedContent(rawContent, frontmatter.language),
       chapters: await Promise.all(chapters.map(async ({frontmatter: chapterFrontmatter, rawContent}) => ({
         frontmatter: chapterFrontmatter,
-        content: await serializedContent(rawContent, frontmatter.language)
+        content: await serializedContent(rawContent, frontmatter.language),
+        questions: await extractQuizzes(rawContent, slug)
       })))
   }));

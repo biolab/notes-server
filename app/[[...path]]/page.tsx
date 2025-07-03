@@ -3,13 +3,12 @@ import { Collection } from "@/components/Collection/Collection";
 import { getMdFile } from "@/utils/helpers";
 import { getBookProps } from "@/utils/getBookProps";
 import { getCollectionProps } from "@/utils/getCollectionProps";
-import {getPaths} from "@/utils/getPaths";
+import { getPaths } from "@/utils/getPaths";
 
 export type PathList = { path: string[] };
 
-export const generateStaticParams = async (): Promise<{params: PathList}[]> =>
-  getPaths([])
-      .map((path) => ({ params: { path } }));
+export const generateStaticParams = async (): Promise<{ params: PathList }[]> =>
+  getPaths([]).map((path) => ({ params: { path } }));
 
 export async function generateMetadata({
   params,
@@ -35,6 +34,7 @@ export default async function CollectionOrBookPage({
   const path = (await params).path ?? [];
   if (getMdFile(path)) {
     const props = await getBookProps(path);
+    console.log(props);
     return <Book {...props} />;
   } else {
     const props = await getCollectionProps(path);

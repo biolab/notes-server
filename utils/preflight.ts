@@ -16,17 +16,18 @@ import { ChapterFrontmatter } from "@/types/types";
 
 type QuestionTypes = "multi" | "text" | "long-text" | "choice";
 
-type QuestionDef = {
+export type QuestionDef = {
   questionId: string;
   question: string;
   type: QuestionTypes;
   options: string[] | null;
   answer: string | null;
-
   line: number;
+  points: number;
+  optional: boolean;
 }
 
-const extractQuizzes = async (mdxSource: string, slug: string): Promise<(QuestionDef)[]> => {
+export const extractQuizzes = async (mdxSource: string, slug: string): Promise<(QuestionDef)[]> => {
   const compiledMdx = await compile(
       // At some point I useed mdxSource.replace(/[^\x00-\x7F]/g, "") to fix some problem.
       // Later it turned out it makes options non-unique (e.g. in `options={["Č", "Š", "Ž"]}`).
@@ -68,6 +69,32 @@ const extractQuizzes = async (mdxSource: string, slug: string): Promise<(Questio
             return prop.value.value;
           };
 
+          const getNumProp = (where: string, name: string): number | null => {
+            const prop = findProp(name);
+            if (!prop) {
+              return null;
+            }
+            if (!t.isNumericLiteral(prop.value)) {
+              logError(where, `Property "${name}" is not a number`);
+              return null;
+            }
+            
+            return prop.value.value;
+          };
+
+          const getBoolProp = (where: string, name: string): boolean | null => {
+            const prop = findProp(name);
+            if (!prop) {
+              return null;
+            }
+            if (!t.isBooleanLiteral(prop.value)) {
+              logError(where, `Property "${name}" is not a boolean`);
+              return null;
+            }
+
+            return prop.value.value;
+          };
+
           const getPropArray = (where: string, name: string): string[] | null => {
             const prop = findProp(name);
             if (!prop) {
@@ -106,6 +133,8 @@ const extractQuizzes = async (mdxSource: string, slug: string): Promise<(Questio
           }
 
           const questionId = getProp(where, "id") || question;
+          const points = getNumProp(where, "points") || 0;
+          const optional = getBoolProp(where, "optional") ?? false;
           const options = getPropArray(where, "options");
           const answer = getProp(where, "answer");
           if (options && (new Set(options)).size != options.length) {
@@ -136,6 +165,8 @@ const extractQuizzes = async (mdxSource: string, slug: string): Promise<(Questio
             type: type as QuestionTypes,
             options,
             answer,
+            points,
+            optional,
 
             line: path.node.loc?.start.line || -1,
           });
