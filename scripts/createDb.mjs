@@ -1,9 +1,9 @@
-import sqlite3 from 'sqlite3';
-import fs from 'fs';
-import path from 'path';
+import sqlite3 from "sqlite3";
+import fs from "fs";
+import path from "path";
 
 const DB_PATH = path.join(process.cwd(), "db");
-const DB_FILE = path.join(DB_PATH, 'notes.sqlite');
+const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
 async function rebuildDatabase() {
   if (!fs.existsSync(DB_PATH)) {
@@ -117,9 +117,23 @@ async function rebuildDatabase() {
            FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
         );
     `);
+
+  await conn.exec(`DROP TABLE IF EXISTS users`);
+  await conn.exec(`
+      CREATE TABLE users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT NOT NULL UNIQUE,
+          access_token TEXT NOT NULL,
+          created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          last_use_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          deleted BOOLEAN NOT NULL DEFAULT 0,
+          deleted_count INTEGER NOT NULL DEFAULT 0,
+          UNIQUE(email)
+      );
+  `);
 }
 
 rebuildDatabase().catch((err) => {
-  console.error('Error rebuilding database:', err);
+  console.error("Error rebuilding database:", err);
   process.exit(1);
 });

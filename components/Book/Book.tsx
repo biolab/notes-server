@@ -10,6 +10,7 @@ import { IntlContextProvider } from "@/i18n";
 import { BookProps } from "@/utils/getBookProps";
 import Layout from "../layout";
 import { QuizContextProvider } from "@/context/QuizContextProvider";
+import SSRButton from "../SSRButton";
 
 const ignoreLogin = process && process.env.NEXT_PUBLIC_IGNORE_LOGIN === "true";
 
@@ -17,8 +18,6 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
   const quizState = undefined;
-
-  console.log(chapters);
 
   const chapterNumbers = React.useMemo(
     () =>
@@ -49,6 +48,7 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
           }
         >
           <div className="prose mx-auto book">
+            <SSRButton>Create Mitja</SSRButton>
             {frontmatter.coverImg && (
               <div className="book-cover-img">
                 <Image

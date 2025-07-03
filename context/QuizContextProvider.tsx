@@ -172,9 +172,7 @@ export const QuizContextProvider = ({
   // const { track, postState } = useTracking();
   const postState = (props) => null; // Mocked for this example
   const track = (props) => null; // Mocked for this example
-  console.log("chapters");
-  console.log(chapters);
-  console.log(quizState);
+
   // const { user } = React.useContext(UserContext);
   const [userLoginTracked, setUserLoginTracked] = React.useState(false);
 
