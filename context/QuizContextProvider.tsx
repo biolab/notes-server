@@ -1,15 +1,11 @@
 import { EventTypes } from "@/components/Quiz/Quiz";
+import { QuizService_PostState } from "@/server-functions/QuizService";
 import { ChapterDef } from "@/types/types";
 import React, { useReducer } from "react";
-import getUuid from "uuid-by-string";
-
-// import { UserContext } from "./UserContext";
+import { UserContext } from "./UserContextProvider";
 
 // Bump quiz version if interface changes
-const QUIZ_VERSION = "1";
-
-export const getBookId = (title: string, slug: string) =>
-  getUuid(title + slug + QUIZ_VERSION);
+export const QUIZ_VERSION = 2;
 
 export interface AnswerI {
   question_id: string;
@@ -35,14 +31,12 @@ export interface QuestionI {
 }
 
 export interface QuizStateI {
-  book_id: string;
   book_title: string;
   slug: string;
-  isQuizComplete?: boolean;
   questions: QuestionI[];
   chaptersWithQuiz: number[];
-  activeChapters: number[];
   quizThreshold: number;
+  isQuizComplete: boolean;
 }
 
 const getQuestionsFromChapters = (chapters: ChapterDef[]): QuestionI[] => {
@@ -69,41 +63,38 @@ const getQuizState = ({
   slug: string;
   chapters: ChapterDef[];
   quizThreshold: number;
-  _quizState?: QuizStateI;
+  _quizState?: QuizStateI | null;
 }): QuizStateI => {
   if (_quizState) {
     return _quizState;
   }
 
-  const book_id = getBookId(title, slug);
-
   const state = {
-    book_id,
     book_title: title,
     slug,
     questions: getQuestionsFromChapters(chapters),
     chaptersWithQuiz: chapters
       .map((chapter, index) => (chapter.questions?.length ? index : -1))
       .filter((index) => index !== -1),
-    activeChapters: [],
     quizThreshold,
+    isQuizComplete: false,
   };
 
   return state;
 };
 
-const reducer = (state, action) => {
+const reducer = (
+  state: QuizStateI,
+  action: {
+    type: string;
+    value: AnswerI;
+  }
+) => {
   const { type, value } = action;
 
   switch (type) {
-    case "COMPLETE":
-      return {
-        ...state,
-        isQuizComplete: true,
-      };
-
     case "ANSWER_QUIZ":
-      return {
+      const _state = {
         ...state,
         questions: state.questions.map((q) =>
           q.question_id === value.question_id
@@ -114,14 +105,24 @@ const reducer = (state, action) => {
             : q
         ),
       };
+
+      const isComplete = _state.questions
+        .filter((q) => !q.optional)
+        .every((q) => q.answers.length > 0);
+
+      return {
+        ..._state,
+        isQuizComplete: isComplete,
+      };
+
     default:
-      break;
+      return state;
   }
 };
 
 export const QuizContext = React.createContext<{
   quizState: QuizStateI | null;
-  quizReducer: React.Dispatch<{ type: string; value?: unknown }>;
+  quizReducer: React.Dispatch<{ type: string; value: AnswerI }>;
   submitQuiz: () => void;
   noOfQuestions: number;
   availablePoints: number;
@@ -160,20 +161,21 @@ export const QuizContextProvider = ({
   slug: string;
   chapters: ChapterDef[];
   submissionEmail?: string;
-  quizState?: QuizStateI; // Optional initial quiz state
+  quizState?: QuizStateI | null; // Optional initial quiz state
 }) => {
   const [quizState, quizReducer]: [
     QuizStateI,
-    React.Dispatch<{ type: string; value?: unknown }>
+    React.Dispatch<{ type: string; value: AnswerI }>
   ] = useReducer(
     reducer,
     getQuizState({ title, slug, quizThreshold, _quizState, chapters })
   );
+
   // const { track, postState } = useTracking();
-  const postState = (props) => null; // Mocked for this example
+  // const postState = (props) => null; // Mocked for this example
   const track = (props) => null; // Mocked for this example
 
-  // const { user } = React.useContext(UserContext);
+  const { user } = React.useContext(UserContext);
   const [userLoginTracked, setUserLoginTracked] = React.useState(false);
 
   React.useEffect(() => {
@@ -260,32 +262,24 @@ export const QuizContextProvider = ({
   );
 
   React.useEffect(() => {
-    if (
-      quizState.questions.some((q) => q.answers?.length) ||
-      quizState.activeChapters.length
-    ) {
-      postState({ quizState });
+    if (quizState.questions.some((q) => q.answers?.length)) {
+      try {
+        QuizService_PostState({
+          quizState,
+          user,
+          slug,
+          quizVersion: QUIZ_VERSION,
+        });
+      } catch (error) {
+        console.log(error);
+      }
     }
-  }, [quizState, isQuizComplete, track, postState]);
-
-  const submitQuiz = React.useCallback(() => {
-    if (isQuizComplete && !quizState.isQuizComplete) {
-      track({
-        type: EventTypes.QUIZ_COMPLETED,
-        value: quizState,
-        submissionEmail,
-        _quizState: quizState,
-      });
-
-      quizReducer({ type: "COMPLETE" });
-    }
-  }, [isQuizComplete, quizState, submissionEmail, track]);
+  }, [quizState, isQuizComplete, track, user, slug]);
 
   const contextValue = React.useMemo(
     () => ({
       quizState,
       quizReducer,
-      submitQuiz,
       noOfQuestions,
       availablePoints,
       achievedPoints,
@@ -298,7 +292,6 @@ export const QuizContextProvider = ({
     [
       quizState,
       quizReducer,
-      submitQuiz,
       noOfQuestions,
       availablePoints,
       achievedPoints,

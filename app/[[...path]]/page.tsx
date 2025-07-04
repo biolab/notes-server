@@ -4,6 +4,7 @@ import { getMdFile } from "@/utils/helpers";
 import { getBookProps } from "@/utils/getBookProps";
 import { getCollectionProps } from "@/utils/getCollectionProps";
 import { getPaths } from "@/utils/getPaths";
+import { UserContextProvider } from "@/context/UserContextProvider";
 
 export type PathList = { path: string[] };
 
@@ -34,8 +35,11 @@ export default async function CollectionOrBookPage({
   const path = (await params).path ?? [];
   if (getMdFile(path)) {
     const props = await getBookProps(path);
-    console.log(props);
-    return <Book {...props} />;
+    return (
+      <UserContextProvider>
+        <Book {...props} />;
+      </UserContextProvider>
+    );
   } else {
     const props = await getCollectionProps(path);
     return <Collection {...props} />;

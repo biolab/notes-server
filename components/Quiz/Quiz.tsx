@@ -1,7 +1,6 @@
 "use client";
 
 import React, { JSXElementConstructor } from "react";
-// import useTracking, { EventTypes } from "./useTracking";
 import { useTimer } from "use-timer";
 import {
   RiCloseCircleLine,
@@ -10,11 +9,8 @@ import {
   RiOpenaiFill,
   RiErrorWarningLine,
 } from "react-icons/ri";
-import slugify from "slugify";
 import { useMountEffect } from "../../hooks/useMountEffect";
 import { useIntl } from "../../i18n";
-// import { useMutation } from "@tanstack/react-query";
-// import { postAnswer } from "../../api/gpt.api";
 import { useCallback } from "react";
 import { QuizContext } from "@/context/QuizContextProvider";
 
@@ -124,10 +120,7 @@ export default function Quiz({
     return scorerFromMdx;
   }, [answerFromMdx, scorerFromMdx, gpt, question, processResponse]);
 
-  const question_id = React.useMemo(
-    () => slugify(`${id ? id + "__" : ""}` + question, { lower: true }),
-    [id, question]
-  );
+  const question_id = React.useMemo(() => id || question, [id, question]);
 
   const {
     time: timeLeft,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import Image from "../Image";
 import { MdxContent } from "../MdxContent";
 
@@ -9,15 +9,51 @@ import { ContentIndexControl } from "./ContentIndex";
 import { IntlContextProvider } from "@/i18n";
 import { BookProps } from "@/utils/getBookProps";
 import Layout from "../layout";
-import { QuizContextProvider } from "@/context/QuizContextProvider";
-import SSRButton from "../SSRButton";
+import {
+  QUIZ_VERSION,
+  QuizContextProvider,
+  QuizStateI,
+} from "@/context/QuizContextProvider";
+
+import { UserContext } from "@/context/UserContextProvider";
+import { QuizService_GetState } from "@/server-functions/QuizService";
+import { UserService_Create } from "@/server-functions/UserService";
 
 const ignoreLogin = process && process.env.NEXT_PUBLIC_IGNORE_LOGIN === "true";
 
 export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
-  const quizState = undefined;
+  const { user, retrievingUser } = useContext(UserContext);
+  const [quizState, setQuizState] = useState<"pending" | null | QuizStateI>(
+    "pending"
+  );
+
+  const loading = retrievingUser || quizState === "pending";
+
+  React.useEffect(() => {
+    if (retrievingUser) {
+      return;
+    }
+
+    if (!user) {
+      setQuizState(null);
+      return;
+    }
+
+    const fetchState = async () => {
+      const _state = await QuizService_GetState({
+        user,
+        slug,
+        quizVersion: QUIZ_VERSION,
+      });
+      console.log("_state");
+      console.log(_state);
+      setQuizState(_state);
+    };
+
+    fetchState();
+  }, [user, retrievingUser, slug]);
 
   const chapterNumbers = React.useMemo(
     () =>
@@ -29,12 +65,20 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
     [chapters]
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="loader"></div>
+      </div>
+    );
+  }
+
   return (
     <IntlContextProvider lang={frontmatter.language || "en"}>
       <QuizContextProvider
         chapters={chapters}
         title={frontmatter.title}
-        quizState={quizState}
+        quizState={quizState as QuizStateI | null}
         slug={slug}
         submissionEmail={frontmatter.submissionEmail}
         quizThreshold={frontmatter.quizThreshold || 0.8}
@@ -48,7 +92,21 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
           }
         >
           <div className="prose mx-auto book">
-            <SSRButton>Create Mitja</SSRButton>
+            <button
+              onClick={async () => {
+                try {
+                  const user = await UserService_Create({
+                    email: "marsasdjsas11an@mssai.com",
+                  });
+
+                  console.log(user);
+                } catch (error) {
+                  console.log(error.message);
+                }
+              }}
+            >
+              Create Marjan
+            </button>
             {frontmatter.coverImg && (
               <div className="book-cover-img">
                 <Image
