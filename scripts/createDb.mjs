@@ -124,6 +124,7 @@ async function rebuildDatabase() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           email TEXT UNIQUE DEFAULT NULL,
           access_token TEXT NOT NULL,
+          admin BOOLEAN NOT NULL DEFAULT 0,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           last_use_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           deleted BOOLEAN NOT NULL DEFAULT 0,
