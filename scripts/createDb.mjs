@@ -149,6 +149,20 @@ async function rebuildDatabase() {
           FOREIGN KEY(book_slug) REFERENCES books(path) ON DELETE SET NULL 
       );
   `);
+
+  conn.exec(`DROP TABLE IF EXISTS events`);
+  conn.exec(`
+      CREATE TABLE events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          user_id INTEGER NOT NULL,
+          book_slug TEXT,
+          event_type TEXT NOT NULL,
+          value JSON NOT NULL,
+          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+          FOREIGN KEY(book_slug) REFERENCES books(path) ON DELETE SET NULL 
+      );
+  `);
 }
 
 rebuildDatabase().catch((err) => {

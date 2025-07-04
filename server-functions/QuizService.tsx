@@ -1,5 +1,6 @@
 "use server";
 
+import { EventTypes } from "@/components/Quiz/Quiz";
 import { QuizStateI } from "@/context/QuizContextProvider";
 import { User } from "@/context/UserContextProvider";
 import withDb from "@/utils/db";
@@ -67,6 +68,41 @@ export const QuizService_PostState = async ({
       ]
     );
   }
+
+  await db.close();
+};
+
+export const QuizService_PostEvent = async ({
+  value,
+  user,
+  type,
+  slug,
+}: {
+  value: QuizStateI;
+  user: User | null;
+  type: EventTypes;
+  slug: string;
+}) => {
+  if (!user || !user.access_token) {
+    return null;
+  }
+
+  const db = await withDb();
+
+  const userFromDb = await db.get(
+    `SELECT id, email FROM users WHERE access_token = ? and deleted = 0`,
+    [user.access_token]
+  );
+
+  if (!userFromDb) {
+    await db.close();
+    return;
+  }
+
+  await db.run(
+    `INSERT INTO events (user_id, book_slug, event_type, value) VALUES (?, ?, ?, ?)`,
+    [userFromDb.id, slug, type, JSON.stringify(value)]
+  );
 
   await db.close();
 };

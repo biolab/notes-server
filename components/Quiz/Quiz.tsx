@@ -13,12 +13,11 @@ import { useMountEffect } from "../../hooks/useMountEffect";
 import { useIntl } from "../../i18n";
 import { useCallback } from "react";
 import { QuizContext } from "@/context/QuizContextProvider";
+import { QuizService_PostEvent } from "@/server-functions/QuizService";
+import { UserContext } from "@/context/UserContextProvider";
 
 export enum EventTypes {
   ANSWER_QUIZ = "ANSWER_QUIZ",
-  START_QUIZ_IN_CHAPTER = "START_QUIZ_IN_CHAPTER",
-  QUIZ_COMPLETED = "QUIZ_COMPLETED",
-  USER_LOGIN = "USER_LOGIN",
 }
 
 export interface IQuiz {
@@ -72,27 +71,19 @@ export default function Quiz({
   const [gptExplanation, setGptExplanation] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const { t } = useIntl();
+  const { user } = React.useContext(UserContext);
 
-  // const { mutateAsync: answerPost } = useMutation({
-  //   // mutationFn: postAnswer,
-  //   mutationFn: () => false, // Mocked for this example
-  //   onError: () => {
-  //     setTrial((v) => v - 1);
-  //     setError(
-  //       "An unexpected error occurred when accessing ChatGPT. Please try again."
-  //     );
-  //   },
-  // });
-
-  const answerPost = () => ({
+  // TODO - Replace with actual LLM call
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const answerFromLLM = () => ({
     data: { grade: "yes", explanation: "Mocked explanation" },
-  }); // Mocked for this example
+  });
 
   const processResponse = useCallback(
     async (question, userAnswer, answer) => {
       setIsLoading(true);
       try {
-        const data = await answerPost({ question, userAnswer, answer });
+        const data = await answerFromLLM({ question, userAnswer, answer });
         if (data && data.data.grade) {
           if (data.data.grade === "no") {
             setGptExplanation(data.data.explanation);
@@ -106,7 +97,7 @@ export default function Quiz({
         setIsLoading(false);
       }
     },
-    [answerPost]
+    [answerFromLLM]
   );
 
   const scorer = React.useMemo(() => {
@@ -133,7 +124,17 @@ export default function Quiz({
   });
 
   // const { track } = useTracking();
-  const track = () => null; // Mocked for this example
+  const trackEvent = useCallback(
+    async ({ type, value }: { type: EventTypes; value: any }) => {
+      await QuizService_PostEvent({
+        user,
+        type,
+        value,
+        slug: quizState!.slug,
+      });
+    },
+    [quizState, user]
+  );
 
   useMountEffect(() => {
     if (multiSelect && (type !== "multi" || !optional || scorer || checker)) {
@@ -153,17 +154,6 @@ export default function Quiz({
     );
 
     if (!valueInState) {
-      // quizReducer({
-      //   type: "ADD_QUIZ",
-      //   value: {
-      //     chapterIndex,
-      //     question_id,
-      //     question,
-      //     possiblePoints: points,
-      //     max_trials: max_trials,
-      //     optional,
-      //   },
-      // });
       return;
     }
 
@@ -320,7 +310,7 @@ export default function Quiz({
         },
       };
 
-      track(event);
+      trackEvent(event);
       quizReducer(event);
       setSubmitted(true);
 
@@ -337,17 +327,17 @@ export default function Quiz({
       optional,
       neutralOptions,
       type,
+      gpt,
       question_id,
       chapterIndex,
       points,
       question,
       trial,
       max_trials,
-      track,
+      trackEvent,
       quizReducer,
       timeout,
       startTimer,
-      gpt,
     ]
   );
 
