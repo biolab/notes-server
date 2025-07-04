@@ -3,28 +3,25 @@
 import React, { useContext, useState } from "react";
 import Image from "../Image";
 import { MdxContent } from "../MdxContent";
-
 import { Chapter } from "./Chapter";
 import { ContentIndexControl } from "./ContentIndex";
 import { IntlContextProvider } from "@/i18n";
 import { BookProps } from "@/utils/getBookProps";
-import Layout from "../layout";
 import {
   QUIZ_VERSION,
   QuizContextProvider,
   QuizStateI,
 } from "@/context/QuizContextProvider";
-
 import { UserContext } from "@/context/UserContextProvider";
 import { QuizService_GetState } from "@/server-functions/QuizService";
-import { UserService_Create } from "@/server-functions/UserService";
-
-const ignoreLogin = process && process.env.NEXT_PUBLIC_IGNORE_LOGIN === "true";
+import BookLogin from "./BookLogin";
+import { logger } from "@/utils/logger";
+import Layout from "../Layout/Layout";
 
 export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
-  const { user, retrievingUser } = useContext(UserContext);
+  const { user, retrievingUser, showLogin } = useContext(UserContext);
   const [quizState, setQuizState] = useState<"pending" | null | QuizStateI>(
     "pending"
   );
@@ -47,8 +44,9 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
         slug,
         quizVersion: QUIZ_VERSION,
       });
-      console.log("_state");
-      console.log(_state);
+
+      logger("Quiz state fetched:", _state);
+
       setQuizState(_state);
     };
 
@@ -73,6 +71,16 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
     );
   }
 
+  if (showLogin) {
+    return (
+      <BookLogin
+        title={frontmatter.title}
+        emailContent={frontmatter.email}
+        loginSubtitle={frontmatter.loginSubtitle}
+      />
+    );
+  }
+
   return (
     <IntlContextProvider lang={frontmatter.language || "en"}>
       <QuizContextProvider
@@ -92,21 +100,6 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
           }
         >
           <div className="prose mx-auto book">
-            <button
-              onClick={async () => {
-                try {
-                  const user = await UserService_Create({
-                    email: "marsasdjsas11an@mssai.com",
-                  });
-
-                  console.log(user);
-                } catch (error) {
-                  console.log(error.message);
-                }
-              }}
-            >
-              Create Marjan
-            </button>
             {frontmatter.coverImg && (
               <div className="book-cover-img">
                 <Image

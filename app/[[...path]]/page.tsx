@@ -6,6 +6,8 @@ import { getCollectionProps } from "@/utils/getCollectionProps";
 import { getPaths } from "@/utils/getPaths";
 import { UserContextProvider } from "@/context/UserContextProvider";
 
+const ignoreLogin = process && process.env.NEXT_PUBLIC_IGNORE_LOGIN === "true";
+
 export type PathList = { path: string[] };
 
 export const generateStaticParams = async (): Promise<{ params: PathList }[]> =>
@@ -33,15 +35,23 @@ export default async function CollectionOrBookPage({
   params: Promise<PathList>;
 }) {
   const path = (await params).path ?? [];
+
   if (getMdFile(path)) {
     const props = await getBookProps(path);
+    const requireEmail = !!props.frontmatter.requireLogin && !ignoreLogin;
+
     return (
-      <UserContextProvider>
+      <UserContextProvider requireEmail={requireEmail}>
         <Book {...props} />;
       </UserContextProvider>
     );
   } else {
     const props = await getCollectionProps(path);
-    return <Collection {...props} />;
+
+    return (
+      <UserContextProvider>
+        <Collection {...props} />
+      </UserContextProvider>
+    );
   }
 }

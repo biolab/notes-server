@@ -1,11 +1,11 @@
 import Link from "next/link";
-/* import UserDropdown from "./UserDropdown/UserDropdown"; */
 import { IconContext } from "react-icons";
 import { ImHome, ImList2 } from "react-icons/im";
-import { useIntl } from "../i18n";
-import { ContentIndex } from "./Book/ContentIndex";
+import { useIntl } from "../../i18n";
+import { ContentIndex } from "../Book/ContentIndex";
 import React from "react";
 import { ChapterDef } from "@/types/types";
+import UserDropdown from "./UserDropdown";
 
 export const HomeIcon = () => {
   const { t } = useIntl();
@@ -45,13 +45,14 @@ export default function Layout({
               contentTitle={title!}
               chapters={chapters}
               isChapterIndexVisible={isChapterIndexVisible}
-              /*showQuizProgress={false}*/
+              // showQuizProgress={false}
             />
           </div>
         ) : (
           <div />
         )}
         <span className="page-title">{title}</span>
+        <UserDropdown />
       </header>
       <main className="container mx-auto flex-1">{children}</main>
     </div>

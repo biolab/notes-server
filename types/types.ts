@@ -1,4 +1,4 @@
-import { QuestionDef } from '@/utils/preflight';
+import { QuestionDef } from "@/utils/preflight";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
 
 export interface ChapterFrontmatter {
@@ -32,7 +32,11 @@ export interface BookFrontmatter {
   tocInHeader: boolean;
   indexInitiallyClosed?: boolean;
   coverImg: string;
+  requireLogin: boolean;
+  quizThreshold?: number;
   chapters?: string[];
+  loginSubtitle?: string;
+  email?: { subject: string; body: string };
 }
 
 export const defaultBookFrontmatter: BookFrontmatter = {
@@ -45,6 +49,7 @@ export const defaultBookFrontmatter: BookFrontmatter = {
   tocInHeader: false,
   indexInitiallyClosed: false,
   coverImg: "",
+  requireLogin: false,
 } satisfies BookFrontmatter & Record<string, unknown>;
 
 export const extraBookMatter = {

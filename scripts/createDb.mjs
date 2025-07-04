@@ -122,7 +122,7 @@ async function rebuildDatabase() {
   conn.exec(`
       CREATE TABLE users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          email TEXT NOT NULL UNIQUE,
+          email TEXT UNIQUE DEFAULT NULL,
           access_token TEXT NOT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           last_use_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

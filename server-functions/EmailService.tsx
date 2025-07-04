@@ -12,14 +12,11 @@ const transporter = nodemailer.createTransport({
 export const EmailService_Send = async ({
   sendTo,
   subject,
-  text,
   html,
 }: {
-  email: string;
-  sendTo?: string;
+  sendTo: string;
   subject: string;
-  text: string;
-  html?: string;
+  html: string;
 }) => {
   if (process.env.NODE_ENV === "development") {
     return;
@@ -31,7 +28,6 @@ export const EmailService_Send = async ({
     from: EMAIL_FROM,
     to: sendTo,
     subject: subject,
-    text: text,
     html: html ? html : "",
   });
 
