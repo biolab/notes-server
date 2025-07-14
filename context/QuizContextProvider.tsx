@@ -1,7 +1,5 @@
-import { QuizService_PostState } from "@/api/QuizService";
 import { ChapterDef } from "@/types/types";
 import React, { useReducer } from "react";
-import { UserContext } from "./UserContextProvider";
 import { logger } from "@/utils/logger";
 
 // Bump quiz version if interface changes
@@ -176,8 +174,6 @@ export const QuizContextProvider = ({
     reducer,
     getQuizState({ title, slug, quizThreshold, answers, chapters })
   );
-
-  const { user } = React.useContext(UserContext);
 
   const {
     noOfQuestions,

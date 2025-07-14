@@ -1,13 +1,11 @@
 "use server";
 
-import withDb from "@/utils/db";
+import db from "@/utils/db";
 import { BookProps } from "@/utils/getBookProps";
 
 export const _getBookPropsFromDb = async (
   pathParts: string[]
 ): Promise<BookProps> => {
-  const db = await withDb();
-
   const book = await db.get(`SELECT id, content FROM books WHERE path = ?`, [
     pathParts.join("/"),
   ]);

@@ -1,13 +1,11 @@
 "use server";
 
 import { v4 } from "uuid";
-import withDb from "@/utils/db";
 import { _sendEmail } from "./EmailService";
 import { logger } from "@/utils/logger";
+import db from "@/utils/db";
 
 export const _getUser = async ({ accessToken }: { accessToken: string }) => {
-  const db = await withDb();
-
   const existingUser = await db.get(
     `SELECT id, accessToken, email FROM users WHERE accessToken = ? and deleted = 0`,
     [accessToken]
@@ -22,8 +20,6 @@ export const _getUser = async ({ accessToken }: { accessToken: string }) => {
     existingUser.id,
   ]);
 
-  await db.close();
-
   return existingUser;
 };
 
@@ -35,8 +31,6 @@ export const UserService_Delete = async ({
   if (!accessToken) {
     return;
   }
-
-  const db = await withDb();
 
   const existingUser = await db.get(
     `SELECT * FROM users WHERE accessToken = ? and deleted = 0`,
@@ -54,8 +48,6 @@ export const UserService_Delete = async ({
     `UPDATE users SET deleted = 1, deletedCount = deletedCount + 1 WHERE id = ?`,
     [existingUser.id]
   );
-
-  await db.close();
 };
 
 export const _registerUser = async ({
@@ -70,8 +62,6 @@ export const _registerUser = async ({
   };
   url?: string;
 }) => {
-  const db = await withDb();
-
   let user = null;
 
   if (email) {
@@ -95,8 +85,6 @@ export const _registerUser = async ({
       [accessToken]
     );
   }
-
-  await db.close();
 
   let link = null;
 

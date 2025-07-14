@@ -5,13 +5,9 @@ import { open } from "sqlite";
 const DB_PATH = path.join(process.cwd(), "db");
 const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
-const withDb = async () => {
-  const db = await open({
-    filename: path.join(DB_FILE),
-    driver: sqlite3.Database,
-  });
+const db = await open({
+  filename: path.join(DB_FILE),
+  driver: sqlite3.Database,
+});
 
-  return db;
-};
-
-export default withDb;
+export default db;

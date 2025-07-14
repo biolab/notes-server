@@ -2,7 +2,7 @@
 
 import { IAnswerValue } from "@/context/QuizContextProvider";
 import { User } from "@/context/UserContextProvider";
-import withDb from "@/utils/db";
+import db from "@/utils/db";
 
 export const _postAnswer = async ({
   id,
@@ -19,15 +19,12 @@ export const _postAnswer = async ({
     return null;
   }
 
-  const db = await withDb();
-
   const userFromDb = await db.get(
     `SELECT id, email FROM users WHERE accessToken = ? and deleted = 0`,
     [user.accessToken]
   );
 
   if (!userFromDb) {
-    await db.close();
     return;
   }
 
@@ -35,8 +32,6 @@ export const _postAnswer = async ({
     `INSERT INTO answers (userId, bookId, questionId, answerValue) VALUES (?, ?, ?, ?)`,
     [userFromDb.id, bookId, id, JSON.stringify(value)]
   );
-
-  await db.close();
 };
 
 export const _getAnswers = async ({
@@ -50,15 +45,12 @@ export const _getAnswers = async ({
     return null;
   }
 
-  const db = await withDb();
-
   const userFromDb = await db.get(
     `SELECT id FROM users WHERE accessToken = ? and deleted = 0`,
     [user.accessToken]
   );
 
   if (!userFromDb) {
-    await db.close();
     return null;
   }
 
@@ -73,7 +65,8 @@ export const _getAnswers = async ({
     [userFromDb.id, bookId]
   );
 
-  await db.close();
-
-  return events.map((event) => JSON.parse(event.answerValue) as IAnswerValue);
+  return events.map(
+    ({ answerValue }: { answerValue: string }) =>
+      JSON.parse(answerValue) as IAnswerValue
+  );
 };
