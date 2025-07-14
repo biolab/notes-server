@@ -2,9 +2,6 @@ import { ChapterDef } from "@/types/types";
 import React, { useReducer } from "react";
 import { logger } from "@/utils/logger";
 
-// Bump quiz version if interface changes
-export const QUIZ_VERSION = 2;
-
 export type IAnswerValue = {
   questionId: string;
   isCorrect: boolean | null;

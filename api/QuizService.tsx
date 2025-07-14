@@ -34,13 +34,10 @@ export const _getAnswers = async ({
   const userFromDb = await _getUserOrThrow(user);
 
   const events = await db.all(
-    `SELECT
-        answers.answerValue, 
-        questions.questionId as questionId
-      FROM answers
-      LEFT JOIN questions ON answers.questionId = questions.id
-      WHERE userId = ? AND bookId = ?
-      ORDER BY answers.createdAt ASC`,
+    `SELECT answerValue
+    FROM answers
+    WHERE userId = ? AND bookId = ?
+    ORDER BY answers.createdAt ASC`,
     [userFromDb.id, bookId]
   );
 
