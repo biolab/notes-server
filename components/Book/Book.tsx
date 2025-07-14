@@ -8,25 +8,32 @@ import { ContentIndexControl } from "./ContentIndex";
 import { IntlContextProvider } from "@/i18n";
 import { BookProps } from "@/utils/getBookProps";
 import {
-  QUIZ_VERSION,
+  IAnswerValue,
   QuizContextProvider,
-  QuizStateI,
 } from "@/context/QuizContextProvider";
 import { UserContext } from "@/context/UserContextProvider";
-import { QuizService_GetState } from "@/server-functions/QuizService";
+import { QuizService_GetAnswers } from "@/server-functions/QuizService";
 import BookLogin from "./BookLogin";
 import { logger } from "@/utils/logger";
 import Layout from "../Layout/Layout";
 
-export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
+export const Book = ({
+  frontmatter,
+  content,
+  chapters,
+  slug,
+  bookId,
+}: BookProps) => {
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
   const { user, retrievingUser, showLogin } = useContext(UserContext);
-  const [quizState, setQuizState] = useState<"pending" | null | QuizStateI>(
+  const [answers, setAnswers] = useState<"pending" | null | IAnswerValue[]>(
     "pending"
   );
 
-  const loading = retrievingUser || quizState === "pending";
+  logger("Book component mounted with slug:", slug);
+
+  const loading = retrievingUser || answers === "pending";
 
   React.useEffect(() => {
     if (retrievingUser) {
@@ -34,24 +41,23 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
     }
 
     if (!user) {
-      setQuizState(null);
+      setAnswers(null);
       return;
     }
 
     const fetchState = async () => {
-      const _state = await QuizService_GetState({
+      const _answers = await QuizService_GetAnswers({
         user,
-        slug,
-        quizVersion: QUIZ_VERSION,
+        bookId: bookId!,
       });
 
-      logger("Quiz state fetched:", _state);
+      logger("Quiz answers fetched:", _answers);
 
-      setQuizState(_state);
+      setAnswers(_answers);
     };
 
     fetchState();
-  }, [user, retrievingUser, slug]);
+  }, [user, retrievingUser, slug, bookId]);
 
   const chapterNumbers = React.useMemo(
     () =>
@@ -86,9 +92,8 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
       <QuizContextProvider
         chapters={chapters}
         title={frontmatter.title}
-        quizState={quizState as QuizStateI | null}
+        answers={answers as IAnswerValue[] | null}
         slug={slug}
-        submissionEmail={frontmatter.submissionEmail}
         quizThreshold={frontmatter.quizThreshold || 0.8}
       >
         <Layout
@@ -128,6 +133,7 @@ export const Book = ({ frontmatter, content, chapters, slug }: BookProps) => {
             {chapters.map((chapterDef, index) => (
               <Chapter
                 {...chapterDef}
+                bookId={bookId!}
                 key={chapterDef.frontmatter.title}
                 index={index}
                 setIsChapterIndexVisible={setIsChapterIndexVisible}

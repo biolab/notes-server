@@ -17,6 +17,7 @@ export const defaultChapterFrontmatter: ChapterFrontmatter = {
 };
 
 export interface ChapterDef {
+  chapterDir: string;
   frontmatter: ChapterFrontmatter;
   content: MDXRemoteSerializeResult;
   questions: QuestionDef[];

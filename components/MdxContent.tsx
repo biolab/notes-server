@@ -7,13 +7,18 @@ import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { useIntl } from "@/i18n";
 import CcByNcNd from "./CcByNcNd";
 import Quiz from "./Quiz/Quiz";
+import { QuestionDef } from "@/utils/preflight";
 
 export const MdxContent = ({
   content,
   chapterIndex,
+  dbQuestions,
+  bookId,
 }: {
   content: MDXRemoteSerializeResult;
   chapterIndex?: number;
+  dbQuestions?: QuestionDef[];
+  bookId: number;
 }) => {
   const { t } = useIntl();
 
@@ -27,7 +32,13 @@ export const MdxContent = ({
           }
 
           return (
-            <Quiz chapterIndex={chapterIndex} showQuiz={true} {...props} />
+            <Quiz
+              chapterIndex={chapterIndex}
+              showQuiz={true}
+              bookId={bookId}
+              dbQuestions={dbQuestions}
+              {...props}
+            />
           );
         },
         Explanation: () => <div>Explanation</div>,

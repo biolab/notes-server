@@ -14,12 +14,15 @@ export const Chapter = ({
   index,
   setIsChapterIndexVisible,
   chapterNumber,
+  questions,
+  bookId,
 }: ChapterDef & {
   index: number;
   setIsChapterIndexVisible: React.Dispatch<
     React.SetStateAction<{ [key: number]: boolean }>
   >;
   chapterNumber: number;
+  bookId: number;
 }) => {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const isVisible = useOnScreen(ref);
@@ -30,8 +33,15 @@ export const Chapter = ({
   }, [isVisible, setIsChapterIndexVisible, index]);
 
   const mdxContent = React.useMemo(() => {
-    return <MdxContent chapterIndex={index} content={content} />;
-  }, [content, index]);
+    return (
+      <MdxContent
+        chapterIndex={index}
+        content={content}
+        dbQuestions={questions}
+        bookId={bookId}
+      />
+    );
+  }, [bookId, content, index, questions]);
 
   return (
     <div ref={ref} className="flex-container">

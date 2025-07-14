@@ -11,26 +11,26 @@ import {
   parseMd,
   pathExists,
   readPublicDirMd,
-  serializedContent
+  serializedContent,
 } from "./helpers";
 
 import {
   BookFrontmatter,
-  ChapterDef, ChapterFrontmatter,
+  ChapterDef,
+  ChapterFrontmatter,
   defaultBookFrontmatter,
   defaultChapterFrontmatter,
   extraBookMatter,
 } from "@/types/types";
-import { extractQuizzes } from './preflight';
-
+import { extractQuizzes } from "./preflight";
 
 export type BookPropsBase = {
   frontmatter: BookFrontmatter;
   slug: string;
 };
 
-
 export type BookProps = BookPropsBase & {
+  bookId?: number;
   content: MDXRemoteSerializeResult;
   chapters: ChapterDef[];
 };
@@ -38,10 +38,10 @@ export type BookProps = BookPropsBase & {
 export type RawBookProps = BookPropsBase & {
   rawContent: string;
   chapters: {
-    chapterDir: string,
-    frontmatter: ChapterFrontmatter,
-    rawContent: string
-  }[]
+    chapterDir: string;
+    frontmatter: ChapterFrontmatter;
+    rawContent: string;
+  }[];
 };
 
 export const bookMatter = (indexMd: string, slug: string) =>
@@ -50,8 +50,9 @@ export const bookMatter = (indexMd: string, slug: string) =>
 export const chapterMatter = (chapterMd: string, slug: string) =>
   checkedMatter(chapterMd, slug, defaultChapterFrontmatter);
 
-
-export const getRawBook = async (pathParts: string[]): Promise<RawBookProps> => {
+export const getRawBook = async (
+  pathParts: string[]
+): Promise<RawBookProps> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts)!, "utf-8");
   const { frontmatter, content } = bookMatter(indexMd, fullPath);
@@ -59,10 +60,13 @@ export const getRawBook = async (pathParts: string[]): Promise<RawBookProps> => 
 
   const chapterDirs =
     frontmatter.chapters?.map((_slug) =>
-      _slug.startsWith("//") ? _slug.slice(2)
-      : _slug.startsWith("/") ? path.join(pathParts[0], _slug.slice(1))
-      : _slug.startsWith("./") ? path.join(...pathParts, _slug.slice(2))
-      : path.join(pathParts[0], "_chapters", _slug),
+      _slug.startsWith("//")
+        ? _slug.slice(2)
+        : _slug.startsWith("/")
+        ? path.join(pathParts[0], _slug.slice(1))
+        : _slug.startsWith("./")
+        ? path.join(...pathParts, _slug.slice(2))
+        : path.join(pathParts[0], "_chapters", _slug)
     ) ||
     readPublicDirMd(pathParts)
       .map((chapterDir) => path.join(...pathParts, chapterDir))
@@ -75,7 +79,9 @@ export const getRawBook = async (pathParts: string[]): Promise<RawBookProps> => 
       continue;
     }
 
-    const index = await catchErrors(chapterDir, async () => getMdFile(chapterDir));
+    const index = await catchErrors(chapterDir, async () =>
+      getMdFile(chapterDir)
+    );
     if (!index) {
       continue;
     }
@@ -85,7 +91,7 @@ export const getRawBook = async (pathParts: string[]): Promise<RawBookProps> => 
     chapters.push({
       chapterDir,
       frontmatter,
-      rawContent
+      rawContent,
     });
   }
   return {
@@ -97,13 +103,24 @@ export const getRawBook = async (pathParts: string[]): Promise<RawBookProps> => 
 };
 
 export const getBookProps = async (pathParts: string[]): Promise<BookProps> =>
-  getRawBook(pathParts).then(async ({rawContent, chapters, frontmatter, slug}) => ({
+  getRawBook(pathParts).then(
+    async ({ rawContent, chapters, frontmatter, slug }) => ({
       frontmatter,
       slug,
       content: await serializedContent(rawContent, frontmatter.language),
-      chapters: await Promise.all(chapters.map(async ({frontmatter: chapterFrontmatter, rawContent}) => ({
-        frontmatter: chapterFrontmatter,
-        content: await serializedContent(rawContent, frontmatter.language),
-        questions: await extractQuizzes(rawContent, slug)
-      })))
-  }));
+      chapters: await Promise.all(
+        chapters.map(
+          async ({
+            chapterDir,
+            frontmatter: chapterFrontmatter,
+            rawContent,
+          }) => ({
+            chapterDir,
+            frontmatter: chapterFrontmatter,
+            content: await serializedContent(rawContent, frontmatter.language),
+            questions: await extractQuizzes(rawContent, slug),
+          })
+        )
+      ),
+    })
+  );

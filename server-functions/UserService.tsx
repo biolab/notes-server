@@ -53,8 +53,7 @@ export const UserService_Delete = async ({
   }
 
   // Delete user data
-  await db.run(`DELETE FROM quiz_states WHERE user_id = ?`, [existingUser.id]);
-  await db.run(`DELETE FROM events WHERE user_id = ?`, [existingUser.id]);
+  await db.run(`DELETE FROM answers WHERE user_id = ?`, [existingUser.id]);
 
   await db.run(
     `UPDATE users SET deleted = 1, deleted_count = deleted_count + 1 WHERE id = ?`,

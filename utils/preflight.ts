@@ -14,12 +14,18 @@ import {
   getRawCollection,
   RawCollectionProps,
 } from "@/utils/getCollectionProps";
-import { getRawBook, RawBookProps } from "@/utils/getBookProps";
-import { ChapterFrontmatter } from "@/types/types";
+import {
+  BookProps,
+  getBookProps,
+  getRawBook,
+  RawBookProps,
+} from "@/utils/getBookProps";
+import { ChapterDef, ChapterFrontmatter } from "@/types/types";
 
 type QuestionTypes = "multi" | "text" | "long-text" | "choice";
 
 export type QuestionDef = {
+  id?: number;
   questionId: string;
   question: string;
   type: QuestionTypes;
@@ -430,33 +436,39 @@ const checkCollections = async (
 };
 
 const insertChapters = async (
-  chapters: Record<
-    string,
-    { frontmatter: ChapterFrontmatter; questions: QuestionDef[] }
-  >,
+  serializedChapters: ChapterDef[],
   db: Database,
   buildId: number
 ) => {
-  for (const [
-    chapterDir,
-    {
-      frontmatter: { title },
-      questions,
-    },
-  ] of Object.entries(chapters)) {
+  for (const chapter of serializedChapters) {
     const chapterId = (
       await db.get(
         `
-      INSERT INTO chapters (path, title, lastBuildId)
-      VALUES (?, ?, ?)
+      INSERT INTO chapters (path, title, lastBuildId, content)
+      VALUES (?, ?, ?, ?)
       ON CONFLICT(path) DO UPDATE SET title       = excluded.title,
                                       lastBuildId = excluded.lastBuildId
       RETURNING id`,
-        [chapterDir, title, buildId]
+        [
+          chapter.chapterDir,
+          chapter.frontmatter.title,
+          buildId,
+          JSON.stringify({
+            frontmatter: chapter.frontmatter,
+            slug: chapter.chapterDir,
+            content: chapter.content,
+          }),
+        ]
       )
     ).id;
 
-    for (const { questionId, question, type, options, answer } of questions) {
+    for (const {
+      questionId,
+      question,
+      type,
+      options,
+      answer,
+    } of chapter.questions) {
       await db.run(
         `
         INSERT INTO questions (chapterId, questionId, question, options, answer, questionType, lastBuildId)
@@ -478,27 +490,31 @@ const insertChapters = async (
 };
 
 const insertBooks = async (
-  books: RawBookProps[],
+  books: BookProps[],
   db: Database,
   buildId: number
 ) => {
-  for (const {
-    slug: bookSlug,
-    frontmatter: { title: bookTitle },
-    chapters,
-  } of books) {
+  for (const content of books) {
     const { id: bookId } = await db.get(
       `
-        INSERT INTO books (path, title, lastBuildId)
-        VALUES (?, ?, ?)
-        ON CONFLICT(path) DO UPDATE SET title       = excluded.title,
-                                        lastBuildId = excluded.lastBuildId
+        INSERT INTO books (path, title, lastBuildId, content)
+        VALUES (?, ?, ?, ?)
+
         RETURNING id
     `,
-      [bookSlug, bookTitle, buildId]
+      [
+        content.slug,
+        content.frontmatter.title,
+        buildId,
+        JSON.stringify({
+          frontmatter: content.frontmatter,
+          slug: content.slug,
+          content: content.content,
+        }),
+      ]
     );
 
-    for (const { chapterDir } of chapters) {
+    for (const { chapterDir } of content.chapters) {
       await db.run(
         `
           INSERT INTO books_chapters (bookId, chapterId, lastBuildId)
@@ -569,14 +585,15 @@ export const prefly = async (
   db: Database,
   buildId: number
 ) => {
-  const books = await Promise.all(bookSlugs.map(getRawBook));
-  const allBookSlugs = new Set(books.map(({ slug }) => slug));
+  const rawBooks = await Promise.all(bookSlugs.map(getRawBook));
+  const serializedBooks = await Promise.all(bookSlugs.map(getBookProps));
+  const allBookSlugs = new Set(rawBooks.map(({ slug }) => slug));
   const collections = await Promise.all(
     collectionSlugs.map(async (slug) => await getRawCollection(slug))
   );
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
-  const chapters = await checkBooks(books, allBookSlugs, db);
+  const chapters = await checkBooks(rawBooks, allBookSlugs, db);
   await checkQuestions(chapters, db);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   if (hasError()) {
@@ -584,7 +601,11 @@ export const prefly = async (
     process.exit(1);
   }
 
-  await insertChapters(chapters, db, buildId);
-  await insertBooks(books, db, buildId);
+  await insertChapters(
+    serializedBooks.flatMap((b) => b.chapters),
+    db,
+    buildId
+  );
+  await insertBooks(serializedBooks, db, buildId);
   await insertCollections(collections, db, buildId);
 };

@@ -5,6 +5,7 @@ import { getBookProps } from "@/utils/getBookProps";
 import { getCollectionProps } from "@/utils/getCollectionProps";
 import { getPaths } from "@/utils/getPaths";
 import { UserContextProvider } from "@/context/UserContextProvider";
+import { getBookPropsFromDb } from "@/api/getBookProps.dao";
 
 const ignoreLogin = process && process.env.NEXT_PUBLIC_IGNORE_LOGIN === "true";
 
@@ -21,7 +22,7 @@ export async function generateMetadata({
   const path = (await params).path ?? [];
   const isBook = !!getMdFile(path);
   const props = isBook
-    ? await getBookProps(path)
+    ? await getBookPropsFromDb(path)
     : await getCollectionProps(path);
   return {
     title: props!.frontmatter.title,
@@ -37,7 +38,8 @@ export default async function CollectionOrBookPage({
   const path = (await params).path ?? [];
 
   if (getMdFile(path)) {
-    const props = await getBookProps(path);
+    const props = await getBookPropsFromDb(path);
+
     const requireEmail = !!props.frontmatter.requireLogin && !ignoreLogin;
 
     return (

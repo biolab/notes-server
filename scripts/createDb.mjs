@@ -40,7 +40,7 @@ async function rebuildDatabase() {
            path TEXT NOT NULL UNIQUE,
            title TEXT NOT NULL,
            lastBuildId INTEGER NOT NULL,
-
+           content JSON NOT NULL,
            FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
       );
    `);
@@ -52,7 +52,8 @@ async function rebuildDatabase() {
           path  TEXT NOT NULL UNIQUE,
           title TEXT NOT NULL,
           lastBuildId INTEGER NOT NULL,
-
+          content JSON NOT NULL,
+        
           FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
       );
     `);
@@ -133,35 +134,18 @@ async function rebuildDatabase() {
       );
   `);
 
-  conn.exec(`DROP TABLE IF EXISTS quiz_states`);
+  conn.exec(`DROP TABLE IF EXISTS answers`);
   conn.exec(`
-      CREATE TABLE quiz_states (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          user_id INTEGER NOT NULL,
-          book_slug TEXT,
-          state JSON NOT NULL,
-          quiz_version INTEGER NOT NULL DEFAULT 1,
-          is_quiz_complete BOOLEAN NOT NULL DEFAULT 0,
-          submission_sent BOOLEAN NOT NULL DEFAULT 0,
-          UNIQUE(user_id, book_slug, quiz_version),
-          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-          FOREIGN KEY(book_slug) REFERENCES books(path) ON DELETE SET NULL 
-      );
-  `);
-
-  conn.exec(`DROP TABLE IF EXISTS events`);
-  conn.exec(`
-      CREATE TABLE events (
+      CREATE TABLE answers (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           user_id INTEGER NOT NULL,
-          book_slug TEXT,
-          event_type TEXT NOT NULL,
-          value JSON NOT NULL,
+          book_id TEXT,
+          question_id TEXT NOT NULL,
+          answerValue JSON NOT NULL,
           FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-          FOREIGN KEY(book_slug) REFERENCES books(path) ON DELETE SET NULL 
+          FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE SET NULL 
+          FOREIGN KEY(question_id) REFERENCES questions(id) ON DELETE SET NULL 
       );
   `);
 }

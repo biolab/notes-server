@@ -12,9 +12,10 @@ import {
 import { useMountEffect } from "../../hooks/useMountEffect";
 import { useIntl } from "../../i18n";
 import { useCallback } from "react";
-import { QuizContext } from "@/context/QuizContextProvider";
+import { IAnswerValue, QuizContext } from "@/context/QuizContextProvider";
 import { QuizService_PostEvent } from "@/server-functions/QuizService";
 import { UserContext } from "@/context/UserContextProvider";
+import { QuestionDef } from "@/utils/preflight";
 
 export enum EventTypes {
   ANSWER_QUIZ = "ANSWER_QUIZ",
@@ -23,8 +24,8 @@ export enum EventTypes {
 export interface IQuiz {
   id?: string;
   type: "multi" | "text" | "long-text";
-  chapterIndex: number;
   question: string;
+  dbQuestions: QuestionDef[];
   multiSelect?: boolean;
   gpt?: boolean;
   options?: string[];
@@ -39,6 +40,7 @@ export interface IQuiz {
   timeout?: number;
   showQuiz?: boolean;
   children?: Element;
+  bookId: number;
 }
 
 export default function Quiz({
@@ -52,19 +54,20 @@ export default function Quiz({
   checker,
   scorer: scorerFromMdx,
   answer: answerFromMdx,
-  chapterIndex,
   showQuiz,
   optional = false,
   points = 0,
   trials: max_trials = 1,
   timeout = 0,
   children,
+  dbQuestions,
+  bookId,
 }: IQuiz) {
   const [answer, setAnswer] = React.useState(null);
   const [normalizedAnswer, setNormalizedAnswer] = React.useState(null);
   const { quizReducer, quizState } = React.useContext(QuizContext);
   const [error, setError] = React.useState(null);
-  const [correct, setCorrect] = React.useState(null);
+  const [correct, setCorrect] = React.useState<null | boolean>(null);
   const [isNeutral, setIsNeutral] = React.useState(false);
   const [trial, setTrial] = React.useState(0);
   const [submitted, setSubmitted] = React.useState(false);
@@ -72,6 +75,10 @@ export default function Quiz({
   const [isLoading, setIsLoading] = React.useState(false);
   const { t } = useIntl();
   const { user } = React.useContext(UserContext);
+
+  const dbQuestion = React.useMemo(() => {
+    return dbQuestions.find((q) => q.question === question)!;
+  }, [dbQuestions, question]);
 
   // TODO - Replace with actual LLM call
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -123,17 +130,16 @@ export default function Quiz({
     timerType: "DECREMENTAL",
   });
 
-  // const { track } = useTracking();
   const trackEvent = useCallback(
-    async ({ type, value }: { type: EventTypes; value: any }) => {
+    async ({ value }: { value: IAnswerValue }) => {
       await QuizService_PostEvent({
+        id: dbQuestion.id!,
+        bookId: bookId,
         user,
-        type,
         value,
-        slug: quizState!.slug,
       });
     },
-    [quizState, user]
+    [bookId, dbQuestion.id, user]
   );
 
   useMountEffect(() => {
@@ -271,14 +277,14 @@ export default function Quiz({
         }
       }
 
-      let isCorrect = null;
+      let isCorrect: null | boolean = null;
 
       if (scorer && !optional) {
         // For gpt-text, use the async scorer function
         if (gpt) {
           isCorrect = await scorer(_answer as string);
         } else {
-          isCorrect = scorer(_normalizedAnswer as string);
+          isCorrect = scorer(_normalizedAnswer as string) as boolean;
         }
       }
 
@@ -293,20 +299,15 @@ export default function Quiz({
         setTrial((v) => v + 1);
       }
 
-      const event = {
+      const event: { type: EventTypes; value: IAnswerValue } = {
         type: EventTypes.ANSWER_QUIZ,
         value: {
           question_id,
           isCorrect,
           isNeutral: _isNeutral,
-          chapterIndex,
           answer: _answer,
-          available_points: points,
-          question: question,
           points: isCorrect ? points : 0,
-          timestamp: Date.now(),
-          trial: trial,
-          max_trials,
+          trial,
         },
       };
 
@@ -329,9 +330,7 @@ export default function Quiz({
       type,
       gpt,
       question_id,
-      chapterIndex,
       points,
-      question,
       trial,
       max_trials,
       trackEvent,
