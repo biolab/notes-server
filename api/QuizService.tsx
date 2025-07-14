@@ -4,48 +4,7 @@ import { IAnswerValue } from "@/context/QuizContextProvider";
 import { User } from "@/context/UserContextProvider";
 import withDb from "@/utils/db";
 
-export const QuizService_GetState = async ({
-  user,
-  slug,
-  quizVersion,
-}: {
-  user: User | null;
-  slug: string;
-  quizVersion: number;
-}) => {
-  if (!user || !user.accessToken) {
-    return null;
-  }
-
-  const db = await withDb();
-
-  const userFromDb = await db.get(
-    `SELECT * FROM users WHERE accessToken = ? and deleted = 0`,
-    [user.accessToken]
-  );
-
-  if (!userFromDb) {
-    await db.close();
-    throw new Error("User not found or deleted");
-  }
-
-  const currentState = await db.get(
-    `SELECT state
-     FROM quiz_states
-     WHERE userId = ? AND book_slug = ? AND quiz_version = ?`,
-    [userFromDb.id, slug, quizVersion]
-  );
-
-  await db.close();
-
-  if (!currentState) {
-    return null;
-  }
-
-  return JSON.parse(currentState.state);
-};
-
-export const QuizService_PostEvent = async ({
+export const _postAnswer = async ({
   id,
   value,
   user,
@@ -80,7 +39,7 @@ export const QuizService_PostEvent = async ({
   await db.close();
 };
 
-export const QuizService_GetAnswers = async ({
+export const _getAnswers = async ({
   user,
   bookId,
 }: {

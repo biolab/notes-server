@@ -12,7 +12,7 @@ import {
   QuizContextProvider,
 } from "@/context/QuizContextProvider";
 import { UserContext } from "@/context/UserContextProvider";
-import { QuizService_GetAnswers } from "@/server-functions/QuizService";
+import { _getAnswers } from "@/api/QuizService";
 import BookLogin from "./BookLogin";
 import { logger } from "@/utils/logger";
 import Layout from "../Layout/Layout";
@@ -31,8 +31,6 @@ export const Book = ({
     "pending"
   );
 
-  logger("Book component mounted with slug:", slug);
-
   const loading = retrievingUser || answers === "pending";
 
   React.useEffect(() => {
@@ -46,7 +44,7 @@ export const Book = ({
     }
 
     const fetchState = async () => {
-      const _answers = await QuizService_GetAnswers({
+      const _answers = await _getAnswers({
         user,
         bookId: bookId!,
       });

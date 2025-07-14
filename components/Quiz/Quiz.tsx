@@ -13,7 +13,7 @@ import { useMountEffect } from "../../hooks/useMountEffect";
 import { useIntl } from "../../i18n";
 import { useCallback } from "react";
 import { IAnswerValue, QuizContext } from "@/context/QuizContextProvider";
-import { QuizService_PostEvent } from "@/server-functions/QuizService";
+import { _postAnswer } from "@/api/QuizService";
 import { UserContext } from "@/context/UserContextProvider";
 import { QuestionDef } from "@/utils/preflight";
 
@@ -130,9 +130,9 @@ export default function Quiz({
     timerType: "DECREMENTAL",
   });
 
-  const trackEvent = useCallback(
+  const postAnswer = useCallback(
     async ({ value }: { value: IAnswerValue }) => {
-      await QuizService_PostEvent({
+      await _postAnswer({
         id: dbQuestion.id!,
         bookId: bookId,
         user,
@@ -311,7 +311,7 @@ export default function Quiz({
         },
       };
 
-      trackEvent(event);
+      postAnswer(event);
       quizReducer(event);
       setSubmitted(true);
 
@@ -333,7 +333,7 @@ export default function Quiz({
       points,
       trial,
       max_trials,
-      trackEvent,
+      postAnswer,
       quizReducer,
       timeout,
       startTimer,

@@ -4,7 +4,7 @@ import React from "react";
 import { BiUserCircle } from "react-icons/bi";
 import { Modal, notification } from "antd";
 import { UserContext } from "@/context/UserContextProvider";
-import { UserService_Delete } from "@/server-functions/UserService";
+import { UserService_Delete } from "@/api/UserService";
 import { logger } from "@/utils/logger";
 
 function useOutsideClick(ref, onClick) {

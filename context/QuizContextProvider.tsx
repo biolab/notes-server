@@ -1,4 +1,4 @@
-import { QuizService_PostState } from "@/server-functions/QuizService";
+import { QuizService_PostState } from "@/api/QuizService";
 import { ChapterDef } from "@/types/types";
 import React, { useReducer } from "react";
 import { UserContext } from "./UserContextProvider";

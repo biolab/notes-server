@@ -2,7 +2,7 @@
 
 import withDb from "@/utils/db";
 
-export const AdminService_GetSubmissions = async ({
+export const _getSubmissions = async ({
   adminAccessToken,
   slug,
 }: {

@@ -3,7 +3,7 @@
 import withDb from "@/utils/db";
 import { BookProps } from "@/utils/getBookProps";
 
-export const getBookPropsFromDb = async (
+export const _getBookPropsFromDb = async (
   pathParts: string[]
 ): Promise<BookProps> => {
   const db = await withDb();

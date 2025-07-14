@@ -2,14 +2,10 @@
 
 import { v4 } from "uuid";
 import withDb from "@/utils/db";
-import { EmailService_Send } from "./EmailService";
+import { _sendEmail } from "./EmailService";
 import { logger } from "@/utils/logger";
 
-export const UserService_Get = async ({
-  accessToken,
-}: {
-  accessToken: string;
-}) => {
+export const _getUser = async ({ accessToken }: { accessToken: string }) => {
   const db = await withDb();
 
   const existingUser = await db.get(
@@ -62,7 +58,7 @@ export const UserService_Delete = async ({
   await db.close();
 };
 
-export const UserService_Create = async ({
+export const _registerUser = async ({
   email,
   emailContent,
   url,
@@ -115,7 +111,7 @@ export const UserService_Create = async ({
 
       logger("Sending email to:", user.email, "with body:", emailBody);
 
-      await EmailService_Send({
+      await _sendEmail({
         sendTo: user.email,
         subject: emailContent?.subject || "",
         html: emailBody,

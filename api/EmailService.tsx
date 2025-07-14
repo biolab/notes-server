@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
   secure: true,
 });
 
-export const EmailService_Send = async ({
+export const _sendEmail = async ({
   sendTo,
   subject,
   html,
