@@ -118,7 +118,7 @@ export default function Quiz({
     return scorerFromMdx;
   }, [answerFromMdx, scorerFromMdx, gpt, question, processResponse]);
 
-  const question_id = React.useMemo(() => id || question, [id, question]);
+  const questionId = React.useMemo(() => id || question, [id, question]);
 
   const {
     time: timeLeft,
@@ -156,7 +156,7 @@ export default function Quiz({
     }
 
     const valueInState = quizState?.questions.find(
-      (q) => q.question_id === question_id
+      (q) => q.questionId === questionId
     );
 
     if (!valueInState) {
@@ -302,7 +302,7 @@ export default function Quiz({
       const event: { type: EventTypes; value: IAnswerValue } = {
         type: EventTypes.ANSWER_QUIZ,
         value: {
-          question_id,
+          questionId,
           isCorrect,
           isNeutral: _isNeutral,
           answer: _answer,
@@ -329,7 +329,7 @@ export default function Quiz({
       neutralOptions,
       type,
       gpt,
-      question_id,
+      questionId,
       points,
       trial,
       max_trials,

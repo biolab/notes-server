@@ -14,7 +14,6 @@ export const QuizService_GetState = async ({
   quizVersion: number;
 }) => {
   if (!user || !user.access_token) {
-    console.log("no user");
     return null;
   }
 
@@ -74,7 +73,7 @@ export const QuizService_PostEvent = async ({
   }
 
   await db.run(
-    `INSERT INTO answers (user_id, book_id, question_id, answerValue) VALUES (?, ?, ?, ?)`,
+    `INSERT INTO answers (user_id, book_id, questionId, answerValue) VALUES (?, ?, ?, ?)`,
     [userFromDb.id, bookId, id, JSON.stringify(value)]
   );
 
@@ -104,15 +103,12 @@ export const QuizService_GetAnswers = async ({
     return null;
   }
 
-  console.log(userFromDb);
-  console.log(bookId);
-
   const events = await db.all(
     `SELECT
         answers.answerValue, 
-        questions.questionId as question_id
+        questions.questionId as questionId
       FROM answers
-      LEFT JOIN questions ON answers.question_id = questions.id
+      LEFT JOIN questions ON answers.questionId = questions.id
       WHERE user_id = ? AND book_id = ?
       ORDER BY answers.created_at ASC`,
     [userFromDb.id, bookId]

@@ -141,11 +141,11 @@ async function rebuildDatabase() {
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           user_id INTEGER NOT NULL,
           book_id TEXT,
-          question_id TEXT NOT NULL,
+          questionId TEXT NOT NULL,
           answerValue JSON NOT NULL,
           FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
           FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE SET NULL 
-          FOREIGN KEY(question_id) REFERENCES questions(id) ON DELETE SET NULL 
+          FOREIGN KEY(questionId) REFERENCES questions(id) ON DELETE SET NULL 
       );
   `);
 }

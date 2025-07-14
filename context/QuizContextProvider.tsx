@@ -8,7 +8,7 @@ import { logger } from "@/utils/logger";
 export const QUIZ_VERSION = 2;
 
 export type IAnswerValue = {
-  question_id: string;
+  questionId: string;
   isCorrect: boolean | null;
   isNeutral: boolean;
   answer: string | string[];
@@ -17,7 +17,7 @@ export type IAnswerValue = {
 };
 
 export interface QuestionI {
-  question_id: string;
+  questionId: string;
   question: string;
   possiblePoints: number;
   chapterIndex: number;
@@ -38,7 +38,7 @@ export interface QuizStateI {
 const getQuestionsFromChapters = (chapters: ChapterDef[]): QuestionI[] => {
   return chapters.flatMap((chapter, chapterIndex) => {
     return (chapter.questions || []).map((question) => ({
-      question_id: question.questionId,
+      questionId: question.questionId,
       question: question.question,
       possiblePoints: question.points || 0,
       chapterIndex,
@@ -78,7 +78,7 @@ const getQuizState = ({
 
   for (const answer of answers) {
     const question = state.questions.find(
-      (q) => q.question_id === answer.question_id
+      (q) => q.questionId === answer.questionId
     );
 
     if (question) {
@@ -105,7 +105,7 @@ const reducer = (
       const _state = {
         ...state,
         questions: state.questions.map((q) =>
-          q.question_id === value.question_id
+          q.questionId === value.questionId
             ? {
                 ...q,
                 answers: [...(q.answers || []), value],
