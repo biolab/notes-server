@@ -3,23 +3,7 @@
 import { IAnswerValue } from "@/context/QuizContextProvider";
 import { User } from "@/context/UserContextProvider";
 import db from "@/utils/db";
-
-const getUserOrThrow = async (user: User | null) => {
-  if (!user || !user.accessToken) {
-    throw new Error("User missing");
-  }
-
-  const userFromDb = await db.get(
-    `SELECT id, email FROM users WHERE accessToken = ? and deleted = 0`,
-    [user.accessToken]
-  );
-
-  if (!userFromDb) {
-    throw new Error("User not found in the database");
-  }
-
-  return userFromDb;
-};
+import { _getUserOrThrow } from "./UserService";
 
 export const _postAnswer = async ({
   id,
@@ -32,7 +16,7 @@ export const _postAnswer = async ({
   user: User | null;
   bookId: number;
 }) => {
-  const userFromDb = await getUserOrThrow(user);
+  const userFromDb = await _getUserOrThrow(user);
 
   await db.run(
     `INSERT INTO answers (userId, bookId, questionId, answerValue) VALUES (?, ?, ?, ?)`,
@@ -47,7 +31,7 @@ export const _getAnswers = async ({
   user: User | null;
   bookId: number;
 }): Promise<IAnswerValue[] | null> => {
-  const userFromDb = await getUserOrThrow(user);
+  const userFromDb = await _getUserOrThrow(user);
 
   const events = await db.all(
     `SELECT

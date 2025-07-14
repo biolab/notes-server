@@ -16,6 +16,7 @@ import { _getAnswers } from "@/api/QuizService";
 import BookLogin from "./BookLogin";
 import { logger } from "@/utils/logger";
 import Layout from "../Layout/Layout";
+import { toast } from "react-toastify";
 
 export const Book = ({
   frontmatter,
@@ -43,18 +44,18 @@ export const Book = ({
       return;
     }
 
-    const fetchState = async () => {
-      const _answers = await _getAnswers({
-        user,
-        bookId: bookId!,
+    _getAnswers({
+      user,
+      bookId: bookId!,
+    })
+      .then((_answers) => {
+        logger("Quiz answers fetched:", _answers);
+        setAnswers(_answers);
+      })
+      .catch((error) => {
+        toast.error(error.message || "Failed to fetch quiz answers");
+        setAnswers(null);
       });
-
-      logger("Quiz answers fetched:", _answers);
-
-      setAnswers(_answers);
-    };
-
-    fetchState();
   }, [user, retrievingUser, slug, bookId]);
 
   const chapterNumbers = React.useMemo(

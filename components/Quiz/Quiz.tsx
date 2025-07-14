@@ -16,6 +16,7 @@ import { IAnswerValue, QuizContext } from "@/context/QuizContextProvider";
 import { _postAnswer } from "@/api/QuizService";
 import { UserContext } from "@/context/UserContextProvider";
 import { QuestionDef } from "@/utils/preflight";
+import { toast } from "react-toastify";
 
 export enum EventTypes {
   ANSWER_QUIZ = "ANSWER_QUIZ",
@@ -131,12 +132,18 @@ export default function Quiz({
   });
 
   const postAnswer = useCallback(
-    async ({ value }: { value: IAnswerValue }) => {
-      await _postAnswer({
+    ({ value }: { value: IAnswerValue }) => {
+      _postAnswer({
         id: dbQuestion.id!,
         bookId: bookId,
         user,
         value,
+      }).catch((error) => {
+        toast.error(
+          `Something went wrong. Answers are not saved.${
+            error.message ? ` Error: ${error.message}` : ""
+          }`
+        );
       });
     },
     [bookId, dbQuestion.id, user]

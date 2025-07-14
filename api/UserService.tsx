@@ -4,6 +4,24 @@ import { v4 } from "uuid";
 import { _sendEmail } from "./EmailService";
 import { logger } from "@/utils/logger";
 import db from "@/utils/db";
+import { User } from "@/context/UserContextProvider";
+
+export const _getUserOrThrow = async (user: User | null) => {
+  if (!user || !user.accessToken) {
+    throw new Error("User missing");
+  }
+
+  const userFromDb = await db.get(
+    `SELECT id, email FROM users WHERE accessToken = ? and deleted = 0`,
+    [user.accessToken]
+  );
+
+  if (!userFromDb) {
+    throw new Error("User not found in the database");
+  }
+
+  return userFromDb;
+};
 
 export const _getUser = async ({ accessToken }: { accessToken: string }) => {
   const existingUser = await db.get(
@@ -23,30 +41,15 @@ export const _getUser = async ({ accessToken }: { accessToken: string }) => {
   return existingUser;
 };
 
-export const UserService_Delete = async ({
-  accessToken,
-}: {
-  accessToken?: string;
-}) => {
-  if (!accessToken) {
-    return;
-  }
-
-  const existingUser = await db.get(
-    `SELECT * FROM users WHERE accessToken = ? and deleted = 0`,
-    [accessToken]
-  );
-
-  if (!existingUser) {
-    return;
-  }
+export const _deleteUser = async (user: User | null) => {
+  const userFromDb = await _getUserOrThrow(user);
 
   // Delete user data
-  await db.run(`DELETE FROM answers WHERE userId = ?`, [existingUser.id]);
+  await db.run(`DELETE FROM answers WHERE userId = ?`, [userFromDb.id]);
 
   await db.run(
     `UPDATE users SET deleted = 1, deletedCount = deletedCount + 1 WHERE id = ?`,
-    [existingUser.id]
+    [userFromDb.id]
   );
 };
 

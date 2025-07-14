@@ -2,10 +2,11 @@
 
 import React from "react";
 import { BiUserCircle } from "react-icons/bi";
-import { Modal, notification } from "antd";
+import { Modal } from "antd";
 import { UserContext } from "@/context/UserContextProvider";
-import { UserService_Delete } from "@/api/UserService";
+import { _deleteUser } from "@/api/UserService";
 import { logger } from "@/utils/logger";
+import { toast } from "react-toastify";
 
 function useOutsideClick(ref, onClick) {
   React.useEffect(() => {
@@ -32,34 +33,22 @@ const UserDropdown = () => {
 
   const [show, setShow] = React.useState(false);
 
-  const [api, contextHolder] = notification.useNotification();
-
-  const openNotification = React.useCallback(() => {
-    api.error({
-      message: "Something went wrong",
-      description: "User data was not deleted",
-      duration: 0,
-    });
-  }, [api]);
-
   const [showModal, setShowModal] = React.useState(false);
   const [confirmLoading, setConfirmLoading] = React.useState(false);
 
   const handleClose = React.useCallback(async () => {
     setConfirmLoading(true);
     try {
-      await UserService_Delete({
-        accessToken: user?.accessToken,
-      });
+      await _deleteUser(user);
       logOut();
       window.location.reload();
     } catch (error) {
       logger("Error deleting user data:", error);
-      openNotification();
+      toast.error("Something went wrong. User data was not deleted.");
     }
 
     setConfirmLoading(false);
-  }, [logOut, openNotification, user?.accessToken]);
+  }, [logOut, user]);
 
   const handleShowModal = React.useCallback(() => {
     setShowModal(true);
@@ -71,7 +60,6 @@ const UserDropdown = () => {
   }
   return (
     <>
-      {contextHolder}
       <div ref={wrapperRef} className="user-dropdown">
         <BiUserCircle onClick={() => setShow((show) => !show)} />
         {show && (
