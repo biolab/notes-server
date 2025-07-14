@@ -11,7 +11,7 @@ export const AdminService_GetSubmissions = async ({
 }) => {
   const db = await withDb();
   const userFromDb = await db.get(
-    `SELECT id FROM users WHERE access_token = ? and deleted = 0`,
+    `SELECT id FROM users WHERE accessToken = ? and deleted = 0`,
     [adminAccessToken]
   );
 

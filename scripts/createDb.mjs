@@ -124,12 +124,12 @@ async function rebuildDatabase() {
       CREATE TABLE users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           email TEXT UNIQUE DEFAULT NULL,
-          access_token TEXT NOT NULL,
+          accessToken TEXT NOT NULL,
           admin BOOLEAN NOT NULL DEFAULT 0,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          last_use_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          lastUseAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           deleted BOOLEAN NOT NULL DEFAULT 0,
-          deleted_count INTEGER NOT NULL DEFAULT 0,
+          deletedCount INTEGER NOT NULL DEFAULT 0,
           UNIQUE(email)
       );
   `);
@@ -138,13 +138,13 @@ async function rebuildDatabase() {
   conn.exec(`
       CREATE TABLE answers (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          user_id INTEGER NOT NULL,
-          book_id TEXT,
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          userId INTEGER NOT NULL,
+          bookId TEXT,
           questionId TEXT NOT NULL,
           answerValue JSON NOT NULL,
-          FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-          FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE SET NULL 
+          FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+          FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE SET NULL 
           FOREIGN KEY(questionId) REFERENCES questions(id) ON DELETE SET NULL 
       );
   `);

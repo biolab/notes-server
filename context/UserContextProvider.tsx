@@ -11,7 +11,7 @@ import {
 import { logger } from "@/utils/logger";
 
 export interface User {
-  access_token: string;
+  accessToken: string;
   email: string;
   id: number;
   admin?: boolean;
@@ -64,7 +64,7 @@ export const UserContextProvider = ({
   const [showLogin, setShowLogin] = React.useState(false);
 
   const searchParams = useSearchParams();
-  const accessTokenFromQuery = searchParams.get("access_token");
+  const accessTokenFromQuery = searchParams.get("accessToken");
 
   const onUserLogin = React.useCallback(
     (user: User) => {
@@ -105,9 +105,9 @@ export const UserContextProvider = ({
   }, [onUserLogin, requireEmail]);
 
   const fetchUser = React.useCallback(
-    async (access_token: string) => {
+    async (accessToken: string) => {
       try {
-        const _user = await UserService_Get({ access_token });
+        const _user = await UserService_Get({ accessToken });
 
         logger("Fetched user:", _user);
 
@@ -145,9 +145,9 @@ export const UserContextProvider = ({
     const userFromLS = getUserFromLocalStorage();
     localStorage.removeItem(USER_LS_KEY);
 
-    if (userFromLS?.access_token) {
+    if (userFromLS?.accessToken) {
       logger("User from local storage:", userFromLS);
-      fetchUser(userFromLS.access_token);
+      fetchUser(userFromLS.accessToken);
       return;
     }
 

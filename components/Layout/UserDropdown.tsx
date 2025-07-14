@@ -49,7 +49,7 @@ const UserDropdown = () => {
     setConfirmLoading(true);
     try {
       await UserService_Delete({
-        access_token: user?.access_token,
+        accessToken: user?.accessToken,
       });
       logOut();
       window.location.reload();
@@ -59,7 +59,7 @@ const UserDropdown = () => {
     }
 
     setConfirmLoading(false);
-  }, [logOut, openNotification, user?.access_token]);
+  }, [logOut, openNotification, user?.accessToken]);
 
   const handleShowModal = React.useCallback(() => {
     setShowModal(true);

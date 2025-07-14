@@ -6,15 +6,15 @@ import { EmailService_Send } from "./EmailService";
 import { logger } from "@/utils/logger";
 
 export const UserService_Get = async ({
-  access_token,
+  accessToken,
 }: {
-  access_token: string;
+  accessToken: string;
 }) => {
   const db = await withDb();
 
   const existingUser = await db.get(
-    `SELECT id, access_token, email FROM users WHERE access_token = ? and deleted = 0`,
-    [access_token]
+    `SELECT id, accessToken, email FROM users WHERE accessToken = ? and deleted = 0`,
+    [accessToken]
   );
 
   if (!existingUser) {
@@ -22,10 +22,9 @@ export const UserService_Get = async ({
   }
 
   // Update last use timestamp
-  await db.run(
-    `UPDATE users SET last_use_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    [existingUser.id]
-  );
+  await db.run(`UPDATE users SET lastUseAt = CURRENT_TIMESTAMP WHERE id = ?`, [
+    existingUser.id,
+  ]);
 
   await db.close();
 
@@ -33,19 +32,19 @@ export const UserService_Get = async ({
 };
 
 export const UserService_Delete = async ({
-  access_token,
+  accessToken,
 }: {
-  access_token?: string;
+  accessToken?: string;
 }) => {
-  if (!access_token) {
+  if (!accessToken) {
     return;
   }
 
   const db = await withDb();
 
   const existingUser = await db.get(
-    `SELECT * FROM users WHERE access_token = ? and deleted = 0`,
-    [access_token]
+    `SELECT * FROM users WHERE accessToken = ? and deleted = 0`,
+    [accessToken]
   );
 
   if (!existingUser) {
@@ -53,10 +52,10 @@ export const UserService_Delete = async ({
   }
 
   // Delete user data
-  await db.run(`DELETE FROM answers WHERE user_id = ?`, [existingUser.id]);
+  await db.run(`DELETE FROM answers WHERE userId = ?`, [existingUser.id]);
 
   await db.run(
-    `UPDATE users SET deleted = 1, deleted_count = deleted_count + 1 WHERE id = ?`,
+    `UPDATE users SET deleted = 1, deletedCount = deletedCount + 1 WHERE id = ?`,
     [existingUser.id]
   );
 
@@ -90,13 +89,13 @@ export const UserService_Create = async ({
   if (!user) {
     const accessToken = v4();
 
-    await db.run(`INSERT INTO users (email, access_token) VALUES (?, ?)`, [
+    await db.run(`INSERT INTO users (email, accessToken) VALUES (?, ?)`, [
       email,
       accessToken,
     ]);
 
     user = await db.get(
-      `SELECT id, access_token, email FROM users WHERE access_token = ?`,
+      `SELECT id, accessToken, email FROM users WHERE accessToken = ?`,
       [accessToken]
     );
   }
@@ -107,7 +106,7 @@ export const UserService_Create = async ({
 
   if (user.email) {
     try {
-      link = `${url}?access_token=${user.access_token}`;
+      link = `${url}?accessToken=${user.accessToken}`;
 
       const emailBody = (
         emailContent?.body ||

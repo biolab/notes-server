@@ -13,15 +13,15 @@ export const QuizService_GetState = async ({
   slug: string;
   quizVersion: number;
 }) => {
-  if (!user || !user.access_token) {
+  if (!user || !user.accessToken) {
     return null;
   }
 
   const db = await withDb();
 
   const userFromDb = await db.get(
-    `SELECT * FROM users WHERE access_token = ? and deleted = 0`,
-    [user.access_token]
+    `SELECT * FROM users WHERE accessToken = ? and deleted = 0`,
+    [user.accessToken]
   );
 
   if (!userFromDb) {
@@ -32,7 +32,7 @@ export const QuizService_GetState = async ({
   const currentState = await db.get(
     `SELECT state
      FROM quiz_states
-     WHERE user_id = ? AND book_slug = ? AND quiz_version = ?`,
+     WHERE userId = ? AND book_slug = ? AND quiz_version = ?`,
     [userFromDb.id, slug, quizVersion]
   );
 
@@ -56,15 +56,15 @@ export const QuizService_PostEvent = async ({
   user: User | null;
   bookId: number;
 }) => {
-  if (!user || !user.access_token) {
+  if (!user || !user.accessToken) {
     return null;
   }
 
   const db = await withDb();
 
   const userFromDb = await db.get(
-    `SELECT id, email FROM users WHERE access_token = ? and deleted = 0`,
-    [user.access_token]
+    `SELECT id, email FROM users WHERE accessToken = ? and deleted = 0`,
+    [user.accessToken]
   );
 
   if (!userFromDb) {
@@ -73,7 +73,7 @@ export const QuizService_PostEvent = async ({
   }
 
   await db.run(
-    `INSERT INTO answers (user_id, book_id, questionId, answerValue) VALUES (?, ?, ?, ?)`,
+    `INSERT INTO answers (userId, bookId, questionId, answerValue) VALUES (?, ?, ?, ?)`,
     [userFromDb.id, bookId, id, JSON.stringify(value)]
   );
 
@@ -87,15 +87,15 @@ export const QuizService_GetAnswers = async ({
   user: User | null;
   bookId: number;
 }): Promise<IAnswerValue[] | null> => {
-  if (!user || !user.access_token) {
+  if (!user || !user.accessToken) {
     return null;
   }
 
   const db = await withDb();
 
   const userFromDb = await db.get(
-    `SELECT id FROM users WHERE access_token = ? and deleted = 0`,
-    [user.access_token]
+    `SELECT id FROM users WHERE accessToken = ? and deleted = 0`,
+    [user.accessToken]
   );
 
   if (!userFromDb) {
@@ -109,8 +109,8 @@ export const QuizService_GetAnswers = async ({
         questions.questionId as questionId
       FROM answers
       LEFT JOIN questions ON answers.questionId = questions.id
-      WHERE user_id = ? AND book_id = ?
-      ORDER BY answers.created_at ASC`,
+      WHERE userId = ? AND bookId = ?
+      ORDER BY answers.createdAt ASC`,
     [userFromDb.id, bookId]
   );
 
