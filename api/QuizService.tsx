@@ -4,6 +4,23 @@ import { IAnswerValue } from "@/context/QuizContextProvider";
 import { User } from "@/context/UserContextProvider";
 import db from "@/utils/db";
 
+const getUserOrThrow = async (user: User | null) => {
+  if (!user || !user.accessToken) {
+    throw new Error("User missing");
+  }
+
+  const userFromDb = await db.get(
+    `SELECT id, email FROM users WHERE accessToken = ? and deleted = 0`,
+    [user.accessToken]
+  );
+
+  if (!userFromDb) {
+    throw new Error("User not found in the database");
+  }
+
+  return userFromDb;
+};
+
 export const _postAnswer = async ({
   id,
   value,
@@ -15,18 +32,7 @@ export const _postAnswer = async ({
   user: User | null;
   bookId: number;
 }) => {
-  if (!user || !user.accessToken) {
-    return null;
-  }
-
-  const userFromDb = await db.get(
-    `SELECT id, email FROM users WHERE accessToken = ? and deleted = 0`,
-    [user.accessToken]
-  );
-
-  if (!userFromDb) {
-    return;
-  }
+  const userFromDb = await getUserOrThrow(user);
 
   await db.run(
     `INSERT INTO answers (userId, bookId, questionId, answerValue) VALUES (?, ?, ?, ?)`,
@@ -41,18 +47,7 @@ export const _getAnswers = async ({
   user: User | null;
   bookId: number;
 }): Promise<IAnswerValue[] | null> => {
-  if (!user || !user.accessToken) {
-    return null;
-  }
-
-  const userFromDb = await db.get(
-    `SELECT id FROM users WHERE accessToken = ? and deleted = 0`,
-    [user.accessToken]
-  );
-
-  if (!userFromDb) {
-    return null;
-  }
+  const userFromDb = await getUserOrThrow(user);
 
   const events = await db.all(
     `SELECT
