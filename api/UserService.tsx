@@ -78,7 +78,7 @@ export const registerUser = async ({
   if (!user) {
     const accessToken = v4();
 
-    user = await db.run(
+    user = await db.get(
       `
       INSERT INTO users (email, accessToken) 
       VALUES (?, ?)

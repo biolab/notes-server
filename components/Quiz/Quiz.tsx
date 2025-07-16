@@ -13,7 +13,7 @@ import { useMountEffect } from "../../hooks/useMountEffect";
 import { useIntl } from "../../i18n";
 import { useCallback } from "react";
 import { IAnswerValue, QuizContext } from "@/context/QuizContextProvider";
-import { postAnswer } from "@/api/QuizService";
+import { postAnswer as postAnswerApi } from "@/api/QuizService";
 import { UserContext } from "@/context/UserContextProvider";
 import { QuestionDef } from "@/utils/preflight";
 import { toast } from "react-toastify";
@@ -136,7 +136,7 @@ export default function Quiz({
 
   const postAnswer = useCallback(
     ({ value }: { value: IAnswerValue }) => {
-      postAnswer({
+      postAnswerApi({
         id: dbQuestion.id!,
         bookId: bookId,
         user,
