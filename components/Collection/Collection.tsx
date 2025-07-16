@@ -4,7 +4,7 @@ import React from "react";
 import { MdxRenderer } from "../MdxRenderer";
 import Link from "next/link";
 import { IntlContextProvider, useIntl } from "../../i18n";
-import Layout from "../layout";
+import Layout from "../Layout/Layout";
 import Image from "../Image";
 import { CollectionProps } from "@/utils/getCollectionProps";
 

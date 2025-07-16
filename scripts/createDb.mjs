@@ -1,9 +1,9 @@
-import sqlite3 from 'sqlite3';
-import fs from 'fs';
-import path from 'path';
+import sqlite3 from "sqlite3";
+import fs from "fs";
+import path from "path";
 
 const DB_PATH = path.join(process.cwd(), "db");
-const DB_FILE = path.join(DB_PATH, 'notes.sqlite');
+const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
 async function rebuildDatabase() {
   if (!fs.existsSync(DB_PATH)) {
@@ -11,8 +11,8 @@ async function rebuildDatabase() {
   }
   const conn = new sqlite3.Database(DB_FILE);
 
-  await conn.exec(`DROP TABLE IF EXISTS builds`);
-  await conn.exec(`
+  conn.exec(`DROP TABLE IF EXISTS builds`);
+  conn.exec(`
       CREATE TABLE builds (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           trigger TEXT NOT NULL,
@@ -21,8 +21,8 @@ async function rebuildDatabase() {
       );
   `);
 
-  await conn.exec(`DROP TABLE IF EXISTS collections`);
-  await conn.exec(`
+  conn.exec(`DROP TABLE IF EXISTS collections`);
+  conn.exec(`
       CREATE TABLE collections (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           path TEXT NOT NULL UNIQUE,
@@ -33,32 +33,33 @@ async function rebuildDatabase() {
       );
   `);
 
-  await conn.exec(`DROP TABLE IF EXISTS books`);
-  await conn.exec(`
+  conn.exec(`DROP TABLE IF EXISTS books`);
+  conn.exec(`
       CREATE TABLE books (
            id INTEGER PRIMARY KEY AUTOINCREMENT,
            path TEXT NOT NULL UNIQUE,
            title TEXT NOT NULL,
            lastBuildId INTEGER NOT NULL,
-
+           content JSON NOT NULL,
            FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
       );
    `);
 
-  await conn.exec(`DROP TABLE IF EXISTS chapters`);
-  await conn.exec(`
+  conn.exec(`DROP TABLE IF EXISTS chapters`);
+  conn.exec(`
       CREATE TABLE chapters (
           id    INTEGER PRIMARY KEY AUTOINCREMENT,
           path  TEXT NOT NULL UNIQUE,
           title TEXT NOT NULL,
           lastBuildId INTEGER NOT NULL,
-
+          content JSON NOT NULL,
+        
           FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
       );
     `);
 
-  await conn.exec(`DROP TABLE IF EXISTS collections_collections`);
-  await conn.exec(`
+  conn.exec(`DROP TABLE IF EXISTS collections_collections`);
+  conn.exec(`
       CREATE TABLE collections_collections (
            collectionId INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
            subCollectionId INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
@@ -71,8 +72,8 @@ async function rebuildDatabase() {
         );
     `);
 
-  await conn.exec(`DROP TABLE IF EXISTS collections_books`);
-  await conn.exec(`
+  conn.exec(`DROP TABLE IF EXISTS collections_books`);
+  conn.exec(`
       CREATE TABLE collections_books (
            collectionId INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
            bookId INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
@@ -85,8 +86,8 @@ async function rebuildDatabase() {
         );
     `);
 
-  await conn.exec(`DROP TABLE IF EXISTS books_chapters`);
-  await conn.exec(`
+  conn.exec(`DROP TABLE IF EXISTS books_chapters`);
+  conn.exec(`
       CREATE TABLE books_chapters (
            bookId INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
            chapterId INTEGER NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
@@ -99,8 +100,8 @@ async function rebuildDatabase() {
         );
     `);
 
-  await conn.exec(`DROP TABLE IF EXISTS questions`);
-  await conn.exec(`
+  conn.exec(`DROP TABLE IF EXISTS questions`);
+  conn.exec(`
       CREATE TABLE questions (
            id INTEGER PRIMARY KEY AUTOINCREMENT,
            chapterId INTEGER NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
@@ -117,9 +118,39 @@ async function rebuildDatabase() {
            FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
         );
     `);
+
+  conn.exec(`DROP TABLE IF EXISTS users`);
+  conn.exec(`
+      CREATE TABLE users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT UNIQUE DEFAULT NULL,
+          accessToken TEXT NOT NULL,
+          admin BOOLEAN NOT NULL DEFAULT 0,
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          lastUseAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          deleted BOOLEAN NOT NULL DEFAULT 0,
+          deletedCount INTEGER NOT NULL DEFAULT 0,
+          UNIQUE(email)
+      );
+  `);
+
+  conn.exec(`DROP TABLE IF EXISTS answers`);
+  conn.exec(`
+      CREATE TABLE answers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          userId INTEGER NOT NULL,
+          bookId TEXT,
+          questionId TEXT NOT NULL,
+          answerValue JSON NOT NULL,
+          FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+          FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE SET NULL 
+          FOREIGN KEY(questionId) REFERENCES questions(id) ON DELETE SET NULL 
+      );
+  `);
 }
 
 rebuildDatabase().catch((err) => {
-  console.error('Error rebuilding database:', err);
+  console.error("Error rebuilding database:", err);
   process.exit(1);
 });

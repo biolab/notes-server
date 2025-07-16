@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -13,14 +13,17 @@
   "dependencies": {
     "@babel/parser": "^7.27.5",
     "@babel/traverse": "^7.27.4",
+    "antd": "^5.26.3",
     "gray-matter": "^4.0.3",
     "markdown-it": "^12.3.2",
     "next": "15.3.2",
     "next-mdx-remote": "^5.0.0",
+    "nodemailer": "^7.0.4",
     "probe-image-size": "^7.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
+    "react-toastify": "^11.0.5",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0",
     "sass": "^1.89.1",
@@ -28,7 +31,10 @@
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.0.0",
+    "use-timer": "^2.0.1",
+    "uuid": "^11.1.0",
+    "uuid-by-string": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -36,6 +42,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/babel__traverse": "^7.20.7",
     "@types/node": "^22.15.30",
+    "@types/nodemailer": "^6.4.17",
     "@types/probe-image-size": "^7.2.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",

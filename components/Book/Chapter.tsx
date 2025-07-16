@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React from "react";
 import slugify from "slugify";
@@ -14,11 +14,16 @@ export const Chapter = ({
   index,
   setIsChapterIndexVisible,
   chapterNumber,
-} : ChapterDef & { 
-  index: number,
-  setIsChapterIndexVisible: React.Dispatch<React.SetStateAction<{ [key: number]: boolean }>>,
-  chapterNumber: number}
-) => {
+  questions,
+  bookId,
+}: ChapterDef & {
+  index: number;
+  setIsChapterIndexVisible: React.Dispatch<
+    React.SetStateAction<{ [key: number]: boolean }>
+  >;
+  chapterNumber: number;
+  bookId: number;
+}) => {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const isVisible = useOnScreen(ref);
   const { t } = useIntl();
@@ -32,10 +37,11 @@ export const Chapter = ({
       <MdxContent
         chapterIndex={index}
         content={content}
-        chapterTitle={frontmatter.title}
+        dbQuestions={questions}
+        bookId={bookId}
       />
     );
-  }, [content, frontmatter.title, index]);
+  }, [bookId, content, index, questions]);
 
   return (
     <div ref={ref} className="flex-container">

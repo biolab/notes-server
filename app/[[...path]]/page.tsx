@@ -1,15 +1,18 @@
 import { Book } from "@/components/Book/Book";
 import { Collection } from "@/components/Collection/Collection";
 import { getMdFile } from "@/utils/helpers";
-import { getBookProps } from "@/utils/getBookProps";
 import { getCollectionProps } from "@/utils/getCollectionProps";
-import {getPaths} from "@/utils/getPaths";
+import { getPaths } from "@/utils/getPaths";
+import { UserContextProvider } from "@/context/UserContextProvider";
+import { getBookPropsFromDb } from "@/api/BookService";
+import React, {Suspense} from "react";
+
+const ignoreLogin = process && process.env.NEXT_PUBLIC_IGNORE_LOGIN === "true";
 
 export type PathList = { path: string[] };
 
-export const generateStaticParams = async (): Promise<{params: PathList}[]> =>
-  getPaths([])
-      .map((path) => ({ params: { path } }));
+export const generateStaticParams = async (): Promise<{ params: PathList }[]> =>
+  getPaths([]).map((path) => ({ params: { path } }));
 
 export async function generateMetadata({
   params,
@@ -19,7 +22,7 @@ export async function generateMetadata({
   const path = (await params).path ?? [];
   const isBook = !!getMdFile(path);
   const props = isBook
-    ? await getBookProps(path)
+    ? await getBookPropsFromDb(path)
     : await getCollectionProps(path);
   return {
     title: props!.frontmatter.title,
@@ -33,11 +36,28 @@ export default async function CollectionOrBookPage({
   params: Promise<PathList>;
 }) {
   const path = (await params).path ?? [];
+
   if (getMdFile(path)) {
-    const props = await getBookProps(path);
-    return <Book {...props} />;
+    const props = await getBookPropsFromDb(path);
+
+    const requireEmail = !!props.frontmatter.requireLogin && !ignoreLogin;
+
+    return (
+      <Suspense>
+        <UserContextProvider requireEmail={requireEmail}>
+          <Book {...props} />;
+        </UserContextProvider>
+      </Suspense>
+    );
   } else {
     const props = await getCollectionProps(path);
-    return <Collection {...props} />;
+
+    return (
+      <Suspense>
+        <UserContextProvider>
+          <Collection {...props} />
+        </UserContextProvider>
+      </Suspense>
+    );
   }
 }

@@ -1,3 +1,4 @@
+import { QuestionDef } from "@/utils/preflight";
 import { MDXRemoteSerializeResult } from "next-mdx-remote";
 
 export interface ChapterFrontmatter {
@@ -10,15 +11,16 @@ export interface ChapterFrontmatter {
 export const defaultChapterFrontmatter: ChapterFrontmatter = {
   title: "",
   omitAsChapter: false,
-  date:  "",
+  date: "",
   /* TODO: Fix books and remove */
-  comment: ""
-
-}
+  comment: "",
+};
 
 export interface ChapterDef {
+  chapterDir: string;
   frontmatter: ChapterFrontmatter;
   content: MDXRemoteSerializeResult;
+  questions: QuestionDef[];
 }
 
 export interface BookFrontmatter {
@@ -31,7 +33,11 @@ export interface BookFrontmatter {
   tocInHeader: boolean;
   indexInitiallyClosed?: boolean;
   coverImg: string;
+  requireLogin: boolean;
+  quizThreshold?: number;
   chapters?: string[];
+  loginSubtitle?: string;
+  email?: { subject: string; body: string };
 }
 
 export const defaultBookFrontmatter: BookFrontmatter = {
@@ -43,23 +49,26 @@ export const defaultBookFrontmatter: BookFrontmatter = {
   language: "en",
   tocInHeader: false,
   indexInitiallyClosed: false,
-  coverImg: ""
+  coverImg: "",
+  requireLogin: false,
 } satisfies BookFrontmatter & Record<string, unknown>;
 
 export const extraBookMatter = {
-    chapters: [] as string[],
+  chapters: [] as string[],
 
-    /* TODO: These are related to quizzes. I listed them here so that
+  /* TODO: These are related to quizzes. I listed them here so that
        current books pass validation, but they should be moved to
        defaultBookFrontmatter or removed if they're no longer necessary. */
-    quiz: false,
-    showQuizProgress: false,
-    logQuizzes: false,
-    requireLogin: false,
-    quizThreshold: 0,
-    submitQuizText: "",
-    loginSubtitle: "",
-    email: {}
+  showQuizProgress: false,
+  requireLogin: false,
+  quizThreshold: 0,
+  submitQuizText: "",
+  loginSubtitle: "",
+  email: {},
+
+  // Unended properties
+  quiz: false,
+  logQuizzes: false,
 } satisfies Record<string, unknown>;
 
 export interface CollectionFrontmatter {
@@ -83,10 +92,10 @@ export const defaultCollectionFrontmatter: CollectionFrontmatter = {
   public: true,
   language: "en",
   coverImg: "",
-  recursiveContent: false
-}
+  recursiveContent: false,
+};
 
 export const extraCollectionMatter = {
-    books: [] as string[],
-    collections: [] as string[]
+  books: [] as string[],
+  collections: [] as string[],
 } satisfies Record<string, unknown>;

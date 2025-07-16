@@ -1,21 +1,24 @@
 "use client";
 
 import React from "react";
+import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { MdxRenderer } from "./MdxRenderer";
 import Image from "./Image";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
-
 import { useIntl } from "@/i18n";
 import CcByNcNd from "./CcByNcNd";
+import Quiz from "./Quiz/Quiz";
+import { QuestionDef } from "@/utils/preflight";
 
 export const MdxContent = ({
   content,
+  chapterIndex,
+  dbQuestions,
+  bookId,
 }: {
   content: MDXRemoteSerializeResult;
-  hideQuestions?: boolean;
   chapterIndex?: number;
-  showQuiz?: boolean;
-  chapterTitle?: string;
+  dbQuestions?: QuestionDef[];
+  bookId: number;
 }) => {
   const { t } = useIntl();
 
@@ -23,7 +26,21 @@ export const MdxContent = ({
     <MdxRenderer
       content={content}
       components={{
-        Quiz: () => <div>Quiz</div>,
+        Quiz: (props) => {
+          if (chapterIndex === undefined) {
+            throw new Error("Introduction cannot contain questions");
+          }
+
+          return (
+            <Quiz
+              chapterIndex={chapterIndex}
+              showQuiz={true}
+              bookId={bookId}
+              dbQuestions={dbQuestions}
+              {...props}
+            />
+          );
+        },
         Explanation: () => <div>Explanation</div>,
         Sidenote: ({ children }: { children: React.ReactNode }) => (
           <div className="float-aside">{children}</div>
@@ -49,7 +66,7 @@ export const MdxContent = ({
           const [_src, setSrc] = React.useState(src ? src + "?" : null);
           const replay = React.useCallback(() => {
             setSrc(
-              (s: string | null) => `${s?.split("?")[0]}?${Math.random()}`,
+              (s: string | null) => `${s?.split("?")[0]}?${Math.random()}`
             );
           }, []);
 
@@ -79,7 +96,7 @@ export const MdxContent = ({
                 />
               </div>
             ),
-            [embedId],
+            [embedId]
           ),
         CcByNcNd,
         QuizSection: () => <div>Quiz Section</div>,

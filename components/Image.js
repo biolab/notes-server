@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import NextImage from "next/image";
 
 // TODO Remove this, if it will be deployed on Vercel
@@ -9,9 +10,10 @@ const customLoader = ({ src }) => {
 
 export default function Image(props) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { blurWidth, blurHeight, placeholder, blurDataURL, ...safeProps } = props;
+  const { blurWidth, blurHeight, placeholder, blurDataURL, ...safeProps } =
+    props;
   if (!(props.width && props.height)) {
-    return <img {...safeProps}  />;
+    return <img {...safeProps} alt={safeProps.alt || ""} />;
   }
   return <NextImage {...safeProps} loader={customLoader} />;
 }
