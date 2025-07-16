@@ -64,16 +64,18 @@ export default function Quiz({
   dbQuestions,
   bookId,
 }: IQuiz) {
-  const [answer, setAnswer] = React.useState(null);
-  const [normalizedAnswer, setNormalizedAnswer] = React.useState(null);
+  const [answer, setAnswer] = React.useState<null | string | string[]>(null);
+  const [normalizedAnswer, setNormalizedAnswer] = React.useState<
+    null | string | string[]
+  >(null);
   const { quizReducer, quizState } = React.useContext(QuizContext);
-  const [error, setError] = React.useState(null);
+  const [error, setError] = React.useState<null | string>(null);
   const [correct, setCorrect] = React.useState<null | boolean>(null);
   const [isNeutral, setIsNeutral] = React.useState(false);
   const [trial, setTrial] = React.useState(0);
   const [submitted, setSubmitted] = React.useState(false);
-  const [gptExplanation, setGptExplanation] = React.useState(null);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [gptExplanation] = React.useState<null | string>(null);
+  const [isLoading] = React.useState(false);
   const { t } = useIntl();
   const { user } = React.useContext(UserContext);
 
@@ -83,41 +85,42 @@ export default function Quiz({
 
   // TODO - Replace with actual LLM call
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const answerFromLLM = () => ({
-    data: { grade: "yes", explanation: "Mocked explanation" },
-  });
+  // const answerFromLLM = () => ({
+  //   data: { grade: "yes", explanation: "Mocked explanation" },
+  // });
 
-  const processResponse = useCallback(
-    async (question, userAnswer, answer) => {
-      setIsLoading(true);
-      try {
-        const data = await answerFromLLM({ question, userAnswer, answer });
-        if (data && data.data.grade) {
-          if (data.data.grade === "no") {
-            setGptExplanation(data.data.explanation);
-          }
-          return data.data.grade === "yes";
-        }
-        return false;
-      } catch (error) {
-        return false;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [answerFromLLM]
-  );
+  // const processResponse = useCallback(
+  //   async (question: any, userAnswer: any, answer: any) => {
+  //     setIsLoading(true);
+  //     try {
+  //       const data = await answerFromLLM({ question, userAnswer, answer });
+  //       if (data && data.data.grade) {
+  //         if (data.data.grade === "no") {
+  //           setGptExplanation(data.data.explanation);
+  //         }
+  //         return data.data.grade === "yes";
+  //       }
+  //       return true;
+  //     } catch (_error) {
+  //       return false;
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   },
+  //   []
+  // );
 
   const scorer = React.useMemo(() => {
     if (gpt) {
-      return async (userAnswer) =>
-        await processResponse(question, userAnswer, answerFromMdx);
+      return () => true;
+      // return async (userAnswer) =>
+      //   await processResponse(question, userAnswer, answerFromMdx);
     }
     if (answerFromMdx && !scorerFromMdx) {
       return (x: string) => x === answerFromMdx.trim().toLowerCase();
     }
     return scorerFromMdx;
-  }, [answerFromMdx, scorerFromMdx, gpt, question, processResponse]);
+  }, [answerFromMdx, scorerFromMdx, gpt]);
 
   const questionId = React.useMemo(() => id || question, [id, question]);
 
@@ -189,8 +192,6 @@ export default function Quiz({
     setCorrect(isCorrect);
   });
 
-  const hasPoints = React.useMemo(() => !!points, [points]);
-
   const timeoutRunning = React.useMemo(
     () => timeout && timerStatus === "RUNNING" && timeLeft,
     [timerStatus, timeLeft, timeout]
@@ -240,21 +241,14 @@ export default function Quiz({
   ]);
 
   const disabled = React.useMemo(() => {
-    if (quizState.isQuizComplete || correct || timeoutRunning || isLoading) {
+    if (quizState!.isQuizComplete || correct || timeoutRunning || isLoading) {
       return true;
     }
     if (!max_trials) {
       return false;
     }
     return trial >= max_trials;
-  }, [
-    quizState.isQuizComplete,
-    correct,
-    timeoutRunning,
-    isLoading,
-    trial,
-    max_trials,
-  ]);
+  }, [quizState, correct, timeoutRunning, isLoading, max_trials, trial]);
 
   const onSubmit = React.useCallback(
     async (
@@ -268,7 +262,12 @@ export default function Quiz({
         return;
       }
 
-      const _answer = getAnswer(option, answer, multiSelect, isNeutralOption);
+      const _answer = getAnswer(
+        option,
+        answer as string | string[],
+        multiSelect,
+        isNeutralOption
+      );
       const _normalizedAnswer = getNormalizedAnswer(_answer);
 
       setAnswer(_answer);
@@ -396,7 +395,7 @@ export default function Quiz({
       React.isValidElement(child) &&
       (child.type as JSXElementConstructor<any>).name === "Explanation"
     ) {
-      return React.cloneElement(child as React.ReactElement<IExplanation>, {
+      return React.cloneElement(child as React.ReactElement<any>, {
         ntrials: trial,
         maxTrialsUsed: !!(max_trials && max_trials === trial),
         correct: correct,
@@ -452,7 +451,10 @@ export default function Quiz({
               )}
 
               {!correct && (
-                <button disabled={!answer} onClick={(e) => onSubmit(e, answer)}>
+                <button
+                  disabled={!answer}
+                  onClick={(e) => onSubmit(e, answer as string)}
+                >
                   {t("quiz.submit-button")}
                 </button>
               )}

@@ -21,7 +21,7 @@ function BookLogin({
   const { retrievingUser } = React.useContext(UserContext);
 
   const onSubmit = React.useCallback(
-    async (e) => {
+    async (e: any) => {
       e.preventDefault();
       try {
         const { link } = await _registerUser({
@@ -30,7 +30,7 @@ function BookLogin({
           url: window.location.href,
         });
         setMessage(link ?? "Email has been sent. Please check your inbox.");
-      } catch (error) {
+      } catch (error: any) {
         setMessage("");
         setError(error?.message || "An error occurred");
 
@@ -46,7 +46,7 @@ function BookLogin({
   return (
     <div className="prose mx-auto admin-page">
       <div className="bg-slate-800 text-white p-6 rounded mt-10">
-        <h2 className="text-white mt-0">
+        <h2 className="">
           <b>{title}</b> is locked.
         </h2>
         <p className="subtitle">{loginSubtitle}</p>

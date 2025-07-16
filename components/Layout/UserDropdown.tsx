@@ -8,10 +8,10 @@ import { _deleteUser } from "@/api/UserService";
 import { logger } from "@/utils/logger";
 import { toast } from "react-toastify";
 
-function useOutsideClick(ref, onClick) {
+function useOutsideClick(ref: any, onClick: any) {
   React.useEffect(() => {
-    function handleClickOutside() {
-      if (ref.current && !ref.current.contains(event.target)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
         onClick();
       }
     }

@@ -126,7 +126,6 @@ const reducer = (
 export const QuizContext = React.createContext<{
   quizState: QuizStateI | null;
   quizReducer: React.Dispatch<{ type: string; value: IAnswerValue }>;
-  submitQuiz: () => void;
   noOfQuestions: number;
   availablePoints: number;
   achievedPoints: number;
@@ -138,7 +137,6 @@ export const QuizContext = React.createContext<{
 }>({
   quizState: null,
   quizReducer: () => null,
-  submitQuiz: () => null,
   noOfQuestions: 0,
   availablePoints: 0,
   achievedPoints: 0,

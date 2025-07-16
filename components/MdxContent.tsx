@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
+import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { MdxRenderer } from "./MdxRenderer";
 import Image from "./Image";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
 import { useIntl } from "@/i18n";
 import CcByNcNd from "./CcByNcNd";
 import Quiz from "./Quiz/Quiz";

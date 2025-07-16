@@ -499,7 +499,7 @@ const insertBooks = async (
       `
         INSERT INTO books (path, title, lastBuildId, content)
         VALUES (?, ?, ?, ?)
-
+        ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
         RETURNING id
     `,
       [

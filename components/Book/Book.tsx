@@ -119,7 +119,7 @@ export const Book = ({
             <h1 className="max-w-sm mb-0 font-medium">{frontmatter.title}</h1>
             <p className="subtitle">{frontmatter.subTitle}</p>
 
-            <MdxContent content={content} />
+            <MdxContent content={content} bookId={bookId!} />
 
             {!frontmatter.tocInHeader && (
               <ContentIndexControl

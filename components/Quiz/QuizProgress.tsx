@@ -1,16 +1,19 @@
 import React from "react";
-import { QuizContext } from "../../contexts/QuizContext";
+import { QuizContext } from "@/context/QuizContextProvider";
 
 export default function QuizProgress() {
   const {
     noOfQuestions,
     availablePoints,
     achievedPoints,
-    correctlyAnsweredQuestions,
     answeredMandatoryQuestions,
     isQuizComplete,
     quizState,
   } = React.useContext(QuizContext);
+
+  if (!quizState) {
+    return null;
+  }
 
   return (
     <div className="quiz-progress">
