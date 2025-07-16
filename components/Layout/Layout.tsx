@@ -45,6 +45,7 @@ export default function Layout({
               contentTitle={title!}
               chapters={chapters}
               isChapterIndexVisible={isChapterIndexVisible}
+              // TODO
               // showQuizProgress={false}
             />
           </div>
