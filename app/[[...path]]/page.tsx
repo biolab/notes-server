@@ -5,6 +5,7 @@ import { getCollectionProps } from "@/utils/getCollectionProps";
 import { getPaths } from "@/utils/getPaths";
 import { UserContextProvider } from "@/context/UserContextProvider";
 import { getBookPropsFromDb } from "@/api/BookService";
+import React, {Suspense} from "react";
 
 const ignoreLogin = process && process.env.NEXT_PUBLIC_IGNORE_LOGIN === "true";
 
@@ -42,17 +43,21 @@ export default async function CollectionOrBookPage({
     const requireEmail = !!props.frontmatter.requireLogin && !ignoreLogin;
 
     return (
-      <UserContextProvider requireEmail={requireEmail}>
-        <Book {...props} />;
-      </UserContextProvider>
+      <Suspense>
+        <UserContextProvider requireEmail={requireEmail}>
+          <Book {...props} />;
+        </UserContextProvider>
+      </Suspense>
     );
   } else {
     const props = await getCollectionProps(path);
 
     return (
-      <UserContextProvider>
-        <Collection {...props} />
-      </UserContextProvider>
+      <Suspense>
+        <UserContextProvider>
+          <Collection {...props} />
+        </UserContextProvider>
+      </Suspense>
     );
   }
 }
