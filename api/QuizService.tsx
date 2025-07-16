@@ -5,7 +5,7 @@ import { User } from "@/context/UserContextProvider";
 import db from "@/utils/db";
 import { _getUserOrThrow } from "./UserService";
 
-export const _postAnswer = async ({
+export const postAnswer = async ({
   id,
   value,
   user,
@@ -24,7 +24,7 @@ export const _postAnswer = async ({
   );
 };
 
-export const _getAnswers = async ({
+export const getAnswers = async ({
   user,
   bookId,
 }: {

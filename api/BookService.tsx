@@ -3,7 +3,7 @@
 import db from "@/utils/db";
 import { BookProps } from "@/utils/getBookProps";
 
-export const _getBookPropsFromDb = async (
+export const getBookPropsFromDb = async (
   pathParts: string[]
 ): Promise<BookProps> => {
   const book = await db.get(`SELECT id, content FROM books WHERE path = ?`, [
@@ -18,7 +18,7 @@ export const _getBookPropsFromDb = async (
     [book.id]
   );
 
-  const _chapters = [];
+  const chapters = [];
 
   for (const chapter of book_chapters) {
     const questions = await db.all(
@@ -28,7 +28,7 @@ export const _getBookPropsFromDb = async (
       [chapter.id]
     );
 
-    _chapters.push({
+    chapters.push({
       ...JSON.parse(chapter.content),
       questions,
     });
@@ -39,6 +39,6 @@ export const _getBookPropsFromDb = async (
   return {
     bookId: book.id,
     ...parsedBookContent,
-    chapters: _chapters,
+    chapters,
   };
 };

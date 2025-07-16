@@ -2,7 +2,7 @@
 
 import db from "@/utils/db";
 
-export const _getSubmissions = async ({
+export const getSubmissions = async ({
   adminAccessToken,
   slug,
 }: {

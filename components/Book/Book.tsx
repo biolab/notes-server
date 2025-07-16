@@ -12,7 +12,7 @@ import {
   QuizContextProvider,
 } from "@/context/QuizContextProvider";
 import { UserContext } from "@/context/UserContextProvider";
-import { _getAnswers } from "@/api/QuizService";
+import { getAnswers } from "@/api/QuizService";
 import BookLogin from "./BookLogin";
 import { logger } from "@/utils/logger";
 import Layout from "../Layout/Layout";
@@ -44,7 +44,7 @@ export const Book = ({
       return;
     }
 
-    _getAnswers({
+    getAnswers({
       user,
       bookId: bookId!,
     })

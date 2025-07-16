@@ -1,7 +1,7 @@
 "use server";
 
 import { v4 } from "uuid";
-import { _sendEmail } from "./EmailService";
+import { sendEmail } from "./EmailService";
 import { logger } from "@/utils/logger";
 import db from "@/utils/db";
 import { User } from "@/context/UserContextProvider";
@@ -23,7 +23,7 @@ export const _getUserOrThrow = async (user: User | null) => {
   return userFromDb;
 };
 
-export const _getUser = async ({ accessToken }: { accessToken: string }) => {
+export const getUser = async ({ accessToken }: { accessToken: string }) => {
   const existingUser = await db.get(
     `SELECT id, accessToken, email FROM users WHERE accessToken = ? and deleted = 0`,
     [accessToken]
@@ -53,7 +53,7 @@ export const _deleteUser = async (user: User | null) => {
   );
 };
 
-export const _registerUser = async ({
+export const registerUser = async ({
   email,
   emailContent,
   url,
@@ -78,14 +78,12 @@ export const _registerUser = async ({
   if (!user) {
     const accessToken = v4();
 
-    await db.run(`INSERT INTO users (email, accessToken) VALUES (?, ?)`, [
-      email,
-      accessToken,
-    ]);
-
-    user = await db.get(
-      `SELECT id, accessToken, email FROM users WHERE accessToken = ?`,
-      [accessToken]
+    user = await db.run(
+      `
+      INSERT INTO users (email, accessToken) 
+      VALUES (?, ?)
+      RETURNING id, accessToken, email`,
+      [email, accessToken]
     );
   }
 
@@ -102,7 +100,7 @@ export const _registerUser = async ({
 
       logger("Sending email to:", user.email, "with body:", emailBody);
 
-      await _sendEmail({
+      await sendEmail({
         sendTo: user.email,
         subject: emailContent?.subject || "",
         html: emailBody,

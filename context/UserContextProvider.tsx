@@ -4,7 +4,7 @@
 import React, { ReactNode } from "react";
 import { useHasMounted } from "../hooks/useHasMounted";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { _registerUser, _getUser } from "@/api/UserService";
+import { registerUser, getUser } from "@/api/UserService";
 import { logger } from "@/utils/logger";
 
 export interface User {
@@ -91,7 +91,7 @@ export const UserContextProvider = ({
     }
 
     try {
-      const { user: _user } = await _registerUser({ email: null });
+      const { user: _user } = await registerUser({ email: null });
       logger("Created anonyms user:", _user);
 
       onUserLogin(_user);
@@ -104,7 +104,7 @@ export const UserContextProvider = ({
   const fetchUser = React.useCallback(
     async (accessToken: string) => {
       try {
-        const _user = await _getUser({ accessToken });
+        const _user = await getUser({ accessToken });
 
         logger("Fetched user:", _user);
 

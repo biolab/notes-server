@@ -2,7 +2,7 @@ import React from "react";
 
 import { useHasMounted } from "../../hooks/useHasMounted";
 import { UserContext } from "@/context/UserContextProvider";
-import { _registerUser } from "@/api/UserService";
+import { registerUser } from "@/api/UserService";
 
 function BookLogin({
   title,
@@ -24,7 +24,7 @@ function BookLogin({
     async (e: any) => {
       e.preventDefault();
       try {
-        const { link } = await _registerUser({
+        const { link } = await registerUser({
           email,
           emailContent,
           url: window.location.href,
