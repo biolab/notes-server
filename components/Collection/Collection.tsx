@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { MdxRenderer } from "../MdxRenderer";
+import { MdxContent } from "@/components/MdxContent";
 import Link from "next/link";
-import { IntlContextProvider, useIntl } from "../../i18n";
+import { getT, IntlContextProvider, useIntl } from "../../i18n";
 import Layout from "../Layout/Layout";
 import Image from "../Image";
 import { CollectionProps } from "@/utils/getCollectionProps";
@@ -39,8 +39,7 @@ export const Collection = ({
   collections,
   books,
   slug,
-}: CollectionProps) => {
-  return (
+}: CollectionProps) =>
     <IntlContextProvider lang={frontmatter.language}>
       <Layout title={frontmatter.title}>
         <div className="collection mx-auto">
@@ -61,12 +60,10 @@ export const Collection = ({
             <p className="subtitle">{frontmatter.subTitle}</p>
           )}
 
-          <MdxRenderer content={content} />
+          <MdxContent content={content} t={getT(frontmatter.language)}/>
 
           <List items={collections} title={slug && "collections"} />
           <List items={books} title="books" />
         </div>
       </Layout>
-    </IntlContextProvider>
-  );
-};
+    </IntlContextProvider>;

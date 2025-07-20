@@ -1,5 +1,4 @@
 import { QuestionDef } from "@/utils/preflight";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
 
 export interface ChapterFrontmatter {
   title: string;
@@ -19,7 +18,7 @@ export const defaultChapterFrontmatter: ChapterFrontmatter = {
 export interface ChapterDef {
   chapterDir: string;
   frontmatter: ChapterFrontmatter;
-  content: MDXRemoteSerializeResult;
+  content: string;
   questions: QuestionDef[];
 }
 

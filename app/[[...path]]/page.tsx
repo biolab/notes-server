@@ -40,7 +40,7 @@ export default async function CollectionOrBookPage({
   if (getMdFile(path)) {
     const props = await getBookPropsFromDb(path);
 
-    const requireEmail = !!props.frontmatter.requireLogin && !ignoreLogin;
+    const requireEmail = props.frontmatter.requireLogin && !ignoreLogin;
 
     return (
       <Suspense>

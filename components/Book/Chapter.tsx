@@ -39,9 +39,10 @@ export const Chapter = ({
         content={content}
         dbQuestions={questions}
         bookId={bookId}
+        t = {t}
       />
     );
-  }, [bookId, content, index, questions]);
+  }, [t, bookId, content, index, questions]);
 
   return (
     <div ref={ref} className="flex-container">

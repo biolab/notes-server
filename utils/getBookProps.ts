@@ -1,8 +1,6 @@
 import fs from "fs";
 import path from "path";
 
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
-
 import {
   catchErrors,
   checkedMatter,
@@ -31,7 +29,7 @@ export type BookPropsBase = {
 
 export type BookProps = BookPropsBase & {
   bookId?: number;
-  content: MDXRemoteSerializeResult;
+  content: string;
   chapters: ChapterDef[];
 };
 

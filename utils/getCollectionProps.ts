@@ -1,8 +1,6 @@
 import fs from "fs";
 import path from "path";
 
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
-
 import {
   checkedMatter,
   getMdFile,
@@ -28,7 +26,7 @@ type CollectionPropsBase = {
 };
 
 export type CollectionProps = CollectionPropsBase & {
-  content: MDXRemoteSerializeResult;
+  content: string;
 }
 
 export type RawCollectionProps = CollectionPropsBase & {

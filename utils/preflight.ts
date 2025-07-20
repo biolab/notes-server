@@ -264,7 +264,7 @@ const checkBooks = async (
   for (const book of books) {
     // Check that book content can be serialized
     await catchErrors(book.slug, async () =>
-      serializedContent(book.rawContent, book.frontmatter.language)
+      await serializedContent(book.rawContent, book.frontmatter.language)
     );
 
     // Check that chapters' content can be serialized
@@ -440,35 +440,22 @@ const insertChapters = async (
   db: Database,
   buildId: number
 ) => {
-  for (const chapter of serializedChapters) {
+  for (const {chapterDir, content, questions, frontmatter: {title, omitAsChapter}} of serializedChapters) {
     const chapterId = (
       await db.get(
         `
-      INSERT INTO chapters (path, title, lastBuildId, content)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO chapters (lastBuildId, path, title, omitAsChapter, content)
+      VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(path) DO UPDATE SET title       = excluded.title,
-                                      lastBuildId = excluded.lastBuildId
+                                      lastBuildId = excluded.lastBuildId,
+                                      content     = excluded.content,
+                                      omitAsChapter = excluded.omitAsChapter
       RETURNING id`,
-        [
-          chapter.chapterDir,
-          chapter.frontmatter.title,
-          buildId,
-          JSON.stringify({
-            frontmatter: chapter.frontmatter,
-            slug: chapter.chapterDir,
-            content: chapter.content,
-          }),
-        ]
+        [buildId, chapterDir, title, omitAsChapter, content]
       )
     ).id;
 
-    for (const {
-      questionId,
-      question,
-      type,
-      options,
-      answer,
-    } of chapter.questions) {
+    for (const {questionId, question, type, options, answer} of questions) {
       await db.run(
         `
         INSERT INTO questions (chapterId, questionId, question, options, answer, questionType, lastBuildId)
@@ -494,27 +481,52 @@ const insertBooks = async (
   db: Database,
   buildId: number
 ) => {
-  for (const content of books) {
+  for (const {
+    content,
+    chapters,
+    slug,
+    frontmatter: { title, subTitle, description, date, public: isPublic, language, tocInHeader, indexInitiallyClosed, coverImg, requireLogin, quizThreshold, loginSubtitle, email },
+  } of books) {
+    // Do not change this to "DELETE + INSERT" because it will delete rows that use this book's id as foreign key.
     const { id: bookId } = await db.get(
       `
-        INSERT INTO books (path, title, lastBuildId, content)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
+        INSERT INTO books (
+            lastBuildId,
+            path, title, subtitle, description, date,
+            public, language, tocInHeader, indexInitiallyClosed,
+            coverImg, requireLogin, quizThreshold, loginSubtitle,
+            email_subject, email_body,
+            content)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?)
+        ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId,
+                                  title       = excluded.title,
+                                  subtitle    = excluded.subtitle,
+                                  description = excluded.description,
+                                  date        = excluded.date,
+                                  public      = excluded.public,
+                                  language    = excluded.language,
+                                  tocInHeader = excluded.tocInHeader,
+                                  indexInitiallyClosed = excluded.indexInitiallyClosed,
+                                  coverImg    = excluded.coverImg,
+                                  requireLogin = excluded.requireLogin,
+                                  quizThreshold = excluded.quizThreshold,
+                                  loginSubtitle = excluded.loginSubtitle,
+                                  email_subject = excluded.email_subject,
+                                  email_body = excluded.email_body,
+                                  content     = excluded.content
         RETURNING id
     `,
       [
-        content.slug,
-        content.frontmatter.title,
         buildId,
-        JSON.stringify({
-          frontmatter: content.frontmatter,
-          slug: content.slug,
-          content: content.content,
-        }),
+        slug, title, subTitle, description, date,
+        isPublic, language, tocInHeader, indexInitiallyClosed,
+        coverImg, requireLogin, quizThreshold, loginSubtitle,
+        email?.subject, email?.body,
+        content
       ]
     );
 
-    for (const { chapterDir } of content.chapters) {
+    for (const { chapterDir } of chapters) {
       await db.run(
         `
           INSERT INTO books_chapters (bookId, chapterId, lastBuildId)
@@ -536,19 +548,30 @@ const insertCollections = async (
 ) => {
   for (const {
     slug: collectionSlug,
-    frontmatter: { title: collectionTitle },
+    frontmatter: { title, subTitle, date, description, public: isPublic, language, coverImg, recursiveContent },
     books,
     collections: subCollections,
   } of collections) {
+    // Do not change this to "DELETE + INSERT" because it will delete rows that use this collections's id as foreign key.
     const { id: collectionId } = await db.get(
       `
-        INSERT INTO collections (path, title, lastBuildId)
-        VALUES (?, ?, ?)
+        INSERT INTO collections (
+            lastBuildId,
+            path, title, subtitle, description, date,
+            public, language, coverImg, recursiveContent)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(path) DO UPDATE SET title       = excluded.title,
-                                        lastBuildId = excluded.lastBuildId
+                                        lastBuildId = excluded.lastBuildId,
+                                        subtitle    = excluded.subtitle,
+                                        description = excluded.description,
+                                        date        = excluded.date,
+                                        public      = excluded.public,
+                                        language    = excluded.language,
+                                        coverImg    = excluded.coverImg,
+                                        recursiveContent = excluded.recursiveContent
         RETURNING id
     `,
-      [collectionSlug, collectionTitle, buildId]
+      [buildId, collectionSlug, title, subTitle, description, date, isPublic, language, coverImg, recursiveContent]
     );
 
     for (const { slug: bookSlug } of books) {

@@ -1,106 +1,114 @@
-"use client";
-
 import React from "react";
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
-import { MdxRenderer } from "./MdxRenderer";
+import * as runtime from 'react/jsx-runtime';
+import { MDXProvider } from '@mdx-js/react';
+
 import Image from "./Image";
-import { useIntl } from "@/i18n";
 import CcByNcNd from "./CcByNcNd";
-import Quiz from "./Quiz/Quiz";
+import Quiz, { IQuiz } from "./Quiz/Quiz";
 import { QuestionDef } from "@/utils/preflight";
+import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
+
 
 export const MdxContent = ({
   content,
   chapterIndex,
   dbQuestions,
   bookId,
+  t
 }: {
-  content: MDXRemoteSerializeResult;
+  content: string;
   chapterIndex?: number;
   dbQuestions?: QuestionDef[];
-  bookId: number;
+  bookId?: number;
+  t: (key: string) => string;
 }) => {
-  const { t } = useIntl();
+  const components = {
+    Quiz: (props: IQuiz) => {
+      if (chapterIndex === undefined) {
+        throw new Error("Introduction cannot contain questions");
+      }
 
-  return (
-    <MdxRenderer
-      content={content}
-      components={{
-        Quiz: (props) => {
-          if (chapterIndex === undefined) {
-            throw new Error("Introduction cannot contain questions");
-          }
+      return (
+        <Quiz
+          {...props}
+          //chapterIndex={chapterIndex}
+          showQuiz={true}
+          bookId={bookId!}
+          dbQuestions={dbQuestions!}
+        />
+      );
+    },
+    Explanation: (props: IExplanation) => <Explanation {...props} />,
+    Sidenote: ({ children }: { children: React.ReactNode }) => (
+      <div className="float-aside">{children}</div>
+    ),
+    ExpandingSideImg: ({
+                         src,
+                         alt,
+                         retina,
+                       }: {
+      src: string;
+      alt?: string;
+      retina?: boolean;
+    }) => (
+      <Image
+        src={src}
+        layout="fill"
+        style={{ objectFit: "contain" }}
+        alt={alt || "image"}
+        className={"expanding-side-img" + (retina ? " retina" : "")}
+      />
+    ),
+    ReplayImg: ({ src, alt }: { src: string; alt?: string }) => {
+      const [_src, setSrc] = React.useState(src ? src + "?" : null);
+      const replay = React.useCallback(() => {
+        setSrc(
+          (s: string | null) => `${s?.split("?")[0]}?${Math.random()}`
+        );
+      }, []);
 
-          return (
-            <Quiz
-              chapterIndex={chapterIndex}
-              showQuiz={true}
-              bookId={bookId}
-              dbQuestions={dbQuestions}
-              {...props}
+      if (!_src) {
+        throw new Error("ReplayImg has missing src prop");
+      }
+      return (
+        <>
+          <Image className="replay-img" src={_src} alt={alt} />
+          <a className="replay-img-button" onClick={replay}>
+            {t("chapter.replay")}
+          </a>
+        </>
+      );
+    },
+    YouTube: ({ embedId }: { embedId: string }) =>
+      React.useMemo(
+        () => (
+          <div className="youtube-video">
+            <iframe
+              width="853"
+              height="480"
+              src={`https://www.youtube.com/embed/${embedId}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="Embedded youtube"
             />
-          );
-        },
-        Explanation: () => <div>Explanation</div>,
-        Sidenote: ({ children }: { children: React.ReactNode }) => (
-          <div className="float-aside">{children}</div>
+          </div>
         ),
-        ExpandingSideImg: ({
-          src,
-          alt,
-          retina,
-        }: {
-          src: string;
-          alt?: string;
-          retina?: boolean;
-        }) => (
-          <Image
-            src={src}
-            layout="fill"
-            style={{ objectFit: "contain" }}
-            alt={alt || "image"}
-            className={"expanding-side-img" + (retina ? " retina" : "")}
-          />
-        ),
-        ReplayImg: ({ src, alt }: { src: string; alt?: string }) => {
-          const [_src, setSrc] = React.useState(src ? src + "?" : null);
-          const replay = React.useCallback(() => {
-            setSrc(
-              (s: string | null) => `${s?.split("?")[0]}?${Math.random()}`
-            );
-          }, []);
+        [embedId]
+      ),
+    CcByNcNd,
+    QuizSection: () => <div>Quiz Section</div>,
+  }
 
-          if (!_src) {
-            throw new Error("ReplayImg has missing src prop");
-          }
-          return (
-            <>
-              <Image className="replay-img" src={_src} alt={alt} />
-              <a className="replay-img-button" onClick={replay}>
-                {t("chapter.replay")}
-              </a>
-            </>
-          );
-        },
-        YouTube: ({ embedId }: { embedId: string }) =>
-          React.useMemo(
-            () => (
-              <div className="youtube-video">
-                <iframe
-                  width="853"
-                  height="480"
-                  src={`https://www.youtube.com/embed/${embedId}`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  title="Embedded youtube"
-                />
-              </div>
-            ),
-            [embedId]
-          ),
-        CcByNcNd,
-        QuizSection: () => <div>Quiz Section</div>,
-      }}
-    />
+  const fn = new Function('mdx', content);
+  const { default: Content } = fn({
+    jsxs: runtime.jsxs,
+    jsx: runtime.jsx,
+    Fragment: runtime.Fragment,
+    useMDXComponents: () => components,
+  });
+  return (
+    <MDXProvider>
+      <Content components={components}/>
+    </MDXProvider>
   );
 };

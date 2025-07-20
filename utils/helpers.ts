@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import {serialize} from "next-mdx-remote/serialize";
+import {compile} from "@mdx-js/mdx";
 import remarkMath from "remark-math";
 import {replacer} from "@/utils/plugins";
 import rehypeKatex from "rehype-katex";
@@ -122,15 +122,18 @@ export function checkedMatter<T>(
 }
 
 
-export const serializedContent = async (rawContent: string, language: string) =>
-  await serialize(
-    rawContent,
-    {
-      mdxOptions: {
-        remarkPlugins: [remarkMath, replacer({ language })],
-        rehypePlugins: [rehypeKatex, getImageSize],
-      }}
-  );
+export const serializedContent = async (source: string, language: string) => {
+  const compiled = await compile(source, {
+    outputFormat: 'function-body',
+    providerImportSource: '@mdx-js/react',
+    jsxImportSource: 'react',
+    development: false,
+    remarkPlugins: [remarkMath, replacer({ language })],
+    rehypePlugins: [rehypeKatex, getImageSize],
+  });
+  return compiled.value as string;
+}
+
 
 let error = false;
 

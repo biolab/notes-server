@@ -27,32 +27,54 @@ async function rebuildDatabase() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           path TEXT NOT NULL UNIQUE,
           title TEXT NOT NULL,
+          subtitle TEXT,
           lastBuildId INTEGER NOT NULL,
-          
-          FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
+          date TEXT,
+          description TEXT,
+          public BOOLEAN NOT NULL DEFAULT 0,
+          language TEXT NOT NULL DEFAULT 'en',
+          coverImg TEXT,
+          recursiveContent BOOLEAN NOT NULL DEFAULT 0,
+
+      FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
       );
   `);
 
   conn.exec(`DROP TABLE IF EXISTS books`);
   conn.exec(`
       CREATE TABLE books (
-           id INTEGER PRIMARY KEY AUTOINCREMENT,
-           path TEXT NOT NULL UNIQUE,
-           title TEXT NOT NULL,
-           lastBuildId INTEGER NOT NULL,
-           content JSON NOT NULL,
-           FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          lastBuildId INTEGER NOT NULL,
+          path TEXT NOT NULL UNIQUE,
+          title TEXT NOT NULL,
+          subtitle TEXT,
+          description TEXT,
+          date TEXT,
+          public BOOLEAN NOT NULL DEFAULT 0,
+          language TEXT NOT NULL DEFAULT 'en',
+          tocInHeader BOOLEAN NOT NULL DEFAULT 1,
+          indexInitiallyClosed BOOLEAN NOT NULL DEFAULT 0,
+          coverImg TEXT,
+          requireLogin BOOLEAN NOT NULL DEFAULT 0,
+          quizThreshold INTEGER DEFAULT NULL,
+          loginSubtitle TEXT,
+          email_subject TEXT,
+          email_body TEXT,
+          content TEXT NOT NULL,
+
+      FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
       );
    `);
 
   conn.exec(`DROP TABLE IF EXISTS chapters`);
   conn.exec(`
       CREATE TABLE chapters (
-          id    INTEGER PRIMARY KEY AUTOINCREMENT,
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          lastBuildId INTEGER NOT NULL,
           path  TEXT NOT NULL UNIQUE,
           title TEXT NOT NULL,
-          lastBuildId INTEGER NOT NULL,
-          content JSON NOT NULL,
+          omitAsChapter BOOLEAN NOT NULL DEFAULT 0,
+          content TEXT,
         
           FOREIGN KEY(lastBuildId) REFERENCES builds(id) ON DELETE RESTRICT
       );

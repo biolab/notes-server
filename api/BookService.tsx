@@ -6,7 +6,7 @@ import { BookProps } from "@/utils/getBookProps";
 export const getBookPropsFromDb = async (
   pathParts: string[]
 ): Promise<BookProps> => {
-  const book = await db.get(`SELECT id, content FROM books WHERE path = ?`, [
+  const book = await db.get(`SELECT * FROM books WHERE path = ?`, [
     pathParts.join("/"),
   ]);
 
@@ -29,16 +29,24 @@ export const getBookPropsFromDb = async (
     );
 
     chapters.push({
-      ...JSON.parse(chapter.content),
+      chapterDir: chapter.path,
+      frontmatter: { title: chapter.title, date: chapter.date, comment: "" },
       questions,
+      content: chapter.content
     });
   }
 
-  const parsedBookContent = JSON.parse(book.content);
-
   return {
+    slug: book.path,
     bookId: book.id,
-    ...parsedBookContent,
+    frontmatter: {
+      title: book.title, subTitle: book.subTitle, description: book.description, date: book.date,
+      requireLogin: book.requireLogin === 1, quizThreshold: book.quizThreshold,
+      public: book.public === 1, coverImg: book.coverImg, indexInitiallyClosed: book.indexInitiallyClosed === 1,
+      tocInHeader: book.tocInHeader === 1, language: book.language,
+      email: { subject: book.email_subject, body: book.email_body },
+    },
     chapters,
+    content: book.content
   };
 };
