@@ -1,6 +1,6 @@
 import sqlite3 from "sqlite3";
 import path from "path";
-import { getMdFile } from "../utils/helpers";
+import { getMdFile, setBasePath } from "../utils/helpers";
 import { getPaths } from "../utils/getPaths";
 import { open } from "sqlite";
 import {updatePaths} from "@/utils/updatePaths";
@@ -34,12 +34,16 @@ async function updateDb(pathPrefix: string, update: false) {
 program
   .option("-p, --path <path>", "Path to the directory to update", "")
   .option("-u, --update", "Update without increasing the build number", false)
+  .option("-b, --base <path>", "Base path for libraries");
 
 program.parseOptions(process.argv.slice(2));
-const { path: pathPrefix, update } = program.opts();
+const { path: pathPrefix, update, base } = program.opts();
 if (pathPrefix && update) {
   console.error("Both --path and --update options are provided. Please provide only one.");
   process.exit(1);
+}
+if (base) {
+  setBasePath(base);
 }
 
 updateDb(pathPrefix, update).catch((err) => {

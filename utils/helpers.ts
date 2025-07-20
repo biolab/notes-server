@@ -7,8 +7,14 @@ import {replacer} from "@/utils/plugins";
 import rehypeKatex from "rehype-katex";
 import {getImageSize} from "@/utils/getImageSize";
 
+let basePath = "public";
+
+export const setBasePath = (base: string) => {
+  basePath = base;
+}
+
 const joinedPath = (spath: string | string[]) =>
-  path.join("public", ...(typeof spath === "string" ? [spath] : spath));
+  path.join(basePath, ...(typeof spath === "string" ? [spath] : spath));
 
 export const pathExists = (...spath: string[]) =>
   fs.existsSync(joinedPath(spath));
