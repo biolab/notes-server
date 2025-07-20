@@ -112,11 +112,3 @@ export const getRawCollection = async (pathParts: string[]): Promise<RawCollecti
     slug: pathParts.join("/"),
   };
 };
-
-export const getCollectionProps = async (pathParts: string[]): Promise<CollectionProps> => {
-  const {rawContent, ...baseCollection} = await getRawCollection(pathParts);
-  return {
-    ...baseCollection,
-    content: await serializedContent(rawContent, baseCollection.frontmatter.language)
-  };
-}

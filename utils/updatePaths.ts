@@ -180,9 +180,6 @@ export const extractQuizzes = async (
           const optional = getBoolProp(where, "optional") ?? false;
           const options = getPropArray(where, "options");
           const answer = getProp(where, "answer");
-          if (options && new Set(options).size != options.length) {
-            console.log(options, options.length, new Set(options).size);
-          }
           const newErrors: string[] = (
             [
               /* Add more as needed */
@@ -602,7 +599,7 @@ const insertCollections = async (
   }
 };
 
-export const prefly = async (
+export const updatePaths = async (
   bookSlugs: string[][],
   collectionSlugs: string[][],
   db: Database,

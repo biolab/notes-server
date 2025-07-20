@@ -5,7 +5,7 @@ import { MDXProvider } from '@mdx-js/react';
 import Image from "./Image";
 import CcByNcNd from "./CcByNcNd";
 import Quiz, { IQuiz } from "./Quiz/Quiz";
-import { QuestionDef } from "@/utils/preflight";
+import { QuestionDef } from "@/utils/updatePaths";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
 
@@ -22,6 +22,10 @@ export const MdxContent = ({
   bookId?: number;
   t: (key: string) => string;
 }) => {
+  if  (!content) {
+    return;
+  }
+
   const components = {
     Quiz: (props: IQuiz) => {
       if (chapterIndex === undefined) {

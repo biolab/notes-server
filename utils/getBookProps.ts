@@ -20,7 +20,7 @@ import {
   defaultChapterFrontmatter,
   extraBookMatter,
 } from "@/types/types";
-import { extractQuizzes } from "./preflight";
+import { extractQuizzes } from "./updatePaths";
 
 export type BookPropsBase = {
   frontmatter: BookFrontmatter;

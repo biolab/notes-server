@@ -1,63 +1,37 @@
 import { Book } from "@/components/Book/Book";
 import { Collection } from "@/components/Collection/Collection";
-import { getMdFile } from "@/utils/helpers";
-import { getCollectionProps } from "@/utils/getCollectionProps";
-import { getPaths } from "@/utils/getPaths";
 import { UserContextProvider } from "@/context/UserContextProvider";
-import { getBookPropsFromDb } from "@/api/BookService";
+import { getBook, getCollection, getItem, getMetadata } from "@/api/BookService";
 import React, {Suspense} from "react";
+import { notFound } from "next/navigation";
 
 const ignoreLogin = process && process.env.NEXT_PUBLIC_IGNORE_LOGIN === "true";
 
 export type PathList = { path: string[] };
 
-export const generateStaticParams = async (): Promise<{ params: PathList }[]> =>
-  getPaths([]).map((path) => ({ params: { path } }));
+export const generateMetadata = async ({ params }: { params: Promise<PathList> }) =>
+  await getMetadata(((await params).path ?? []).join("/"));
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<PathList>;
-}) {
-  const path = (await params).path ?? [];
-  const isBook = !!getMdFile(path);
-  const props = isBook
-    ? await getBookPropsFromDb(path)
-    : await getCollectionProps(path);
-  return {
-    title: props!.frontmatter.title,
-    description: props!.frontmatter.description || "",
-  };
-}
+export default async function CollectionOrBookPage({ params }: { params: Promise<PathList> }) {
+  const path = ((await params).path ?? []).join("/");
+  const item = await getItem(path);
+  if (!item) {
+    notFound();
+  }
 
-export default async function CollectionOrBookPage({
-  params,
-}: {
-  params: Promise<PathList>;
-}) {
-  const path = (await params).path ?? [];
-
-  if (getMdFile(path)) {
-    const props = await getBookPropsFromDb(path);
-
-    const requireEmail = props.frontmatter.requireLogin && !ignoreLogin;
-
+  if (item.type === "book") {
+    // TODO: move this code into `Book` (not trivial because it uses UserContextProvider)
+    const book = await getBook(item.id);
+    const requireEmail = book.frontmatter.requireLogin && !ignoreLogin;
     return (
       <Suspense>
         <UserContextProvider requireEmail={requireEmail}>
-          <Book {...props} />;
+          <Book {...book} />;
         </UserContextProvider>
       </Suspense>
     );
   } else {
-    const props = await getCollectionProps(path);
-
-    return (
-      <Suspense>
-        <UserContextProvider>
-          <Collection {...props} />
-        </UserContextProvider>
-      </Suspense>
-    );
+    const collection = await getCollection(item.id);
+    return <Collection {...collection} />
   }
 }

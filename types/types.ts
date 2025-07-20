@@ -1,4 +1,4 @@
-import { QuestionDef } from "@/utils/preflight";
+import { QuestionDef } from "@/utils/updatePaths";
 
 export interface ChapterFrontmatter {
   title: string;
