@@ -4,28 +4,45 @@ import { getMdFile } from "../utils/helpers";
 import { getPaths } from "../utils/getPaths";
 import { open } from "sqlite";
 import {updatePaths} from "@/utils/updatePaths";
+import { program } from "commander";
 
 const DB_PATH = path.join(process.cwd(), "db");
 const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
-async function updateDb(trigger: string) {
+async function updateDb(pathPrefix: string, update: false) {
   const db = await open({
     filename: path.join(DB_FILE),
     driver: sqlite3.Database,
   });
-  const { id: buildId } = await db.get(`INSERT INTO builds (trigger)
-                                        VALUES (?)
-                                        RETURNING id;`, [trigger]);
 
-  const paths: [string[], boolean][] = getPaths([]).map((path) => [path, !!getMdFile(path)]);
+  let buildId, prefix;
+  if (update) {
+    buildId = (await db.get(`SELECT MAX(id) as buildId FROM builds;`)).buildId;
+    prefix = (await db.get(`SELECT path FROM builds WHERE id = ?;`, [buildId.buildId])).path;
+  }
+  else {
+    buildId = (await db.get(`INSERT INTO builds (path) VALUES (?) RETURNING id;`, [pathPrefix])).id;
+    prefix = pathPrefix;
+  }
+
+  const paths: [string[], boolean][] = getPaths(prefix ? prefix.split("/") : []).map((path) => [path, !!getMdFile(path)]);
   const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
   const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
-  await updatePaths(bookPaths, collectionPaths, db, buildId);
+  await updatePaths(bookPaths, collectionPaths, db, buildId, prefix);
 }
 
-const trigger = process.argv[2] || "manual";
+program
+  .option("-p, --path <path>", "Path to the directory to update", "")
+  .option("-u, --update", "Update without increasing the build number", false)
 
-updateDb(trigger).catch((err) => {
-  console.error("Error marking a new build:", err);
+program.parseOptions(process.argv.slice(2));
+const { path: pathPrefix, update } = program.opts();
+if (pathPrefix && update) {
+  console.error("Both --path and --update options are provided. Please provide only one.");
+  process.exit(1);
+}
+
+updateDb(pathPrefix, update).catch((err) => {
+  console.error("Error making a new build:", err);
   process.exit(1);
 });

@@ -41,7 +41,7 @@ export const extractQuizzes = async (
   slug: string
 ): Promise<QuestionDef[]> => {
   const compiledMdx = await compile(
-    // At some point I useed mdxSource.replace(/[^\x00-\x7F]/g, "") to fix some problem.
+    // At some point I used mdxSource.replace(/[^\x00-\x7F]/g, "") to fix some problem.
     // Later it turned out it makes options non-unique (e.g. in `options={["Č", "Š", "Ž"]}`).
     // I removed it and it still works. I'm keeping the comment, just for the case.
     mdxSource,
@@ -234,7 +234,8 @@ export const extractQuizzes = async (
 const checkBooks = async (
   books: RawBookProps[],
   allBookSlugs: Set<string>,
-  db: Database
+  db: Database,
+  updatePath: string
 ): Promise<
   Record<string, { frontmatter: ChapterFrontmatter; questions: QuestionDef[] }>
 > => {
@@ -250,7 +251,9 @@ const checkBooks = async (
      FROM books
      JOIN books_chapters ON books.id = books_chapters.bookId
      JOIN chapters ON books_chapters.chapterId = chapters.id
-     JOIN questions ON chapters.id = questions.chapterId`
+     JOIN questions ON chapters.id = questions.chapterId
+     WHERE books.path LIKE ?`,
+     [`${updatePath}/%`]
   );
   booksWithQuestions
     .filter(({ path }) => !allBookSlugs.has(path))
@@ -412,7 +415,7 @@ const checkCollections = async (
       logError(
         collection.slug,
         `The following books are missing in the collection:\n ${missingBooks
-          .map((b) => `  ${b}`)
+          .map((b) => `  ${b.slug}`)
           .join("\n")}`
       );
     }
@@ -425,7 +428,7 @@ const checkCollections = async (
       logError(
         collection.slug,
         `The following collections are missing in the collection:\n ${missingCollections
-          .map((c) => `  ${c}`)
+          .map((c) => `  ${c.slug}`)
           .join("\n")}`
       );
     }
@@ -546,54 +549,54 @@ const insertCollections = async (
   for (const {
     slug: collectionSlug,
     frontmatter: { title, subTitle, date, description, public: isPublic, language, coverImg, recursiveContent },
-    books,
-    collections: subCollections,
   } of collections) {
     // Do not change this to "DELETE + INSERT" because it will delete rows that use this collections's id as foreign key.
-    const { id: collectionId } = await db.get(
+    await db.get(
       `
-        INSERT INTO collections (
-            lastBuildId,
-            path, title, subtitle, description, date,
-            public, language, coverImg, recursiveContent)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(path) DO UPDATE SET title       = excluded.title,
-                                        lastBuildId = excluded.lastBuildId,
-                                        subtitle    = excluded.subtitle,
-                                        description = excluded.description,
-                                        date        = excluded.date,
-                                        public      = excluded.public,
-                                        language    = excluded.language,
-                                        coverImg    = excluded.coverImg,
-                                        recursiveContent = excluded.recursiveContent
-        RETURNING id
-    `,
+          INSERT INTO collections (lastBuildId,
+                                   path, title, subtitle, description, date,
+                                   public, language, coverImg, recursiveContent)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(path) DO UPDATE SET title            = excluded.title,
+                                          lastBuildId      = excluded.lastBuildId,
+                                          subtitle         = excluded.subtitle,
+                                          description      = excluded.description,
+                                          date             = excluded.date,
+                                          public           = excluded.public,
+                                          language         = excluded.language,
+                                          coverImg         = excluded.coverImg,
+                                          recursiveContent = excluded.recursiveContent
+          RETURNING id
+      `,
       [buildId, collectionSlug, title, subTitle, description, date, isPublic, language, coverImg, recursiveContent]
     );
+  }
 
-    for (const { slug: bookSlug } of books) {
+  for (const { slug: collectionSlug, collections: subCollections, books } of collections) {
+      const collectionId = (await db.get(`SELECT id FROM collections WHERE path = ?`, [collectionSlug])).id;
+      for (const { slug } of books) {
       await db.run(
         `
-          INSERT INTO collections_books (collectionId, bookId, lastBuildId)
-          SELECT ?, id, ?
-          FROM books
-          WHERE path = ?
-          ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
-      `,
-        [collectionId, buildId, bookSlug]
+            INSERT INTO collections_books (collectionId, bookId, lastBuildId)
+            SELECT ?, id, ?
+            FROM books
+            WHERE path = ?
+            ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
+        `,
+        [collectionId, buildId, slug]
       );
     }
 
-    for (const { slug: subCollectionSlug } of subCollections) {
+    for (const { slug } of subCollections) {
       await db.run(
         `
-          INSERT INTO collections_collections (collectionId, subCollectionId, lastBuildId)
-          SELECT ?, id, ?
-          FROM collections
-          WHERE path = ?
-          ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
-      `,
-        [collectionId, buildId, subCollectionSlug]
+            INSERT INTO collections_collections (collectionId, subCollectionId, lastBuildId)
+            SELECT ?, id, ?
+            FROM collections
+            WHERE path = ?
+            ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
+        `,
+        [collectionId, buildId, slug]
       );
     }
   }
@@ -603,7 +606,8 @@ export const updatePaths = async (
   bookSlugs: string[][],
   collectionSlugs: string[][],
   db: Database,
-  buildId: number
+  buildId: number,
+  pathPrefix: string
 ) => {
   const rawBooks = await Promise.all(bookSlugs.map(getRawBook));
   const serializedBooks = await Promise.all(bookSlugs.map(getBookProps));
@@ -613,7 +617,7 @@ export const updatePaths = async (
   );
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
-  const chapters = await checkBooks(rawBooks, allBookSlugs, db);
+  const chapters = await checkBooks(rawBooks, allBookSlugs, db, pathPrefix);
   await checkQuestions(chapters, db);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   if (hasError()) {

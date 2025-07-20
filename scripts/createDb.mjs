@@ -15,7 +15,7 @@ async function rebuildDatabase() {
   conn.exec(`
       CREATE TABLE builds (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          trigger TEXT NOT NULL,
+          path TEXT NOT NULL,
           timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           output TEXT NOT NULL DEFAULT ''
       );

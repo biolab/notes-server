@@ -6,7 +6,7 @@ import {
   getMdFile,
   isDirectory,
   parseMd,
-  readPublicDir, serializedContent,
+  readPublicDir,
 } from "./helpers";
 import {
   BookFrontmatter,
