@@ -1,26 +1,13 @@
-import { getMdFile, isDirectory, readPublicDir, setBasePath } from "@/ingest/helpers";
-import { updatePaths } from "@/ingest/updatePaths";
 import path from "path";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 
+import { setBasePath } from "@/ingest/paths";
+import { getPaths } from "@/ingest/md-helpers";
+import { updatePaths } from "@/ingest/updatePaths";
+
 export const DB_PATH = path.join(process.cwd(), "db");
 export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
-
-export const getPaths = (path: string[]): [string[], boolean][] => {
-  const indexFile = getMdFile(path);
-  const collectionFile = getMdFile(path, "collection");
-  if (indexFile && collectionFile) {
-    throw new Error(
-      `${path.join("/")} contains both index.md and collection.md`,
-    );
-  }
-  return [
-    ...(indexFile || collectionFile ? [[path, !!indexFile]] : []) as [string[], boolean][],
-    ...indexFile ? [] : readPublicDir(...path)
-      .filter((entry) => isDirectory(...path, entry) && entry !== "_chapters")
-      .flatMap((entry) => getPaths([...path, entry]))];
-}
 
 export async function updateDb(basePath: string, pathPrefix: string, update: false) {
   const db = await open({

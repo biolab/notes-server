@@ -1,31 +1,17 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import {compile} from "@mdx-js/mdx";
+import { compile } from "@mdx-js/mdx";
 import remarkMath from "remark-math";
-import {replacer} from "@/ingest/plugins";
+import { replacer } from "@/ingest/plugins";
 import rehypeKatex from "rehype-katex";
-import {getImageSize} from "@/ingest/getImageSize";
-
-let basePath = "public";
-
-export const setBasePath = (base: string) => {
-  basePath = base;
-}
-
-const joinedPath = (spath: string | string[]) =>
-  path.join(basePath, ...(typeof spath === "string" ? [spath] : spath));
-
-export const pathExists = (...spath: string[]) =>
-  fs.existsSync(joinedPath(spath));
-
-export const isDirectory = (...spath: string[]) =>
-  fs.statSync(joinedPath(spath), { throwIfNoEntry: false })?.isDirectory();
+import { getImageSize } from "@/ingest/getImageSize";
+import { isDirectory, joinedPath, readPublicDir } from "@/ingest/paths";
 
 export const getMdFile = (spath: string | string[], base = "index") => {
   const bpath = joinedPath(spath);
   // Don't be smart and call the above isDirectory function;
-  // you'll add another 'public' to the path
+  // you'll add another `basePath` to the path
   if (!fs.statSync(bpath).isDirectory()) {
     return null;
   }
@@ -44,9 +30,6 @@ export const getMdFile = (spath: string | string[], base = "index") => {
   }
   return null;
 };
-
-export const readPublicDir = (...spath: string[]): string[] =>
-  fs.readdirSync(joinedPath(spath));
 
 export const readPublicDirMd = (spath: string | string[], base = "index") => {
   const bpath = typeof spath == "string" ? [spath] : spath;
@@ -113,8 +96,9 @@ export function checkedMatter<T>(
   const errors = Object.entries(data)
     .map(([key, value]) =>
       !(key in allowed) ? `- unexpected key '${key}'`
-      : typeof value !== typeof allowed[key] ? `- invalid type for '${key}': expected ${typeof allowed[key]}, got ${typeof value}`
-      : "",
+      : typeof value !== typeof allowed[key]
+        ? `- invalid type for '${key}': expected ${typeof allowed[key]}, got ${typeof value}`
+        : "",
     )
     .filter(Boolean)
     .join("\n");
@@ -126,7 +110,6 @@ export function checkedMatter<T>(
     content,
   };
 }
-
 
 export const serializedContent = async (source: string, language: string) => {
   const compiled = await compile(source, {
@@ -140,23 +123,17 @@ export const serializedContent = async (source: string, language: string) => {
   return compiled.value as string;
 }
 
-
-let error = false;
-
-export const logError = (where: string, message: string | Error) => {
-  if (!error) {
-    console.log("\n** Errors **\n")
+export const getPaths = (path: string[]): [string[], boolean][] => {
+  const indexFile = getMdFile(path);
+  const collectionFile = getMdFile(path, "collection");
+  if (indexFile && collectionFile) {
+    throw new Error(
+      `${path.join("/")} contains both index.md and collection.md`,
+    );
   }
-  console.log(`${where}: ${message instanceof Error ? message.message : message}`);
-  error = true;
+  return [
+    ...(indexFile || collectionFile ? [[path, !!indexFile]] : []) as [string[], boolean][],
+    ...indexFile ? [] : readPublicDir(...path)
+      .filter((entry) => isDirectory(...path, entry) && entry !== "_chapters")
+      .flatMap((entry) => getPaths([...path, entry]))];
 }
-
-export async function catchErrors<T>(where: string, func: () => Promise<T>): Promise<T | undefined> {
-  try {
-    return await func();
-  } catch (err) {
-    logError(where, err instanceof Error ? err : new Error(String(err)));
-  }
-}
-
-export const hasError = () => error;

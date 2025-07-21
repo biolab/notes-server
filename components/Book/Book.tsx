@@ -16,7 +16,8 @@ import BookLogin from "./BookLogin";
 import { logger } from "@/utils/logger";
 import Layout from "../Layout/Layout";
 import { toast } from "react-toastify";
-import { BookProps } from "@/types/types";
+
+import { BookProps } from "@/api/BookService";
 
 export const Book = ({
   frontmatter,

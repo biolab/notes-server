@@ -1,29 +1,28 @@
 import fs from "fs";
 import path from "path";
 
-import { checkedMatter, getMdFile, isDirectory, parseMd, readPublicDir, } from "./helpers";
-import { CollectionPropsBase, defaultCollectionFrontmatter, extraCollectionMatter, } from "@/types/types";
 import { bookMatter } from "@/ingest/book";
+import { checkedMatter, getMdFile, parseMd
+} from "./md-helpers";
+import { CollectionPropsBase, defaultCollectionFrontmatter, extraCollectionMatter
+} from "@/types/types";
+import { isDirectory, readPublicDir } from "@/ingest/paths";
 
 const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
 
-export type RawCollectionProps = CollectionPropsBase & {
-  rawContent: string;
+export type RawCollectionDef = CollectionPropsBase & {
+  mdxContent: string;
 }
 
 const collectionMatter = (indexMd: string, slug: string) =>
   checkedMatter(
-    indexMd,
-    slug,
-    defaultCollectionFrontmatter,
-    extraCollectionMatter,
-  );
+    indexMd, slug, defaultCollectionFrontmatter, extraCollectionMatter );
 
-export const getRawCollection = async (pathParts: string[]): Promise<RawCollectionProps> => {
+export const parseCollection = async (pathParts: string[]): Promise<RawCollectionDef> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts, "collection")!, "utf-8");
   const { frontmatter, content } = collectionMatter(indexMd, fullPath);
-  const mdxSource = parseMd(content, path.join(path.sep, ...pathParts));
+  const mdxContent = parseMd(content, path.join(path.sep, ...pathParts));
 
   const recursivePaths = (spath: string, type: string): string[] =>
     readPublicDir(spath)
@@ -74,7 +73,7 @@ export const getRawCollection = async (pathParts: string[]): Promise<RawCollecti
 
   return {
     frontmatter,
-    rawContent: mdxSource,
+    mdxContent,
     books: books.filter(
         ({ frontmatter: bookfrontmatter }) =>
             showUnpublished ||

@@ -1,237 +1,12 @@
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-
-import { catchErrors, hasError, logError, serializedContent } from "./helpers";
-import { getImageSize } from "./getImageSize";
+import { serializedContent } from "./md-helpers";
 import { Database } from "sqlite";
-
-import { compile } from "@mdx-js/mdx";
-import * as babelParser from "@babel/parser";
-import * as t from "@babel/types";
-import traverse, { NodePath } from "@babel/traverse";
-
-import {
-  getRawCollection,
-  RawCollectionProps,
-} from "@/ingest/collection";
-import {
-  getBookProps,
-  getRawBook, RawBookProps,
-
-} from "@/ingest/book";
-import { BookProps, ChapterDef, ChapterFrontmatter } from "@/types/types";
-
-type QuestionTypes = "multi" | "text" | "long-text" | "choice";
-
-export type QuestionDef = {
-  id?: number;
-  questionId: string;
-  question: string;
-  type: QuestionTypes;
-  options: string[] | null;
-  answer: string | null;
-  line: number;
-  points: number;
-  optional: boolean;
-};
-
-export const extractQuizzes = async (
-  mdxSource: string,
-  slug: string
-): Promise<QuestionDef[]> => {
-  const compiledMdx = await compile(
-    // At some point I used mdxSource.replace(/[^\x00-\x7F]/g, "") to fix some problem.
-    // Later it turned out it makes options non-unique (e.g. in `options={["Č", "Š", "Ž"]}`).
-    // I removed it and it still works. I'm keeping the comment, just for the case.
-    mdxSource,
-    {
-      outputFormat: "function-body",
-      remarkPlugins: [remarkMath],
-      rehypePlugins: [rehypeKatex, getImageSize],
-    }
-  );
-  const ast = babelParser.parse(`() => {${String(compiledMdx)}}`, {
-    sourceType: "module",
-    plugins: [],
-  });
-
-  const questions: QuestionDef[] = [];
-  traverse(ast, {
-    CallExpression(path: NodePath<t.CallExpression>) {
-      const args = path.node.arguments;
-      if (
-        args.length > 1 &&
-        t.isIdentifier(args[0]) &&
-        args[0].name === "Quiz"
-      ) {
-        const props = args[1];
-        if (t.isObjectExpression(props)) {
-          const findProp = (name: string): t.ObjectProperty | undefined =>
-            props.properties.find(
-              (prop): prop is t.ObjectProperty =>
-                t.isObjectProperty(prop) &&
-                t.isIdentifier(prop.key) &&
-                prop.key.name === name
-            );
-
-          const getProp = (where: string, name: string): string | null => {
-            const prop = findProp(name);
-            if (!prop) {
-              return null;
-            }
-            if (!t.isStringLiteral(prop.value)) {
-              logError(where, `Property "${name}" is not a string`);
-              return null;
-            }
-            return prop.value.value;
-          };
-
-          const getNumProp = (where: string, name: string): number | null => {
-            const prop = findProp(name);
-            if (!prop) {
-              return null;
-            }
-            if (
-              !(
-                t.isNumericLiteral(prop.value) || t.isDecimalLiteral(prop.value)
-              )
-            ) {
-              logError(
-                where,
-                `
-                Property "${name}" is not a number.
-                Value:
-                ${JSON.stringify(prop.value)}`
-              );
-              return null;
-            }
-
-            if (t.isNumericLiteral(prop.value)) {
-              return prop.value.value;
-            }
-
-            return parseInt(prop.value.value);
-          };
-
-          const getBoolProp = (where: string, name: string): boolean | null => {
-            const prop = findProp(name);
-            if (!prop) {
-              return null;
-            }
-            if (!t.isBooleanLiteral(prop.value)) {
-              logError(where, `Property "${name}" is not a boolean`);
-              return null;
-            }
-
-            return prop.value.value;
-          };
-
-          const getPropArray = (
-            where: string,
-            name: string
-          ): string[] | null => {
-            const prop = findProp(name);
-            if (!prop) {
-              return null;
-            }
-            if (!t.isArrayExpression(prop.value)) {
-              logError(where, `"${name}" is not an array`);
-              return null;
-            }
-            const elements = prop.value.elements;
-            const strings: string[] = [];
-            for (const el of elements) {
-              if (!t.isStringLiteral(el)) {
-                logError(
-                  where,
-                  `"${name}" contains a non-string element in array`
-                );
-                return null;
-              }
-              if (!el.value.length) {
-                console.log(el);
-              }
-              strings.push(el.value);
-            }
-            return strings;
-          };
-
-          const question = getProp(slug, "question");
-          if (!question) {
-            logError(slug, "Question text is missing");
-            return;
-          }
-          const where = `${slug}:\n  ${question.slice(0, 50)}${
-            question.length > 50 ? "(...)" : ""
-          }`;
-
-          const type = getProp(where, "type") || "multi";
-          if (["multi", "text", "long-text", "choice"].indexOf(type) === -1) {
-            logError(
-              where,
-              `Question type "${type}" is not supported. Use "multi", "text" or "long-text".`
-            );
-            return;
-          }
-
-          const questionId = getProp(where, "id") || question;
-          const points = getNumProp(where, "points") || 0;
-          const optional = getBoolProp(where, "optional") ?? false;
-          const options = getPropArray(where, "options");
-          const answer = getProp(where, "answer");
-          const newErrors: string[] = (
-            [
-              /* Add more as needed */
-              [
-                options &&
-                  answer &&
-                  !options
-                    .map((s) => s.toLocaleLowerCase())
-                    .includes(answer.toLocaleLowerCase()),
-                `Correct answer is not listed in options`,
-              ],
-              [
-                options && new Set(options).size != options.length,
-                `Options are not unique`,
-              ],
-              [
-                options && type !== "multi" && type !== "choice",
-                "Options are only allowed for multi-choice questions",
-              ],
-              [
-                (type === "multi" || type === "choice") && !options,
-                "Options are required for multi-choice questions",
-              ],
-            ] as [boolean, string][]
-          )
-            .filter(([cond]) => cond)
-            .map(([, error]) => error);
-
-          if (newErrors.length > 0) {
-            newErrors.forEach((error) => logError(where, error));
-          }
-          // We add invalid questions so that they're not reported as missing.
-          // Build will fail, so they won't be added to the database.
-          questions.push({
-            questionId,
-            question,
-            type: type as QuestionTypes,
-            options,
-            answer,
-            points,
-            optional,
-
-            line: path.node.loc?.start.line || -1,
-          });
-        }
-      }
-    },
-  });
-  return questions;
-};
+import { parseCollection, RawCollectionDef } from "@/ingest/collection";
+import { parseBook, RawBookDef } from "@/ingest/book";
+import { ChapterFrontmatter, QuestionDef } from "@/types/types";
+import { catchErrors, hasError, logError } from "@/ingest/errors";
 
 const checkBooks = async (
-  books: RawBookProps[],
+  books: RawBookDef[],
   allBookSlugs: Set<string>,
   db: Database,
   updatePath: string
@@ -263,13 +38,13 @@ const checkBooks = async (
   for (const book of books) {
     // Check that book content can be serialized
     await catchErrors(book.slug, async () =>
-      await serializedContent(book.rawContent, book.frontmatter.language)
+      await serializedContent(book.mdxContent, book.frontmatter.language)
     );
 
     // Check that chapters' content can be serialized
-    for (const { rawContent, chapterDir } of book.chapters) {
+    for (const { mdxContent, chapterDir } of book.chapters) {
       await catchErrors(chapterDir, async () =>
-        serializedContent(rawContent, book.frontmatter.language)
+        serializedContent(mdxContent, book.frontmatter.language)
       );
     }
 
@@ -281,24 +56,17 @@ const checkBooks = async (
 
     // Extract all questions in the book
     type QuestionAndChapter = { chapter: string; question: QuestionDef };
-    const questions: QuestionAndChapter[] = [];
-    for (const { rawContent, chapterDir, frontmatter } of book.chapters) {
-      const chapterQuestions = await extractQuizzes(
-        rawContent,
-        `${book.slug}:${chapterDir}`
+    const allQuestions: QuestionAndChapter[] = [];
+    for (const { frontmatter, questions, chapterDir } of book.chapters) {
+      allQuestions.push(
+        ...questions.map((question) => ({chapter: chapterDir, question}))
       );
-      questions.push(
-        ...chapterQuestions.map((question) => ({
-          chapter: chapterDir,
-          question,
-        }))
-      );
-      chapters[chapterDir] = { frontmatter, questions: chapterQuestions };
+      chapters[chapterDir] = { frontmatter, questions };
     }
 
     // Check that no questions within the same book have the same questionId
     const questionsByIds: Record<string, QuestionAndChapter[]> = {};
-    for (const { chapter, question } of questions) {
+    for (const { chapter, question } of allQuestions) {
       if (questionsByIds[question.questionId] === undefined) {
         questionsByIds[question.questionId] = [];
       }
@@ -340,7 +108,7 @@ const checkBooks = async (
           `Question "${questionId.slice(0, 15)} (...)" is missing.`
         );
       });
-      const extras = questions.filter(
+      const extras = allQuestions.filter(
         ({ question: { questionId } }) => !pastQuestions.includes(questionId)
       );
       if (extras.length > 0) {
@@ -396,14 +164,14 @@ const checkQuestions = async (
 };
 
 const checkCollections = async (
-  collections: RawCollectionProps[],
+  collections: RawCollectionDef[],
   allCollectionSlugs: Set<string>,
   allBookSlugs: Set<string>
 ) => {
   for (const collection of collections) {
     // Check that collection content can be serialized
     await catchErrors(collection.slug, async () =>
-      serializedContent(collection.rawContent, collection.frontmatter.language)
+      serializedContent(collection.mdxContent, collection.frontmatter.language)
     );
 
     // Check that all books in the collection exist
@@ -435,57 +203,65 @@ const checkCollections = async (
 };
 
 const insertChapters = async (
-  serializedChapters: ChapterDef[],
+  books: RawBookDef[],
   db: Database,
   buildId: number
 ) => {
-  for (const {chapterDir, content, questions, frontmatter: {title, omitAsChapter}} of serializedChapters) {
-    const chapterId = (
-      await db.get(
-        `
-      INSERT INTO chapters (lastBuildId, path, title, omitAsChapter, content)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(path) DO UPDATE SET title       = excluded.title,
-                                      lastBuildId = excluded.lastBuildId,
-                                      content     = excluded.content,
-                                      omitAsChapter = excluded.omitAsChapter
-      RETURNING id`,
-        [buildId, chapterDir, title, omitAsChapter, content]
-      )
-    ).id;
+  for (const { chapters, frontmatter: {language}} of books) {
+    for (const { chapterDir, frontmatter: {title, omitAsChapter}, mdxContent, questions } of chapters) {
+      if (await db.get(`SELECT 1 FROM chapters WHERE path = ? AND lastBuildId = ?`,
+                       [chapterDir, buildId])) {
+        continue;
+      }
+      const content = await serializedContent(mdxContent, language);
+      const chapterId = (
+        await db.get(
+          `
+              INSERT INTO chapters (lastBuildId, path, title, omitAsChapter, content)
+              VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(path) DO UPDATE SET title         = excluded.title,
+                                              lastBuildId   = excluded.lastBuildId,
+                                              content       = excluded.content,
+                                              omitAsChapter = excluded.omitAsChapter
+              RETURNING id`,
+          [buildId, chapterDir, title, omitAsChapter, content]
+        )
+      ).id;
 
-    for (const {questionId, question, type, options, answer} of questions) {
-      await db.run(
-        `
-        INSERT INTO questions (chapterId, questionId, question, options, answer, questionType, lastBuildId)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT DO UPDATE SET question = excluded.question,
-                                  lastBuildId = excluded.lastBuildId`,
-        [
-          chapterId,
-          questionId,
-          question,
-          JSON.stringify(options),
-          answer,
-          type,
-          buildId,
-        ]
-      );
+      for (const {questionId, question, type, options, answer} of questions) {
+        await db.run(
+          `
+              INSERT INTO questions (chapterId, questionId, question, options, answer, questionType, lastBuildId)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT DO UPDATE SET question    = excluded.question,
+                                        lastBuildId = excluded.lastBuildId`,
+          [
+            chapterId,
+            questionId,
+            question,
+            JSON.stringify(options),
+            answer,
+            type,
+            buildId,
+          ]
+        );
+      }
     }
   }
 };
 
 const insertBooks = async (
-  books: BookProps[],
+  books: RawBookDef[],
   db: Database,
   buildId: number
 ) => {
   for (const {
-    content,
-    chapters,
-    slug,
-    frontmatter: { title, subTitle, description, date, public: isPublic, language, tocInHeader, indexInitiallyClosed, coverImg, requireLogin, quizThreshold, loginSubtitle, email },
+    mdxContent, chapters, slug,
+    frontmatter: {
+      title, subTitle, description, date, public: isPublic, language, tocInHeader,
+      indexInitiallyClosed, coverImg, requireLogin, quizThreshold, loginSubtitle, email },
   } of books) {
+    const content = await serializedContent(mdxContent, language);
     // Do not change this to "DELETE + INSERT" because it will delete rows that use this book's id as foreign key.
     const { id: bookId } = await db.get(
       `
@@ -541,7 +317,7 @@ const insertBooks = async (
 };
 
 const insertCollections = async (
-  collections: RawCollectionProps[],
+  collections: RawCollectionDef[],
   db: Database,
   buildId: number
 ) => {
@@ -549,7 +325,7 @@ const insertCollections = async (
     slug: collectionSlug,
     frontmatter: { title, subTitle, date, description, public: isPublic, language, coverImg, recursiveContent },
   } of collections) {
-    // Do not change this to "DELETE + INSERT" because it will delete rows that use this collections's id as foreign key.
+    // Do not change this to "DELETE + INSERT" because it will delete rows that use this collection's id as foreign key.
     await db.get(
       `
           INSERT INTO collections (lastBuildId,
@@ -608,15 +384,12 @@ export const updatePaths = async (
   buildId: number,
   pathPrefix: string
 ) => {
-  const rawBooks = await Promise.all(bookSlugs.map(getRawBook));
-  const serializedBooks = await Promise.all(bookSlugs.map(getBookProps));
-  const allBookSlugs = new Set(rawBooks.map(({ slug }) => slug));
-  const collections = await Promise.all(
-    collectionSlugs.map(async (slug) => await getRawCollection(slug))
-  );
+  const books = await Promise.all(bookSlugs.map(parseBook));
+  const allBookSlugs = new Set(books.map(({ slug }) => slug));
+  const collections = await Promise.all(collectionSlugs.map(parseCollection));
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
-  const chapters = await checkBooks(rawBooks, allBookSlugs, db, pathPrefix);
+  const chapters = await checkBooks(books, allBookSlugs, db, pathPrefix);
   await checkQuestions(chapters, db);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   if (hasError()) {
@@ -624,11 +397,7 @@ export const updatePaths = async (
     process.exit(1);
   }
 
-  await insertChapters(
-    serializedBooks.flatMap((b) => b.chapters),
-    db,
-    buildId
-  );
-  await insertBooks(serializedBooks, db, buildId);
+  await insertChapters(books, db, buildId);
+  await insertBooks(books, db, buildId);
   await insertCollections(collections, db, buildId);
 };

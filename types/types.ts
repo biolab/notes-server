@@ -1,4 +1,21 @@
-import { QuestionDef } from "@/ingest/updatePaths";
+/* Questions */
+
+export type QuestionTypes = "multi" | "text" | "long-text" | "choice";
+
+export type QuestionDef = {
+  id?: number;
+  questionId: string;
+  question: string;
+  type: QuestionTypes;
+  options: string[] | null;
+  answer: string | null;
+  line: number;
+  points: number;
+  optional: boolean;
+};
+
+
+/* Chapters */
 
 export interface ChapterFrontmatter {
   title: string;
@@ -7,20 +24,18 @@ export interface ChapterFrontmatter {
   comment: string;
 }
 
-export const defaultChapterFrontmatter: ChapterFrontmatter = {
-  title: "",
-  omitAsChapter: false,
-  date: "",
-  /* TODO: Fix books and remove */
-  comment: "",
-};
-
-export interface ChapterDef {
+export interface ChapterDefBase {
   chapterDir: string;
   frontmatter: ChapterFrontmatter;
-  content: string;
   questions: QuestionDef[];
 }
+
+export interface ChapterDef extends ChapterDefBase {
+  content: string;
+}
+
+
+/* Books */
 
 export interface BookFrontmatter {
   title: string;
@@ -39,36 +54,8 @@ export interface BookFrontmatter {
   email?: { subject: string; body: string };
 }
 
-export const defaultBookFrontmatter: BookFrontmatter = {
-  title: "",
-  subTitle: "",
-  description: "",
-  date: "",
-  public: true,
-  language: "en",
-  tocInHeader: false,
-  indexInitiallyClosed: false,
-  coverImg: "",
-  requireLogin: false,
-} satisfies BookFrontmatter & Record<string, unknown>;
 
-export const extraBookMatter = {
-  chapters: [] as string[],
-
-  /* TODO: These are related to quizzes. I listed them here so that
-       current books pass validation, but they should be moved to
-       defaultBookFrontmatter or removed if they're no longer necessary. */
-  showQuizProgress: false,
-  requireLogin: false,
-  quizThreshold: 0,
-  submitQuizText: "",
-  loginSubtitle: "",
-  email: {},
-
-  // Unended properties
-  quiz: false,
-  logQuizzes: false,
-} satisfies Record<string, unknown>;
+/* Collections */
 
 export interface CollectionFrontmatter {
   title: string;
@@ -99,15 +86,9 @@ export const extraCollectionMatter = {
   collections: [] as string[],
 } satisfies Record<string, unknown>;
 
-export type BookPropsBase = {
+export type BookDefBase = {
   frontmatter: BookFrontmatter;
   slug: string;
-};
-
-export type BookProps = BookPropsBase & {
-  bookId?: number;
-  content: string;
-  chapters: ChapterDef[];
 };
 
 export type CollectionPropsBase = {
@@ -116,6 +97,7 @@ export type CollectionPropsBase = {
   frontmatter: CollectionFrontmatter;
   slug: string;
 };
+
 export type CollectionProps = CollectionPropsBase & {
   content: string;
 }

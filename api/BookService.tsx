@@ -1,7 +1,7 @@
 "use server";
 
 import db from "@/utils/db";
-import { BookProps, CollectionProps } from "@/types/types";
+import { BookDefBase, ChapterDef, CollectionProps } from "@/types/types";
 
 export type ItemDef = {
   type: "book" | "collection";
@@ -18,6 +18,12 @@ export const getMetadata = async (path: string): Promise<{title: string, descrip
                        FROM ${item.type}s
                        WHERE id = ?`, [item.id]);
 }
+
+export type BookProps = BookDefBase & {
+  bookId?: number;
+  content: string;
+  chapters: ChapterDef[];
+};
 
 export const getBook = async (id: number, noContent=false): Promise<BookProps> => {
   const book = await db.get(`SELECT * FROM books WHERE id = ?`, [id]);

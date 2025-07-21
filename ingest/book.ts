@@ -1,49 +1,72 @@
 import fs from "fs";
 import path from "path";
 
-import {
-  catchErrors,
-  checkedMatter,
-  getMdFile,
-  logError,
-  parseMd,
-  pathExists,
-  readPublicDirMd,
-  serializedContent,
-} from "./helpers";
+import { ChapterDefBase, ChapterFrontmatter,
+         BookDefBase, BookFrontmatter } from "@/types/types";
+import { pathExists } from "@/ingest/paths";
+import { checkedMatter, getMdFile, parseMd, readPublicDirMd } from "./md-helpers";
+import { catchErrors, logError } from "@/ingest/errors";
+import { extractQuizzes } from "@/ingest/questions";
 
-import {
-  BookProps,
-  BookPropsBase,
-  ChapterFrontmatter,
-  defaultBookFrontmatter,
-  defaultChapterFrontmatter,
-  extraBookMatter,
-} from "@/types/types";
-import { extractQuizzes } from "./updatePaths";
-
-export const bookMatter = (indexMd: string, slug: string) =>
-  checkedMatter(indexMd, slug, defaultBookFrontmatter, extraBookMatter);
-
-export const chapterMatter = (chapterMd: string, slug: string) =>
-  checkedMatter(chapterMd, slug, defaultChapterFrontmatter);
-
-export type RawBookProps = BookPropsBase & {
-  rawContent: string;
-  chapters: {
-    chapterDir: string;
-    frontmatter: ChapterFrontmatter;
-    rawContent: string;
-  }[];
+const chapterFrontmatterDefaults: ChapterFrontmatter = {
+  title: "",
+  omitAsChapter: false,
+  date: "",
+  /* TODO: Fix books and remove */
+  comment: "",
 };
 
-export const getRawBook = async (
-  pathParts: string[]
-): Promise<RawBookProps> => {
+const bookFrontmatterDefaults: BookFrontmatter = {
+  title: "",
+  subTitle: "",
+  description: "",
+  date: "",
+  public: true,
+  language: "en",
+  tocInHeader: false,
+  indexInitiallyClosed: false,
+  coverImg: "",
+  requireLogin: false,
+} satisfies BookFrontmatter & Record<string, unknown>;
+
+const extraBookMatter = {
+  chapters: [] as string[],
+
+  /* TODO: These are related to quizzes. I listed them here so that
+       current books pass validation, but they should be moved to
+       bookFrontmatterDefaults or removed if they're no longer necessary. */
+  showQuizProgress: false,
+  requireLogin: false,
+  quizThreshold: 0,
+  submitQuizText: "",
+  loginSubtitle: "",
+  email: {},
+
+  // Unended properties
+  quiz: false,
+  logQuizzes: false,
+} satisfies Record<string, unknown>;
+
+export const bookMatter = (indexMd: string, slug: string) =>
+  checkedMatter(indexMd, slug, bookFrontmatterDefaults, extraBookMatter);
+
+const chapterMatter = (chapterMd: string, slug: string) =>
+  checkedMatter(chapterMd, slug, chapterFrontmatterDefaults);
+
+interface RawChapterDef extends ChapterDefBase {
+  mdxContent: string;
+}
+
+export type RawBookDef = BookDefBase & {
+  mdxContent: string;
+  chapters: RawChapterDef[];
+};
+
+export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts)!, "utf-8");
   const { frontmatter, content } = bookMatter(indexMd, fullPath);
-  const rawContent = parseMd(content, path.join(path.sep, ...pathParts));
+  const mdxContent = parseMd(content, path.join(path.sep, ...pathParts));
 
   const chapterDirs =
     frontmatter.chapters?.map((_slug) =>
@@ -66,44 +89,26 @@ export const getRawBook = async (
       continue;
     }
 
-    const index = await catchErrors(chapterDir, async () =>
-      getMdFile(chapterDir)
-    );
+    const index = await catchErrors(
+      chapterDir, async () => getMdFile(chapterDir));
     if (!index) {
       continue;
     }
     const chapterMd = fs.readFileSync(index, "utf-8");
     const { frontmatter, content } = chapterMatter(chapterMd, chapterDir);
-    const rawContent = parseMd(content, "/" + chapterDir);
+    const mdxContent = parseMd(content, "/" + chapterDir);
+    const questions = await extractQuizzes(mdxContent, chapterDir);
     chapters.push({
       chapterDir,
       frontmatter,
-      rawContent,
+      mdxContent,
+      questions,
     });
   }
   return {
-    frontmatter,
-    rawContent,
-    chapters,
     slug: pathParts.join("/"),
+    frontmatter,
+    mdxContent,
+    chapters,
   };
 };
-
-export const getBookProps = async (pathParts: string[]): Promise<BookProps> =>
-  getRawBook(pathParts).then(
-    async ({ rawContent, chapters, frontmatter, frontmatter: { language }, slug }) => ({
-      frontmatter,
-      slug,
-      content: await serializedContent(rawContent, language),
-      chapters: await Promise.all(
-        chapters.map(
-          async ({ chapterDir, frontmatter, rawContent }) => ({
-            chapterDir,
-            frontmatter,
-            content: await serializedContent(rawContent, language),
-            questions: await extractQuizzes(rawContent, slug),
-          })
-        )
-      ),
-    })
-  );
