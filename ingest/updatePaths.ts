@@ -13,14 +13,13 @@ import traverse, { NodePath } from "@babel/traverse";
 import {
   getRawCollection,
   RawCollectionProps,
-} from "@/utils/getCollectionProps";
+} from "@/ingest/collection";
 import {
-  BookProps,
   getBookProps,
-  getRawBook,
-  RawBookProps,
-} from "@/utils/getBookProps";
-import { ChapterDef, ChapterFrontmatter } from "@/types/types";
+  getRawBook, RawBookProps,
+
+} from "@/ingest/book";
+import { BookProps, ChapterDef, ChapterFrontmatter } from "@/types/types";
 
 type QuestionTypes = "multi" | "text" | "long-text" | "choice";
 

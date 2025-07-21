@@ -3,9 +3,9 @@ import path from "path";
 import matter from "gray-matter";
 import {compile} from "@mdx-js/mdx";
 import remarkMath from "remark-math";
-import {replacer} from "@/utils/plugins";
+import {replacer} from "@/ingest/plugins";
 import rehypeKatex from "rehype-katex";
-import {getImageSize} from "@/utils/getImageSize";
+import {getImageSize} from "@/ingest/getImageSize";
 
 let basePath = "public";
 

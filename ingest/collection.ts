@@ -1,33 +1,11 @@
 import fs from "fs";
 import path from "path";
 
-import {
-  checkedMatter,
-  getMdFile,
-  isDirectory,
-  parseMd,
-  readPublicDir,
-} from "./helpers";
-import {
-  BookFrontmatter,
-  CollectionFrontmatter,
-  defaultCollectionFrontmatter,
-  extraCollectionMatter,
-} from "@/types/types";
-import { bookMatter } from "@/utils/getBookProps";
+import { checkedMatter, getMdFile, isDirectory, parseMd, readPublicDir, } from "./helpers";
+import { CollectionPropsBase, defaultCollectionFrontmatter, extraCollectionMatter, } from "@/types/types";
+import { bookMatter } from "@/ingest/book";
 
 const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
-
-type CollectionPropsBase = {
-  books: { slug: string; frontmatter: BookFrontmatter }[];
-  collections: { slug: string; frontmatter: CollectionFrontmatter }[];
-  frontmatter: CollectionFrontmatter;
-  slug: string;
-};
-
-export type CollectionProps = CollectionPropsBase & {
-  content: string;
-}
 
 export type RawCollectionProps = CollectionPropsBase & {
   rawContent: string;

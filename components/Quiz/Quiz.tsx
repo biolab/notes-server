@@ -15,7 +15,7 @@ import { useCallback } from "react";
 import { IAnswerValue, QuizContext } from "@/context/QuizContextProvider";
 import { postAnswer as postAnswerApi } from "@/api/QuizService";
 import { UserContext } from "@/context/UserContextProvider";
-import { QuestionDef } from "@/utils/updatePaths";
+import { QuestionDef } from "@/ingest/updatePaths";
 import { toast } from "react-toastify";
 
 export enum EventTypes {

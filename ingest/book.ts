@@ -13,8 +13,8 @@ import {
 } from "./helpers";
 
 import {
-  BookFrontmatter,
-  ChapterDef,
+  BookProps,
+  BookPropsBase,
   ChapterFrontmatter,
   defaultBookFrontmatter,
   defaultChapterFrontmatter,
@@ -22,16 +22,11 @@ import {
 } from "@/types/types";
 import { extractQuizzes } from "./updatePaths";
 
-export type BookPropsBase = {
-  frontmatter: BookFrontmatter;
-  slug: string;
-};
+export const bookMatter = (indexMd: string, slug: string) =>
+  checkedMatter(indexMd, slug, defaultBookFrontmatter, extraBookMatter);
 
-export type BookProps = BookPropsBase & {
-  bookId?: number;
-  content: string;
-  chapters: ChapterDef[];
-};
+export const chapterMatter = (chapterMd: string, slug: string) =>
+  checkedMatter(chapterMd, slug, defaultChapterFrontmatter);
 
 export type RawBookProps = BookPropsBase & {
   rawContent: string;
@@ -41,12 +36,6 @@ export type RawBookProps = BookPropsBase & {
     rawContent: string;
   }[];
 };
-
-export const bookMatter = (indexMd: string, slug: string) =>
-  checkedMatter(indexMd, slug, defaultBookFrontmatter, extraBookMatter);
-
-export const chapterMatter = (chapterMd: string, slug: string) =>
-  checkedMatter(chapterMd, slug, defaultChapterFrontmatter);
 
 export const getRawBook = async (
   pathParts: string[]
@@ -102,20 +91,16 @@ export const getRawBook = async (
 
 export const getBookProps = async (pathParts: string[]): Promise<BookProps> =>
   getRawBook(pathParts).then(
-    async ({ rawContent, chapters, frontmatter, slug }) => ({
+    async ({ rawContent, chapters, frontmatter, frontmatter: { language }, slug }) => ({
       frontmatter,
       slug,
-      content: await serializedContent(rawContent, frontmatter.language),
+      content: await serializedContent(rawContent, language),
       chapters: await Promise.all(
         chapters.map(
-          async ({
+          async ({ chapterDir, frontmatter, rawContent }) => ({
             chapterDir,
-            frontmatter: chapterFrontmatter,
-            rawContent,
-          }) => ({
-            chapterDir,
-            frontmatter: chapterFrontmatter,
-            content: await serializedContent(rawContent, frontmatter.language),
+            frontmatter,
+            content: await serializedContent(rawContent, language),
             questions: await extractQuizzes(rawContent, slug),
           })
         )

@@ -1,8 +1,7 @@
 "use server";
 
 import db from "@/utils/db";
-import { BookProps } from "@/utils/getBookProps";
-import { CollectionProps } from "@/utils/getCollectionProps";
+import { BookProps, CollectionProps } from "@/types/types";
 
 export type ItemDef = {
   type: "book" | "collection";

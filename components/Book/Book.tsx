@@ -6,7 +6,6 @@ import { MdxContent } from "../MdxContent";
 import { Chapter } from "./Chapter";
 import { ContentIndexControl } from "./ContentIndex";
 import { IntlContextProvider, useIntl } from "@/i18n";
-import { BookProps } from "@/utils/getBookProps";
 import {
   IAnswerValue,
   QuizContextProvider,
@@ -17,6 +16,7 @@ import BookLogin from "./BookLogin";
 import { logger } from "@/utils/logger";
 import Layout from "../Layout/Layout";
 import { toast } from "react-toastify";
+import { BookProps } from "@/types/types";
 
 export const Book = ({
   frontmatter,

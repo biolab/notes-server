@@ -1,4 +1,4 @@
-import { QuestionDef } from "@/utils/updatePaths";
+import { QuestionDef } from "@/ingest/updatePaths";
 
 export interface ChapterFrontmatter {
   title: string;
@@ -98,3 +98,24 @@ export const extraCollectionMatter = {
   books: [] as string[],
   collections: [] as string[],
 } satisfies Record<string, unknown>;
+
+export type BookPropsBase = {
+  frontmatter: BookFrontmatter;
+  slug: string;
+};
+
+export type BookProps = BookPropsBase & {
+  bookId?: number;
+  content: string;
+  chapters: ChapterDef[];
+};
+
+export type CollectionPropsBase = {
+  books: { slug: string; frontmatter: BookFrontmatter }[];
+  collections: { slug: string; frontmatter: CollectionFrontmatter }[];
+  frontmatter: CollectionFrontmatter;
+  slug: string;
+};
+export type CollectionProps = CollectionPropsBase & {
+  content: string;
+}

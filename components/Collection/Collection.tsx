@@ -6,7 +6,8 @@ import Link from "next/link";
 import { getT, IntlContextProvider, useIntl } from "../../i18n";
 import Layout from "../Layout/Layout";
 import Image from "../Image";
-import { CollectionProps } from "@/utils/getCollectionProps";
+
+import { CollectionProps } from "@/types/types";
 
 const List = ({
   items,

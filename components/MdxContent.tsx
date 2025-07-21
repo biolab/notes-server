@@ -5,7 +5,7 @@ import { MDXProvider } from '@mdx-js/react';
 import Image from "./Image";
 import CcByNcNd from "./CcByNcNd";
 import Quiz, { IQuiz } from "./Quiz/Quiz";
-import { QuestionDef } from "@/utils/updatePaths";
+import { QuestionDef } from "@/ingest/updatePaths";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
 
