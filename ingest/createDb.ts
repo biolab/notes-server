@@ -5,7 +5,7 @@ import path from "path";
 const DB_PATH = path.join(process.cwd(), "db");
 const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
-async function rebuildDatabase() {
+export const rebuildDatabase = async () => {
   if (!fs.existsSync(DB_PATH)) {
     fs.mkdirSync(DB_PATH);
   }
@@ -171,8 +171,3 @@ async function rebuildDatabase() {
       );
   `);
 }
-
-rebuildDatabase().catch((err) => {
-  console.error("Error rebuilding database:", err);
-  process.exit(1);
-});
