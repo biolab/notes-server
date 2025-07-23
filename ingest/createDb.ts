@@ -12,8 +12,8 @@ export const rebuildDatabase = async () => {
   const conn = new sqlite3.Database(DB_FILE);
 
   conn.serialize(() => {
-    conn.exec(`DROP TABLE IF EXISTS builds`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS builds`);
+    conn.run(`
         CREATE TABLE builds
         (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,8 +23,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.exec(`DROP TABLE IF EXISTS collections`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS collections`);
+    conn.run(`
         CREATE TABLE collections
         (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,8 +43,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.exec(`DROP TABLE IF EXISTS books`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS books`);
+    conn.run(`
         CREATE TABLE books
         (
             id                   INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,8 +69,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.exec(`DROP TABLE IF EXISTS chapters`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS chapters`);
+    conn.run(`
         CREATE TABLE chapters
         (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,8 +84,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.exec(`DROP TABLE IF EXISTS collections_collections`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS collections_collections`);
+    conn.run(`
         CREATE TABLE collections_collections
         (
             collectionId    INTEGER NOT NULL REFERENCES collections (id) ON DELETE CASCADE,
@@ -101,8 +101,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.exec(`DROP TABLE IF EXISTS collections_books`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS collections_books`);
+    conn.run(`
         CREATE TABLE collections_books
         (
             collectionId INTEGER NOT NULL REFERENCES collections (id) ON DELETE CASCADE,
@@ -118,8 +118,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.exec(`DROP TABLE IF EXISTS books_chapters`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS books_chapters`);
+    conn.run(`
         CREATE TABLE books_chapters
         (
             bookId      INTEGER NOT NULL REFERENCES books (id) ON DELETE CASCADE,
@@ -134,8 +134,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.exec(`DROP TABLE IF EXISTS questions`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS questions`);
+    conn.run(`
         CREATE TABLE questions
         (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,8 +154,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.exec(`DROP TABLE IF EXISTS users`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS users`);
+    conn.run(`
         CREATE TABLE users
         (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,8 +170,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.exec(`DROP TABLE IF EXISTS answers`);
-    conn.exec(`
+    conn.run(`DROP TABLE IF EXISTS answers`);
+    conn.run(`
         CREATE TABLE answers
         (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
