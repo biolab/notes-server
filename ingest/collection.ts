@@ -1,53 +1,30 @@
 import fs from "fs";
 import path from "path";
 
-import { MDXRemoteSerializeResult } from "next-mdx-remote";
-
-import {
-  checkedMatter,
-  getMdFile,
-  isDirectory,
-  parseMd,
-  readPublicDir, serializedContent,
-} from "./helpers";
-import {
-  BookFrontmatter,
-  CollectionFrontmatter,
-  defaultCollectionFrontmatter,
-  extraCollectionMatter,
+import { bookMatter } from "@/ingest/book";
+import { checkedMatter, getMdFile, parseMd } from "./md-helpers";
+import { isDirectory, readPublicDir } from "@/ingest/paths";
+import { BookFrontmatter, CollectionFrontmatter,
+         defaultCollectionFrontmatter, extraCollectionMatter
 } from "@/types/types";
-import { bookMatter } from "@/utils/getBookProps";
 
-const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
-
-type CollectionPropsBase = {
+export type RawCollectionDef = {
+  slug: string;
+  frontmatter: CollectionFrontmatter;
+  mdxContent: string;
   books: { slug: string; frontmatter: BookFrontmatter }[];
   collections: { slug: string; frontmatter: CollectionFrontmatter }[];
-  frontmatter: CollectionFrontmatter;
-  slug: string;
-};
-
-export type CollectionProps = CollectionPropsBase & {
-  content: MDXRemoteSerializeResult;
 }
 
-export type RawCollectionProps = CollectionPropsBase & {
-  rawContent: string;
-}
-
-const collectionMatter = (indexMd: string, slug: string) =>
+const collectionMatter = (indexMd: string, slug: string | null = null) =>
   checkedMatter(
-    indexMd,
-    slug,
-    defaultCollectionFrontmatter,
-    extraCollectionMatter,
-  );
+    indexMd, defaultCollectionFrontmatter, extraCollectionMatter, slug);
 
-export const getRawCollection = async (pathParts: string[]): Promise<RawCollectionProps> => {
+export const parseCollection = async (pathParts: string[]): Promise<RawCollectionDef> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts, "collection")!, "utf-8");
   const { frontmatter, content } = collectionMatter(indexMd, fullPath);
-  const mdxSource = parseMd(content, path.join(path.sep, ...pathParts));
+  const mdxContent = parseMd(content, path.join(path.sep, ...pathParts));
 
   const recursivePaths = (spath: string, type: string): string[] =>
     readPublicDir(spath)
@@ -98,27 +75,9 @@ export const getRawCollection = async (pathParts: string[]): Promise<RawCollecti
 
   return {
     frontmatter,
-    rawContent: mdxSource,
-    books: books.filter(
-        ({ frontmatter: bookfrontmatter }) =>
-            showUnpublished ||
-            !!frontmatter.books ||
-            (bookfrontmatter.public ?? true),
-    ),
-    collections: collections.filter(
-        ({ frontmatter: frontmattercoll }) =>
-            showUnpublished ||
-            !!frontmatter.collections ||
-            (frontmattercoll.public ?? true),
-    ),
+    mdxContent,
+    books,
+    collections,
     slug: pathParts.join("/"),
   };
 };
-
-export const getCollectionProps = async (pathParts: string[]): Promise<CollectionProps> => {
-  const {rawContent, ...baseCollection} = await getRawCollection(pathParts);
-  return {
-    ...baseCollection,
-    content: await serializedContent(rawContent, baseCollection.frontmatter.language)
-  };
-}

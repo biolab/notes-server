@@ -5,8 +5,7 @@ import Image from "../Image";
 import { MdxContent } from "../MdxContent";
 import { Chapter } from "./Chapter";
 import { ContentIndexControl } from "./ContentIndex";
-import { IntlContextProvider } from "@/i18n";
-import { BookProps } from "@/utils/getBookProps";
+import { IntlContextProvider, useIntl } from "@/i18n";
 import {
   IAnswerValue,
   QuizContextProvider,
@@ -17,6 +16,8 @@ import BookLogin from "./BookLogin";
 import { logger } from "@/utils/logger";
 import Layout from "../Layout/Layout";
 import { toast } from "react-toastify";
+
+import { BookProps } from "@/api/BookService";
 
 export const Book = ({
   frontmatter,
@@ -31,6 +32,8 @@ export const Book = ({
   const [answers, setAnswers] = useState<"pending" | null | IAnswerValue[]>(
     "pending"
   );
+
+  const { t } = useIntl();
 
   const loading = retrievingUser || answers === "pending";
 
@@ -119,7 +122,7 @@ export const Book = ({
             <h1 className="max-w-sm mb-0 font-medium">{frontmatter.title}</h1>
             <p className="subtitle">{frontmatter.subTitle}</p>
 
-            <MdxContent content={content} bookId={bookId!} />
+            <MdxContent content={content} bookId={bookId!} t={t}/>
 
             {!frontmatter.tocInHeader && (
               <ContentIndexControl

@@ -1,30 +1,26 @@
 "use client";
 
 import React from "react";
-import { MdxRenderer } from "../MdxRenderer";
+import { MdxContent } from "@/components/MdxContent";
 import Link from "next/link";
-import { IntlContextProvider, useIntl } from "../../i18n";
+import { getT, IntlContextProvider, useIntl } from "../../i18n";
 import Layout from "../Layout/Layout";
 import Image from "../Image";
-import { CollectionProps } from "@/utils/getCollectionProps";
 
-const List = ({
-  items,
-  title,
-}: {
-  items: { slug: string; frontmatter: { title: string; subTitle?: string } }[];
-  title: string;
-}) => {
+
+import { CollectionProps, ItemDesc } from "@/api/BookService";
+
+const List = ({items, title}: { title: string; items: ItemDesc[] }) => {
   const { t } = useIntl();
   return (
     !!items.length && (
       <>
         {!!title && <h2 className="text-lg mt-8">{t(title)}</h2>}
-        {items.map(({ slug, frontmatter }) => (
+        {items.map(({ slug, title, subtitle }) => (
           <div className="book" key={slug}>
             <Link href={`/${slug}`}>
-              <h2>{frontmatter.title}</h2>
-              {!!frontmatter.subTitle && <p>{frontmatter.subTitle}</p>}
+              <h2>{title}</h2>
+              {!!subtitle && <p>{subtitle}</p>}
             </Link>
           </div>
         ))}
@@ -39,8 +35,7 @@ export const Collection = ({
   collections,
   books,
   slug,
-}: CollectionProps) => {
-  return (
+}: CollectionProps) =>
     <IntlContextProvider lang={frontmatter.language}>
       <Layout title={frontmatter.title}>
         <div className="collection mx-auto">
@@ -57,16 +52,14 @@ export const Collection = ({
           )}
 
           <h1 className="mb-0 font-medium">{frontmatter.title}</h1>
-          {!!frontmatter.subTitle && (
-            <p className="subtitle">{frontmatter.subTitle}</p>
-          )}
-
-          <MdxRenderer content={content} />
+          { content
+            ? <MdxContent content={content} t={getT(frontmatter.language)}/>
+            : !!frontmatter.subTitle &&
+                <p className="subtitle">{frontmatter.subTitle}</p>
+          }
 
           <List items={collections} title={slug && "collections"} />
           <List items={books} title="books" />
         </div>
       </Layout>
-    </IntlContextProvider>
-  );
-};
+    </IntlContextProvider>;

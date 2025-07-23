@@ -5,6 +5,8 @@ import dictJson from "./dict.json";
 
 const dict: {[key: string]: any} = dictJson;
 
+export const getT = (lang: string) => (key: string) => dict[lang || "en"]?.[key] || key;
+
 const IntlContext = React.createContext<{
   t: (key: string) => string;
 }>({

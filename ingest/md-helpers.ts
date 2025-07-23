@@ -1,25 +1,17 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import {serialize} from "next-mdx-remote/serialize";
+import { compile } from "@mdx-js/mdx";
 import remarkMath from "remark-math";
-import {replacer} from "@/utils/plugins";
+import { replacer } from "@/ingest/plugins";
 import rehypeKatex from "rehype-katex";
-import {getImageSize} from "@/utils/getImageSize";
-
-const joinedPath = (spath: string | string[]) =>
-  path.join("public", ...(typeof spath === "string" ? [spath] : spath));
-
-export const pathExists = (...spath: string[]) =>
-  fs.existsSync(joinedPath(spath));
-
-export const isDirectory = (...spath: string[]) =>
-  fs.statSync(joinedPath(spath), { throwIfNoEntry: false })?.isDirectory();
+import { getImageSize } from "@/ingest/getImageSize";
+import { isDirectory, joinedPath, readPublicDir } from "@/ingest/paths";
 
 export const getMdFile = (spath: string | string[], base = "index") => {
   const bpath = joinedPath(spath);
   // Don't be smart and call the above isDirectory function;
-  // you'll add another 'public' to the path
+  // you'll add another `basePath` to the path
   if (!fs.statSync(bpath).isDirectory()) {
     return null;
   }
@@ -38,9 +30,6 @@ export const getMdFile = (spath: string | string[], base = "index") => {
   }
   return null;
 };
-
-export const readPublicDir = (...spath: string[]): string[] =>
-  fs.readdirSync(joinedPath(spath));
 
 export const readPublicDirMd = (spath: string | string[], base = "index") => {
   const bpath = typeof spath == "string" ? [spath] : spath;
@@ -95,25 +84,41 @@ export function addRelativePathToImages(
 
 export function checkedMatter<T>(
   indexMd: string,
-  slug: string,
   defaultMatter: T,
   extraMatter: Record<string, unknown> = {},
+  slug: string | null
 ): {
   frontmatter: T;
   content: string;
 } {
   const { data, content } = matter(indexMd);
+  if (Object.keys(data).length == 0 && content.trim().startsWith("#")) {
+    const [first, ...rest] = content.split("\n");
+    return {
+      frontmatter: {
+        ...defaultMatter,
+        title: first.replace(/^[ #]+/, "") },
+      content: rest.join("\n")
+    }
+  }
+
   const allowed = { ...defaultMatter, ...extraMatter };
-  const errors = Object.entries(data)
-    .map(([key, value]) =>
-      !(key in allowed) ? `- unexpected key '${key}'`
-      : typeof value !== typeof allowed[key] ? `- invalid type for '${key}': expected ${typeof allowed[key]}, got ${typeof value}`
-      : "",
-    )
-    .filter(Boolean)
-    .join("\n");
-  if (errors) {
-    throw new Error(`Invalid frontmatter for ${slug}:\n${errors}`);
+  const errors = [
+    allowed["title"] !== undefined && data["title"] === undefined ? "missing 'title'" : "",
+    ...Object.entries(data)
+      .map(([key, value]) =>
+        !(key in allowed) ? `unexpected key '${key}'`
+        : typeof value !== typeof allowed[key]
+          ? `invalid type for '${key}': expected ${typeof allowed[key]}, got ${typeof value}`
+          : "")
+      ]
+      .filter(Boolean);
+  if (errors.length) {
+    throw new Error(
+      `Invalid frontmatter${slug ? ` in ${slug}` : ""}:` +
+      (errors.length === 1
+       ? ` ${errors[0]}`
+       : `\n${errors.map((e) => `- ${e}`).join("\n")}`));
   }
   return {
     frontmatter: { ...defaultMatter, ...data } as T,
@@ -121,33 +126,29 @@ export function checkedMatter<T>(
   };
 }
 
-
-export const serializedContent = async (rawContent: string, language: string) =>
-  await serialize(
-    rawContent,
-    {
-      mdxOptions: {
-        remarkPlugins: [remarkMath, replacer({ language })],
-        rehypePlugins: [rehypeKatex, getImageSize],
-      }}
-  );
-
-let error = false;
-
-export const logError = (where: string, message: string | Error) => {
-  if (!error) {
-    console.log("\n** Errors **\n")
-  }
-  console.log(`${where}: ${message instanceof Error ? message.message : message}`);
-  error = true;
+export const serializedContent = async (source: string, language: string) => {
+  const compiled = await compile(source, {
+    outputFormat: 'function-body',
+    providerImportSource: '@mdx-js/react',
+    jsxImportSource: 'react',
+    development: false,
+    remarkPlugins: [remarkMath, replacer({ language })],
+    rehypePlugins: [rehypeKatex, getImageSize],
+  });
+  return compiled.value as string;
 }
 
-export async function catchErrors<T>(where: string, func: () => Promise<T>): Promise<T | undefined> {
-  try {
-    return await func();
-  } catch (err) {
-    logError(where, err instanceof Error ? err : new Error(String(err)));
+export const getPaths = (path: string[]): [string[], boolean][] => {
+  const indexFile = getMdFile(path);
+  const collectionFile = getMdFile(path, "collection");
+  if (indexFile && collectionFile) {
+    throw new Error(
+      `${path.join("/")} contains both index.md and collection.md`,
+    );
   }
+  return [
+    ...(indexFile || collectionFile ? [[path, !!indexFile]] : []) as [string[], boolean][],
+    ...indexFile ? [] : readPublicDir(...path)
+      .filter((entry) => isDirectory(...path, entry) && entry !== "_chapters")
+      .flatMap((entry) => getPaths([...path, entry]))];
 }
-
-export const hasError = () => error;
