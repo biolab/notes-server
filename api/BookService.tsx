@@ -36,12 +36,25 @@ export const getItem = async (path: string): Promise<ItemDef | undefined> =>
   || await db.get(`SELECT 'collection' as type, id FROM collections WHERE path = ?`, [path]);
 
 export const getMetadata = async (path: string):
-  Promise<{title: string, description: string} | undefined> =>
-{
+  Promise<{title?: string, description?: string, icons?: {icon: string}} | undefined> => {
   const item = await getItem(path);
-  return item && await db.get(`SELECT title, subtitle as description
-                       FROM ${item.type}s
-                       WHERE id = ?`, [item.id]);
+  if (!item) {
+    return;
+  }
+  const { title, description } = await db.get(`
+    SELECT title, subtitle as description
+    FROM ${item.type}s
+    WHERE id = ?`, [item.id]);
+  const iconPath = await db.get(`
+    SELECT path
+    FROM faviconpaths
+    WHERE ? LIKE path || '%'
+    ORDER BY LENGTH(path) DESC
+    LIMIT 1;`, [path])
+  return {
+    title, description,
+    ...iconPath ? {icons: {icon: `/${iconPath.path}/favicon.png`}} : {}
+  };
 }
 
 export const getBook = async (id: number): Promise<BookProps> => {
