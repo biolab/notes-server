@@ -16,9 +16,9 @@ export type RawCollectionDef = {
   collections: { slug: string; frontmatter: CollectionFrontmatter }[];
 }
 
-const collectionMatter = (indexMd: string, slug: string) =>
+const collectionMatter = (indexMd: string, slug: string | null = null) =>
   checkedMatter(
-    indexMd, defaultCollectionFrontmatter, extraCollectionMatter );
+    indexMd, defaultCollectionFrontmatter, extraCollectionMatter, slug);
 
 export const parseCollection = async (pathParts: string[]): Promise<RawCollectionDef> => {
   const fullPath = pathParts.join("/");

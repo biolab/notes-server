@@ -43,11 +43,11 @@ const extraBookMatter = {
   logQuizzes: false,
 } satisfies Record<string, unknown>;
 
-export const bookMatter = (indexMd: string, slug: string) =>
-  checkedMatter(indexMd, bookFrontmatterDefaults, extraBookMatter);
+export const bookMatter = (indexMd: string, slug: string | null = null) =>
+  checkedMatter(indexMd, bookFrontmatterDefaults, extraBookMatter, slug);
 
-const chapterMatter = (chapterMd: string, slug: string) =>
-  checkedMatter(chapterMd, chapterFrontmatterDefaults);
+const chapterMatter = (chapterMd: string, slug: string | null = null) =>
+  checkedMatter(chapterMd, chapterFrontmatterDefaults, {}, slug);
 
 interface RawChapterDef extends ChapterDefBase {
   mdxContent: string;
@@ -63,7 +63,7 @@ export type RawBookDef = {
 export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts)!, "utf-8");
-  const { frontmatter, content } = bookMatter(indexMd, fullPath);
+  const { frontmatter, content } = bookMatter(indexMd);
   const mdxContent = parseMd(content, path.join(path.sep, ...pathParts));
 
   const chapterDirs =

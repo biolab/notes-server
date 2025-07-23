@@ -86,6 +86,7 @@ export function checkedMatter<T>(
   indexMd: string,
   defaultMatter: T,
   extraMatter: Record<string, unknown> = {},
+  slug: string | null
 ): {
   frontmatter: T;
   content: string;
@@ -114,7 +115,7 @@ export function checkedMatter<T>(
       .filter(Boolean);
   if (errors.length) {
     throw new Error(
-      "Invalid frontmatter:" +
+      `Invalid frontmatter${slug ? ` in ${slug}` : ""}:` +
       (errors.length === 1
        ? ` ${errors[0]}`
        : `\n${errors.map((e) => `- ${e}`).join("\n")}`));
