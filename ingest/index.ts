@@ -9,7 +9,7 @@ import { updatePaths } from "@/ingest/updatePaths";
 export const DB_PATH = path.join(process.cwd(), "db");
 export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
-export async function updateDb(basePath: string, pathPrefix: string, update: false) {
+export async function updateDb(basePath: string, pathPrefix: string, update=false) {
   const db = await open({
     filename: path.join(DB_FILE),
     driver: sqlite3.Database,

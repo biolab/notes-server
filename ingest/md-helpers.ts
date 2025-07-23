@@ -84,7 +84,6 @@ export function addRelativePathToImages(
 
 export function checkedMatter<T>(
   indexMd: string,
-  slug: string,
   defaultMatter: T,
   extraMatter: Record<string, unknown> = {},
 ): {
@@ -92,18 +91,33 @@ export function checkedMatter<T>(
   content: string;
 } {
   const { data, content } = matter(indexMd);
+  if (Object.keys(data).length == 0 && content.trim().startsWith("#")) {
+    const [first, ...rest] = content.split("\n");
+    return {
+      frontmatter: {
+        ...defaultMatter,
+        title: first.replace(/^[ #]+/, "") },
+      content: rest.join("\n")
+    }
+  }
+
   const allowed = { ...defaultMatter, ...extraMatter };
-  const errors = Object.entries(data)
-    .map(([key, value]) =>
-      !(key in allowed) ? `- unexpected key '${key}'`
-      : typeof value !== typeof allowed[key]
-        ? `- invalid type for '${key}': expected ${typeof allowed[key]}, got ${typeof value}`
-        : "",
-    )
-    .filter(Boolean)
-    .join("\n");
-  if (errors) {
-    throw new Error(`Invalid frontmatter for ${slug}:\n${errors}`);
+  const errors = [
+    allowed["title"] !== undefined && data["title"] === undefined ? "missing 'title'" : "",
+    ...Object.entries(data)
+      .map(([key, value]) =>
+        !(key in allowed) ? `unexpected key '${key}'`
+        : typeof value !== typeof allowed[key]
+          ? `invalid type for '${key}': expected ${typeof allowed[key]}, got ${typeof value}`
+          : "")
+      ]
+      .filter(Boolean);
+  if (errors.length) {
+    throw new Error(
+      "Invalid frontmatter:" +
+      (errors.length === 1
+       ? ` ${errors[0]}`
+       : `\n${errors.map((e) => `- ${e}`).join("\n")}`));
   }
   return {
     frontmatter: { ...defaultMatter, ...data } as T,

@@ -21,7 +21,6 @@ export interface ChapterFrontmatter {
   title: string;
   omitAsChapter?: boolean;
   date: string;
-  comment: string;
 }
 
 export interface ChapterDefBase {
@@ -40,7 +39,6 @@ export interface ChapterDef extends ChapterDefBase {
 export interface BookFrontmatter {
   title: string;
   subTitle: string;
-  description: string;
   date: string;
   public: boolean;
   language: string;
@@ -61,7 +59,6 @@ export interface CollectionFrontmatter {
   title: string;
   subTitle: string;
   date: string;
-  description: string;
   public: boolean;
   language: string;
   coverImg: string;
@@ -74,7 +71,6 @@ export const defaultCollectionFrontmatter: CollectionFrontmatter = {
   title: "",
   subTitle: "",
   date: "",
-  description: "",
   public: true,
   language: "en",
   coverImg: "",
@@ -86,18 +82,3 @@ export const extraCollectionMatter = {
   collections: [] as string[],
 } satisfies Record<string, unknown>;
 
-export type BookDefBase = {
-  frontmatter: BookFrontmatter;
-  slug: string;
-};
-
-export type CollectionPropsBase = {
-  books: { slug: string; frontmatter: BookFrontmatter }[];
-  collections: { slug: string; frontmatter: CollectionFrontmatter }[];
-  frontmatter: CollectionFrontmatter;
-  slug: string;
-};
-
-export type CollectionProps = CollectionPropsBase & {
-  content: string;
-}

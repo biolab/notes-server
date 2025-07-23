@@ -258,42 +258,40 @@ const insertBooks = async (
   for (const {
     mdxContent, chapters, slug,
     frontmatter: {
-      title, subTitle, description, date, public: isPublic, language, tocInHeader,
+      title, subTitle, date, public: isPublic, language, tocInHeader,
       indexInitiallyClosed, coverImg, requireLogin, quizThreshold, loginSubtitle, email },
   } of books) {
     const content = await serializedContent(mdxContent, language);
     // Do not change this to "DELETE + INSERT" because it will delete rows that use this book's id as foreign key.
-    const { id: bookId } = await db.get(
+    const {id: bookId} = await db.get(
       `
-        INSERT INTO books (
-            lastBuildId,
-            path, title, subtitle, description, date,
-            public, language, tocInHeader, indexInitiallyClosed,
-            coverImg, requireLogin, quizThreshold, loginSubtitle,
-            email_subject, email_body,
-            content)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?)
-        ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId,
-                                  title       = excluded.title,
-                                  subtitle    = excluded.subtitle,
-                                  description = excluded.description,
-                                  date        = excluded.date,
-                                  public      = excluded.public,
-                                  language    = excluded.language,
-                                  tocInHeader = excluded.tocInHeader,
-                                  indexInitiallyClosed = excluded.indexInitiallyClosed,
-                                  coverImg    = excluded.coverImg,
-                                  requireLogin = excluded.requireLogin,
-                                  quizThreshold = excluded.quizThreshold,
-                                  loginSubtitle = excluded.loginSubtitle,
-                                  email_subject = excluded.email_subject,
-                                  email_body = excluded.email_body,
-                                  content     = excluded.content
-        RETURNING id
-    `,
+          INSERT INTO books (lastBuildId,
+                             path, title, subtitle, date,
+                             public, language, tocInHeader, indexInitiallyClosed,
+                             coverImg, requireLogin, quizThreshold, loginSubtitle,
+                             email_subject, email_body,
+                             content)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT DO UPDATE SET lastBuildId          = excluded.lastBuildId,
+                                    title                = excluded.title,
+                                    subtitle             = excluded.subtitle,
+                                    date                 = excluded.date,
+                                    public               = excluded.public,
+                                    language             = excluded.language,
+                                    tocInHeader          = excluded.tocInHeader,
+                                    indexInitiallyClosed = excluded.indexInitiallyClosed,
+                                    coverImg             = excluded.coverImg,
+                                    requireLogin         = excluded.requireLogin,
+                                    quizThreshold        = excluded.quizThreshold,
+                                    loginSubtitle        = excluded.loginSubtitle,
+                                    email_subject        = excluded.email_subject,
+                                    email_body           = excluded.email_body,
+                                    content              = excluded.content
+          RETURNING id
+      `,
       [
         buildId,
-        slug, title, subTitle, description, date,
+        slug, title, subTitle, date,
         isPublic, language, tocInHeader, indexInitiallyClosed,
         coverImg, requireLogin, quizThreshold, loginSubtitle,
         email?.subject, email?.body,
@@ -301,18 +299,21 @@ const insertBooks = async (
       ]
     );
 
-    for (const { chapterDir } of chapters) {
-      await db.run(
-        `
-          INSERT INTO books_chapters (bookId, chapterId, lastBuildId)
-          SELECT ?, id, ?
-          FROM chapters
-          WHERE path = ?
-          ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
-      `,
-        [bookId, buildId, chapterDir]
-      );
-    }
+    await Promise.all(
+      chapters.map(({ chapterDir }, position) =>
+        db.run(
+          `
+              INSERT INTO books_chapters (bookId, chapterId, position, lastBuildId)
+              SELECT ?, id, ?, ?
+              FROM chapters
+              WHERE path = ?
+              ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId,
+                                        position = excluded.position
+          `,
+          [bookId, position, buildId, chapterDir]
+        )
+      )
+    )
   }
 };
 
@@ -323,57 +324,68 @@ const insertCollections = async (
 ) => {
   for (const {
     slug: collectionSlug,
-    frontmatter: { title, subTitle, date, description, public: isPublic, language, coverImg, recursiveContent },
+    frontmatter: { title, subTitle, date, public: isPublic, language, coverImg, recursiveContent },
+    mdxContent
   } of collections) {
+    const content = await serializedContent(mdxContent, language);
     // Do not change this to "DELETE + INSERT" because it will delete rows that use this collection's id as foreign key.
     await db.get(
       `
           INSERT INTO collections (lastBuildId,
-                                   path, title, subtitle, description, date,
-                                   public, language, coverImg, recursiveContent)
+                                   path, title, subtitle, date,
+                                   public, language, coverImg, recursiveContent,
+                                   content)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(path) DO UPDATE SET title            = excluded.title,
                                           lastBuildId      = excluded.lastBuildId,
                                           subtitle         = excluded.subtitle,
-                                          description      = excluded.description,
                                           date             = excluded.date,
                                           public           = excluded.public,
                                           language         = excluded.language,
                                           coverImg         = excluded.coverImg,
-                                          recursiveContent = excluded.recursiveContent
+                                          recursiveContent = excluded.recursiveContent,
+                                          content          = excluded.content
           RETURNING id
       `,
-      [buildId, collectionSlug, title, subTitle, description, date, isPublic, language, coverImg, recursiveContent]
+      [buildId, collectionSlug, title, subTitle, date, isPublic, language,
+       coverImg, recursiveContent, content]
     );
   }
 
-  for (const { slug: collectionSlug, collections: subCollections, books } of collections) {
-      const collectionId = (await db.get(`SELECT id FROM collections WHERE path = ?`, [collectionSlug])).id;
-      for (const { slug } of books) {
-      await db.run(
-        `
-            INSERT INTO collections_books (collectionId, bookId, lastBuildId)
-            SELECT ?, id, ?
-            FROM books
-            WHERE path = ?
-            ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
-        `,
-        [collectionId, buildId, slug]
-      );
-    }
-
-    for (const { slug } of subCollections) {
-      await db.run(
-        `
-            INSERT INTO collections_collections (collectionId, subCollectionId, lastBuildId)
-            SELECT ?, id, ?
-            FROM collections
-            WHERE path = ?
-            ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
-        `,
-        [collectionId, buildId, slug]
-      );
-    }
+  for (const { slug: collectionSlug, frontmatter, collections: subCollections, books } of collections) {
+    const collectionId = (await db.get(`SELECT id FROM collections WHERE path = ?`, [collectionSlug])).id;
+    const explicitBooks = !!frontmatter.books;
+    const explicitCollections = !!frontmatter.collections;
+    await Promise.all(
+      books.map(({ slug }, position) =>
+        db.run(
+      `
+          INSERT INTO collections_books (
+              collectionId, bookId, position, explicit, lastBuildId)
+          SELECT ?, id, ?, ?, ?
+          FROM books
+          WHERE path = ?
+          ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId,
+                                    position = excluded.position,
+                                    explicit = excluded.explicit
+      `,
+      [collectionId, position, explicitBooks, buildId, slug]))
+    );
+    await Promise.all(
+      subCollections.map(({ slug }, position) => {
+        db.run(
+      `
+          INSERT INTO collections_collections (
+              collectionId, subCollectionId, position, explicit, lastBuildId)
+          SELECT ?, id, ?, ?, ?
+          FROM collections
+          WHERE path = ?
+          ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId,
+                                    position = excluded.position,
+                                    explicit = excluded.explicit
+      `,
+      [collectionId, position, explicitCollections, buildId, slug])})
+    );
   }
 };
 
@@ -384,16 +396,23 @@ export const updatePaths = async (
   buildId: number,
   pathPrefix: string
 ) => {
-  const books = await Promise.all(bookSlugs.map(parseBook));
+  const books = (await Promise.all(
+    bookSlugs.map((book) => catchErrors(
+      book.join("/"),
+      async () => await parseBook(book))))
+  ).filter(x => x) as RawBookDef[];
   const allBookSlugs = new Set(books.map(({ slug }) => slug));
-  const collections = await Promise.all(collectionSlugs.map(parseCollection));
+  const collections = (await Promise.all(
+    collectionSlugs.map((collection) => catchErrors(
+      collection.join("/"),
+      async () => await parseCollection(collection))))
+  ).filter(x => x) as RawCollectionDef[];
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
   const chapters = await checkBooks(books, allBookSlugs, db, pathPrefix);
   await checkQuestions(chapters, db);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   if (hasError()) {
-    console.log("\n\nPreflight check failed. Exiting.");
     process.exit(1);
   }
 

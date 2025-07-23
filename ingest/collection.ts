@@ -2,21 +2,23 @@ import fs from "fs";
 import path from "path";
 
 import { bookMatter } from "@/ingest/book";
-import { checkedMatter, getMdFile, parseMd
-} from "./md-helpers";
-import { CollectionPropsBase, defaultCollectionFrontmatter, extraCollectionMatter
-} from "@/types/types";
+import { checkedMatter, getMdFile, parseMd } from "./md-helpers";
 import { isDirectory, readPublicDir } from "@/ingest/paths";
+import { BookFrontmatter, CollectionFrontmatter,
+         defaultCollectionFrontmatter, extraCollectionMatter
+} from "@/types/types";
 
-const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
-
-export type RawCollectionDef = CollectionPropsBase & {
+export type RawCollectionDef = {
+  slug: string;
+  frontmatter: CollectionFrontmatter;
   mdxContent: string;
+  books: { slug: string; frontmatter: BookFrontmatter }[];
+  collections: { slug: string; frontmatter: CollectionFrontmatter }[];
 }
 
 const collectionMatter = (indexMd: string, slug: string) =>
   checkedMatter(
-    indexMd, slug, defaultCollectionFrontmatter, extraCollectionMatter );
+    indexMd, defaultCollectionFrontmatter, extraCollectionMatter );
 
 export const parseCollection = async (pathParts: string[]): Promise<RawCollectionDef> => {
   const fullPath = pathParts.join("/");
@@ -74,18 +76,8 @@ export const parseCollection = async (pathParts: string[]): Promise<RawCollectio
   return {
     frontmatter,
     mdxContent,
-    books: books.filter(
-        ({ frontmatter: bookfrontmatter }) =>
-            showUnpublished ||
-            !!frontmatter.books ||
-            (bookfrontmatter.public ?? true),
-    ),
-    collections: collections.filter(
-        ({ frontmatter: frontmattercoll }) =>
-            showUnpublished ||
-            !!frontmatter.collections ||
-            (frontmattercoll.public ?? true),
-    ),
+    books,
+    collections,
     slug: pathParts.join("/"),
   };
 };

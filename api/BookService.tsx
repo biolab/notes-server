@@ -1,7 +1,31 @@
 "use server";
 
 import db from "@/utils/db";
-import { BookDefBase, ChapterDef, CollectionProps } from "@/types/types";
+import { BookFrontmatter, ChapterDef, CollectionFrontmatter } from "@/types/types";
+
+const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
+
+export type BookProps = {
+  slug: string;
+  frontmatter: BookFrontmatter;
+  bookId?: number;
+  content: string;
+  chapters: ChapterDef[];
+};
+
+export type ItemDesc = {
+  slug: string;
+  title: string;
+  subtitle?: string;
+}
+
+export type CollectionProps = {
+  slug: string;
+  frontmatter: CollectionFrontmatter;
+  content: string;
+  books: ItemDesc[];
+  collections: ItemDesc[];
+}
 
 export type ItemDef = {
   type: "book" | "collection";
@@ -11,99 +35,90 @@ export const getItem = async (path: string): Promise<ItemDef | undefined> =>
   await db.get(`SELECT 'book' as type, id FROM books WHERE path = ?`, [path])
   || await db.get(`SELECT 'collection' as type, id FROM collections WHERE path = ?`, [path]);
 
-
-export const getMetadata = async (path: string): Promise<{title: string, description: string} | undefined> => {
+export const getMetadata = async (path: string):
+  Promise<{title: string, description: string} | undefined> =>
+{
   const item = await getItem(path);
-  return item && await db.get(`SELECT title, description
+  return item && await db.get(`SELECT title, subtitle as description
                        FROM ${item.type}s
                        WHERE id = ?`, [item.id]);
 }
 
-export type BookProps = BookDefBase & {
-  bookId?: number;
-  content: string;
-  chapters: ChapterDef[];
-};
-
-export const getBook = async (id: number, noContent=false): Promise<BookProps> => {
+export const getBook = async (id: number): Promise<BookProps> => {
   const book = await db.get(`SELECT * FROM books WHERE id = ?`, [id]);
 
   const chapters = [];
-  if (!noContent) {
-    const book_chapters = await db.all(
-      `SELECT books_chapters.*, chapters.*
-       FROM books_chapters
-                LEFT JOIN chapters ON books_chapters.chapterId = chapters.id
-       WHERE books_chapters.bookId = ?`,
-      [book.id]
+  const book_chapters = await db.all(
+    `SELECT books_chapters.*, chapters.*
+     FROM books_chapters
+              LEFT JOIN chapters ON books_chapters.chapterId = chapters.id
+     WHERE books_chapters.bookId = ?
+     ORDER BY books_chapters.position`,
+    [book.id]
+  );
+
+  for (const chapter of book_chapters) {
+    const questions = await db.all(
+      `SELECT *
+       FROM questions
+       WHERE chapterId = ?`,
+      [chapter.id]
     );
 
-    for (const chapter of book_chapters) {
-      const questions = await db.all(
-        `SELECT *
-         FROM questions
-         WHERE chapterId = ?`,
-        [chapter.id]
-      );
-
-      chapters.push({
-        chapterDir: chapter.path,
-        frontmatter: {title: chapter.title, date: chapter.date, comment: ""},
-        questions,
-        content: chapter.content
-      });
-    }
+    chapters.push({
+      chapterDir: chapter.path,
+      frontmatter: {title: chapter.title, date: chapter.date},
+      questions,
+      content: chapter.content
+    });
   }
 
   return {
     slug: book.path,
     bookId: book.id,
     frontmatter: {
-      title: book.title, subTitle: book.subtitle, description: book.description, date: book.date,
+      title: book.title, subTitle: book.subtitle, date: book.date,
       requireLogin: book.requireLogin === 1, quizThreshold: book.quizThreshold,
       public: book.public === 1, coverImg: book.coverImg, indexInitiallyClosed: book.indexInitiallyClosed === 1,
       tocInHeader: book.tocInHeader === 1, language: book.language,
       email: { subject: book.email_subject, body: book.email_body },
     },
     chapters,
-    content: noContent ? "" : book.content
+    content: book.content
   };
 };
 
-export const getCollection = async (id: number, noContent=false): Promise<CollectionProps> => {
+export const getCollection = async (id: number): Promise<CollectionProps> => {
   const collection = await db.get(`SELECT * FROM collections WHERE id = ?`, [id]);
-  const books = [];
-  const collections = [];
+  const ifHidePrivate = (s: string) => showUnpublished ? "" : s;
 
-  if (!noContent) {
-    const bookIds = (await db.all(
-      `SELECT bookId
-       FROM collections_books
-       WHERE collectionId = ?`,
-      [id])).map((row) => row.bookId);
-    for (const bookId of bookIds) {
-      books.push(await getBook(bookId, true));
-    }
+  const books = await db.all(
+    `SELECT books.path as slug, books.title, books.subtitle
+     FROM collections_books coll_books
+     LEFT JOIN books ON books.id = bookId
+     WHERE collectionId = ?
+     ${ifHidePrivate("AND (coll_books.explicit = 1 OR books.public = 1)")}
+     ORDER BY position`,
+    [id])
 
-    const collectionIds = (await db.all(
-      `SELECT subCollectionId
-       FROM collections_collections
-       WHERE collectionId = ?`,
-      [id]
-    )).map((row) => row.subCollectionId);
-    for (const subId of collectionIds) {
-      collections.push(await getCollection(subId, true));
-    }
-  }
+  const collections = await db.all(
+    `SELECT coll.path as slug, coll.title, coll.subtitle
+     FROM collections_collections coll_coll
+     LEFT JOIN collections coll ON coll.id = subCollectionId
+     WHERE collectionId = ?
+     ${ifHidePrivate("AND (coll_coll.explicit = 1 OR coll.public = 1)")}
+     ORDER BY position`,
+    [id]
+  )
 
   return {
     slug: collection.path,
     frontmatter: {
-      title: collection.title, subTitle: collection.subtitle, description: collection.description,
+      title: collection.title, subTitle: collection.subtitle,
       coverImg: collection.coverImg, language: collection.language, date: collection.date,
       public: collection.public === 1, recursiveContent: collection.recursiveContent === 1,
     },
-    content: noContent ? "" : collection.content,
+    content: collection.content,
     books,
     collections,
   };

@@ -1,8 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { ChapterDefBase, ChapterFrontmatter,
-         BookDefBase, BookFrontmatter } from "@/types/types";
+import { ChapterDefBase, ChapterFrontmatter, BookFrontmatter } from "@/types/types";
 import { pathExists } from "@/ingest/paths";
 import { checkedMatter, getMdFile, parseMd, readPublicDirMd } from "./md-helpers";
 import { catchErrors, logError } from "@/ingest/errors";
@@ -12,14 +11,11 @@ const chapterFrontmatterDefaults: ChapterFrontmatter = {
   title: "",
   omitAsChapter: false,
   date: "",
-  /* TODO: Fix books and remove */
-  comment: "",
 };
 
 const bookFrontmatterDefaults: BookFrontmatter = {
   title: "",
   subTitle: "",
-  description: "",
   date: "",
   public: true,
   language: "en",
@@ -48,16 +44,18 @@ const extraBookMatter = {
 } satisfies Record<string, unknown>;
 
 export const bookMatter = (indexMd: string, slug: string) =>
-  checkedMatter(indexMd, slug, bookFrontmatterDefaults, extraBookMatter);
+  checkedMatter(indexMd, bookFrontmatterDefaults, extraBookMatter);
 
 const chapterMatter = (chapterMd: string, slug: string) =>
-  checkedMatter(chapterMd, slug, chapterFrontmatterDefaults);
+  checkedMatter(chapterMd, chapterFrontmatterDefaults);
 
 interface RawChapterDef extends ChapterDefBase {
   mdxContent: string;
 }
 
-export type RawBookDef = BookDefBase & {
+export type RawBookDef = {
+  slug: string;
+  frontmatter: BookFrontmatter;
   mdxContent: string;
   chapters: RawChapterDef[];
 };
