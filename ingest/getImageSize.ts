@@ -3,6 +3,7 @@ import { visit } from "unist-util-visit";
 import probe, { ProbeResult } from "probe-image-size";
 import { readFileSync } from "fs";
 import type { Node } from "unist";
+import { basePath } from "@/ingest/paths";
 
 interface ImgNode {
   tagName: "img";
@@ -39,7 +40,7 @@ export function getImageSize(this: Processor) {
       const imgSrc = node.properties.src;
 
       try {
-        const img = readFileSync(`public${imgSrc}`);
+        const img = readFileSync(`${basePath}/${imgSrc}`);
         size = probe.sync(img);
       } catch (e) {
         console.log(e);
@@ -50,6 +51,7 @@ export function getImageSize(this: Processor) {
       if (size) {
         node.properties = {
           ...node.properties,
+          src: `/img/notes${node.properties.src}`,
           width: size.width,
           height: size.height,
         };

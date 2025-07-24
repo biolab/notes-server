@@ -28,3 +28,5 @@ This book must include
 - Chapter 3
 - Shared chapter 1
 - Chapter 1 from Book 2
+
+![](cloud.png)

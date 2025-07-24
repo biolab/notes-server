@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 
-export let basePath = "public";
+export let basePath = "notes";
 export const setBasePath = (base: string) => {
   basePath = base;
 }
