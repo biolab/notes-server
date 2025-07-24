@@ -92,7 +92,7 @@ export const getBook = async (id: number): Promise<BookProps> => {
     frontmatter: {
       title: book.title, subTitle: book.subtitle, date: book.date,
       requireLogin: book.requireLogin === 1, quizThreshold: book.quizThreshold,
-      public: book.public === 1, coverImg: book.coverImg, indexInitiallyClosed: book.indexInitiallyClosed === 1,
+      public: book.public === 1, coverImg: book.coverImg,
       tocInHeader: book.tocInHeader === 1, language: book.language,
       email: { subject: book.email_subject, body: book.email_body },
     },

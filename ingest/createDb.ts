@@ -56,7 +56,6 @@ export const rebuildDatabase = async () => {
             public               BOOLEAN NOT NULL DEFAULT 0,
             language             TEXT    NOT NULL DEFAULT 'en',
             tocInHeader          BOOLEAN NOT NULL DEFAULT 1,
-            indexInitiallyClosed BOOLEAN NOT NULL DEFAULT 0,
             coverImg             TEXT,
             requireLogin         BOOLEAN NOT NULL DEFAULT 0,
             quizThreshold        INTEGER          DEFAULT NULL,

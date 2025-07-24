@@ -43,7 +43,6 @@ export interface BookFrontmatter {
   public: boolean;
   language: string;
   tocInHeader: boolean;
-  indexInitiallyClosed?: boolean;
   coverImg: string;
   requireLogin: boolean;
   quizThreshold?: number;

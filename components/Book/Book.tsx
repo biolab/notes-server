@@ -128,7 +128,6 @@ export const Book = ({
               <ContentIndexControl
                 chapters={chapters}
                 isChapterIndexVisible={isChapterIndexVisible}
-                startSmall={!!frontmatter.indexInitiallyClosed}
               />
             )}
 
