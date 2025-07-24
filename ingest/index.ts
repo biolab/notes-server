@@ -5,6 +5,7 @@ import { open } from "sqlite";
 import { setBasePath } from "@/ingest/paths";
 import { getPaths } from "@/ingest/md-helpers";
 import { updatePaths } from "@/ingest/updatePaths";
+import { getFaviconPaths } from "@/ingest/favicons";
 
 export const DB_PATH = path.join(process.cwd(), "db");
 export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
@@ -34,5 +35,6 @@ export async function updateDb(basePath: string, pathPrefix: string, update=fals
   const paths: [string[], boolean][] = getPaths(prefix ? prefix.split("/") : []);
   const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
   const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
-  await updatePaths(bookPaths, collectionPaths, db, buildId, prefix);
+  const faviconPaths = getFaviconPaths(prefix);
+  await updatePaths(bookPaths, collectionPaths, faviconPaths, db, buildId, prefix);
 }

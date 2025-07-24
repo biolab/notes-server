@@ -185,5 +185,15 @@ export const rebuildDatabase = async () => {
                 FOREIGN KEY (questionId) REFERENCES questions(id) ON DELETE SET NULL
         );
     `);
+
+    conn.run(`DROP TABLE IF EXISTS faviconpaths`);
+    conn.run(`
+        CREATE TABLE faviconpaths
+        (
+            path        TEXT NOT NULL,
+            lastBuildId INTEGER NOT NULL,
+            FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
+        )
+    `)
   });
 }

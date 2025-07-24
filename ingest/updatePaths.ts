@@ -389,9 +389,26 @@ const insertCollections = async (
   }
 };
 
+const insertFavicons = async (
+  paths: string[],
+  db: Database,
+  buildId: number
+) => {
+  await Promise.all(
+    paths.map((path) => {
+      db.run(`
+        INSERT INTO faviconpaths (path, lastBuildId)
+        VALUES (?, ?)
+        ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
+      `,
+      [path, buildId]);
+    }));
+}
+
 export const updatePaths = async (
   bookSlugs: string[][],
   collectionSlugs: string[][],
+  faviconPaths: string[],
   db: Database,
   buildId: number,
   pathPrefix: string
@@ -419,4 +436,5 @@ export const updatePaths = async (
   await insertChapters(books, db, buildId);
   await insertBooks(books, db, buildId);
   await insertCollections(collections, db, buildId);
+  await insertFavicons(faviconPaths, db, buildId);
 };

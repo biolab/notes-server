@@ -104,7 +104,7 @@ export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
     });
   }
   return {
-    slug: pathParts.join("/"),
+    slug: fullPath,
     frontmatter,
     mdxContent,
     chapters,
