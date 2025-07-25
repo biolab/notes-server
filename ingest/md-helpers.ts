@@ -11,7 +11,7 @@ import { isDirectory, joinedPath, readPublicDir } from "@/ingest/paths";
 export const getMdFile = (spath: string | string[], base = "index") => {
   const bpath = joinedPath(spath);
   // Don't be smart and call the above isDirectory function;
-  // you'll add another `basePath` to the path
+  // you'll add another `notesPath` to the path
   if (!fs.statSync(bpath).isDirectory()) {
     return null;
   }
