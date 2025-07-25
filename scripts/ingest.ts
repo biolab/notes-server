@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+
 import { program } from "commander";
 import readline from "readline";
 
@@ -7,10 +10,9 @@ import { rebuildDatabase } from "@/ingest/createDb";
 program
   .option("-p, --path <path>", "Path to the directory to update", "")
   .option("-u, --update", "Update without increasing the build number", false)
-  .option("-b, --base <path>", "Base path for libraries")
   .option("--recreate", "Recreate the database from scratch", false);
 program.parseOptions(process.argv.slice(2));
-const { path: pathPrefix, update, base, recreate } = program.opts();
+const { path: pathPrefix, update, recreate } = program.opts();
 
 if (pathPrefix && update) {
   console.error("Both --path and --update options are provided. Please provide only one.");
@@ -36,7 +38,7 @@ const ask = (question: string): Promise<string> => {
     await rebuildDatabase();
   }
 
-  await updateDb(base, pathPrefix, update).catch((err) => {
+  await updateDb(pathPrefix, update).catch((err) => {
     console.error("Error:", err);
     process.exit(1);
   });

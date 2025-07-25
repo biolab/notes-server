@@ -1,12 +1,14 @@
 import path from "path";
 import fs from "fs";
 
-export let basePath = "public";
-export const setBasePath = (base: string) => {
-  basePath = base;
+const maybeNotesPath = process.env.NEXT_NOTES_PATH;
+if (!maybeNotesPath) {
+  throw new Error("Set NEXT_NOTES_PATH (e.g. /Users/janez/notes) in .env")
 }
+export const notesPath = maybeNotesPath.replace(/\/$/, "");
+
 export const joinedPath = (spath: string | string[]) =>
-  path.join(basePath, ...(typeof spath === "string" ? [spath] : spath));
+  path.join(notesPath, ...(typeof spath === "string" ? [spath] : spath));
 
 export const pathExists = (...spath: string[]) =>
   fs.existsSync(joinedPath(spath));

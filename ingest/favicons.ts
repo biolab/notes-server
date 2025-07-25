@@ -1,8 +1,8 @@
-import { basePath, isDirectory, joinedPath, pathExists, readPublicDir } from "@/ingest/paths";
+import { notesPath, isDirectory, joinedPath, pathExists, readPublicDir } from "@/ingest/paths";
 
 export const getFaviconPaths = (prefix: string): string[] => [
     ...pathExists(prefix, "favicon.png")
-       ? [joinedPath([prefix]).replace(new RegExp(`^\/?${basePath}\/?`), "")]
+       ? [joinedPath([prefix]).replace(new RegExp(`^\/?${notesPath}\/?`), "")]
        : [],
     ...readPublicDir(prefix)
       .map((subdir) => `${prefix}/${subdir}`)

@@ -2,7 +2,6 @@ import path from "path";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 
-import { setBasePath } from "@/ingest/paths";
 import { getPaths } from "@/ingest/md-helpers";
 import { updatePaths } from "@/ingest/updatePaths";
 import { getFaviconPaths } from "@/ingest/favicons";
@@ -10,15 +9,11 @@ import { getFaviconPaths } from "@/ingest/favicons";
 export const DB_PATH = path.join(process.cwd(), "db");
 export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
-export async function updateDb(basePath: string, pathPrefix: string, update=false) {
+export async function updateDb(pathPrefix: string, update=false) {
   const db = await open({
     filename: path.join(DB_FILE),
     driver: sqlite3.Database,
   });
-  if (basePath) {
-    setBasePath(basePath);
-  }
-
   let buildId, prefix;
   if (update) {
     buildId = (await db.get(`SELECT MAX(id) as buildId FROM builds;`)).buildId;
