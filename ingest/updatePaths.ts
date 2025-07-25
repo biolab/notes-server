@@ -259,7 +259,7 @@ const insertBooks = async (
     mdxContent, chapters, slug,
     frontmatter: {
       title, subTitle, date, public: isPublic, language, tocInHeader,
-      indexInitiallyClosed, coverImg, requireLogin, quizThreshold, loginSubtitle, email },
+      coverImg, requireLogin, quizThreshold, loginSubtitle, email },
   } of books) {
     const content = await serializedContent(mdxContent, language);
     // Do not change this to "DELETE + INSERT" because it will delete rows that use this book's id as foreign key.
@@ -267,11 +267,11 @@ const insertBooks = async (
       `
           INSERT INTO books (lastBuildId,
                              path, title, subtitle, date,
-                             public, language, tocInHeader, indexInitiallyClosed,
+                             public, language, tocInHeader,
                              coverImg, requireLogin, quizThreshold, loginSubtitle,
                              email_subject, email_body,
                              content)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT DO UPDATE SET lastBuildId          = excluded.lastBuildId,
                                     title                = excluded.title,
                                     subtitle             = excluded.subtitle,
@@ -279,7 +279,6 @@ const insertBooks = async (
                                     public               = excluded.public,
                                     language             = excluded.language,
                                     tocInHeader          = excluded.tocInHeader,
-                                    indexInitiallyClosed = excluded.indexInitiallyClosed,
                                     coverImg             = excluded.coverImg,
                                     requireLogin         = excluded.requireLogin,
                                     quizThreshold        = excluded.quizThreshold,
@@ -292,7 +291,7 @@ const insertBooks = async (
       [
         buildId,
         slug, title, subTitle, date,
-        isPublic, language, tocInHeader, indexInitiallyClosed,
+        isPublic, language, tocInHeader,
         coverImg, requireLogin, quizThreshold, loginSubtitle,
         email?.subject, email?.body,
         content

@@ -57,14 +57,12 @@ export const ContentIndex = ({
 
 export const ContentIndexControl = ({
   chapters,
-  isChapterIndexVisible,
-  startSmall,
+  isChapterIndexVisible
 }: {
   chapters: ChapterDef[];
   isChapterIndexVisible: { [index: number]: boolean };
-  startSmall: boolean;
 }) => {
-  const [small, setSmall] = React.useState(startSmall);
+  const [small, setSmall] = React.useState(false);
   const { t } = useIntl();
 
   return (

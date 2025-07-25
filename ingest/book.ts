@@ -20,27 +20,15 @@ const bookFrontmatterDefaults: BookFrontmatter = {
   public: true,
   language: "en",
   tocInHeader: false,
-  indexInitiallyClosed: false,
   coverImg: "",
   requireLogin: false,
+  quizThreshold: 0,
+  loginSubtitle: "",
+  email: { subject: "", body: ""},
 } satisfies BookFrontmatter & Record<string, unknown>;
 
 const extraBookMatter = {
   chapters: [] as string[],
-
-  /* TODO: These are related to quizzes. I listed them here so that
-       current books pass validation, but they should be moved to
-       bookFrontmatterDefaults or removed if they're no longer necessary. */
-  showQuizProgress: false,
-  requireLogin: false,
-  quizThreshold: 0,
-  submitQuizText: "",
-  loginSubtitle: "",
-  email: {},
-
-  // Unended properties
-  quiz: false,
-  logQuizzes: false,
 } satisfies Record<string, unknown>;
 
 export const bookMatter = (indexMd: string, slug: string | null = null) =>
