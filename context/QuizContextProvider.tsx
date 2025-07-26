@@ -1,64 +1,62 @@
 import { ChapterDef } from "@/types/types";
-import React, { useReducer } from "react";
+import React from "react";
 import { logger } from "@/utils/logger";
+import { postAnswer } from "@/api/QuizService";
+import { toast } from "react-toastify";
+import { UserContext } from "@/context/UserContextProvider";
 
 export type IAnswerValue = {
-  questionId: string;
-  isCorrect: boolean | null;
-  isNeutral: boolean;
+  isCorrect: boolean | undefined;
   answer: string | string[];
   points: number;
-  trial: number;
 };
+
+export type IAnswerValueWithQuestionId = IAnswerValue & {
+  questionId: string
+}
 
 export interface QuestionI {
   questionId: string;
-  question: string;
-  possiblePoints: number;
+  maxPoints: number;
   chapterIndex: number;
-  max_trials?: number;
   answers: IAnswerValue[];
   optional: boolean;
 }
 
+type Questions = {[questionID: string]: QuestionI};
+
 export interface QuizStateI {
-  book_title: string;
-  slug: string;
-  questions: QuestionI[];
+  questions: Questions;
   chaptersWithQuiz: number[];
   quizThreshold: number;
   isQuizComplete: boolean;
 }
 
-const getQuestionsFromChapters = (chapters: ChapterDef[]): QuestionI[] => {
-  return chapters.flatMap((chapter, chapterIndex) => {
-    return (chapter.questions || []).map((question) => ({
-      questionId: question.questionId,
-      question: question.question,
-      possiblePoints: question.points || 0,
-      chapterIndex,
-      answers: [],
-      optional: question.optional || false,
-    }));
-  });
-};
+const getQuestionsFromChapters = (chapters: ChapterDef[]): Questions =>
+  Object.fromEntries(
+    chapters.flatMap((chapter, chapterIndex) =>
+      (chapter.questions || []).map(({questionId, points, optional}) => [
+        questionId,
+        {
+          questionId,
+          maxPoints: points || 0,
+          chapterIndex,
+          answers: [],
+          optional: optional || false,
+        }
+      ]
+  )));
 
 const getQuizState = ({
-  title,
-  slug,
   quizThreshold,
   chapters = [],
   answers,
 }: {
-  title: string;
-  slug: string;
   chapters: ChapterDef[];
   quizThreshold: number;
-  answers?: IAnswerValue[] | null;
+  answers?: IAnswerValueWithQuestionId[] | null;
 }) => {
   const state: QuizStateI = {
-    book_title: title,
-    slug,
     questions: getQuestionsFromChapters(chapters),
     chaptersWithQuiz: chapters
       .map((chapter, index) => (chapter.questions?.length ? index : -1))
@@ -66,23 +64,12 @@ const getQuizState = ({
     quizThreshold,
     isQuizComplete: false,
   };
-
-  if (!answers) {
-    return state;
-  }
-
-  for (const answer of answers) {
-    const question = state.questions.find(
-      (q) => q.questionId === answer.questionId
-    );
-
-    if (question) {
-      question.answers.push(answer);
+  (answers || []).forEach((answer) => {
+    const {questionId, ...answerWOutId} = answer;
+    state.questions[questionId].answers.push(answerWOutId as IAnswerValue);
     }
-  }
-
+  )
   logger("Quiz state initialized with answers:", state);
-
   return state;
 };
 
@@ -90,42 +77,38 @@ const reducer = (
   state: QuizStateI,
   action: {
     type: string;
-    value: IAnswerValue;
+    value: IAnswerValueWithQuestionId
   }
 ) => {
-  const { type, value } = action;
+  const { questionId, ...data } = action.value
+  const prev = state.questions[questionId];
 
-  switch (type) {
-    case "ANSWER_QUIZ":
-      const _state = {
-        ...state,
-        questions: state.questions.map((q) =>
-          q.questionId === value.questionId
-            ? {
-                ...q,
-                answers: [...(q.answers || []), value],
-              }
-            : q
-        ),
-      };
-
-      const isComplete = _state.questions
-        .filter((q) => !q.optional)
-        .every((q) => q.answers.length > 0);
+  switch (action.type) {
+    case "ANSWER":
+      const questions = {
+        ...state.questions,
+        [questionId]: {
+          ...prev,
+          answers: [...prev?.answers ?? [], data]
+        }
+      }
+      const isComplete = Object.values(questions).every(
+        (q) => q.optional || q.answers.length > 0);
 
       return {
-        ..._state,
+        ...state,
+        questions,
         isQuizComplete: isComplete,
-      };
+      }
 
     default:
       return state;
   }
-};
+}
 
 export const QuizContext = React.createContext<{
   quizState: QuizStateI | null;
-  quizReducer: React.Dispatch<{ type: string; value: IAnswerValue }>;
+  answerQuestion: (value: IAnswerValueWithQuestionId) => void;
   noOfQuestions: number;
   availablePoints: number;
   achievedPoints: number;
@@ -134,9 +117,10 @@ export const QuizContext = React.createContext<{
   isQuizComplete: boolean;
   allCompletedChapters: number[];
   chaptersWithMandatoryQuestions: number[];
+  getAnswers: (questionId: string) => IAnswerValue[]
 }>({
   quizState: null,
-  quizReducer: () => null,
+  answerQuestion: () => {},
   noOfQuestions: 0,
   availablePoints: 0,
   achievedPoints: 0,
@@ -145,29 +129,57 @@ export const QuizContext = React.createContext<{
   isQuizComplete: false,
   allCompletedChapters: [],
   chaptersWithMandatoryQuestions: [],
+  getAnswers: () => []
 });
 
 export const QuizContextProvider = ({
   children,
-  title,
   quizThreshold,
-  slug,
   chapters,
   answers,
+  bookId,
 }: {
   children: React.ReactNode;
-  title: string;
   quizThreshold: number;
-  slug: string;
   chapters: ChapterDef[];
-  answers: IAnswerValue[] | null; // Optional initial quiz state
+  bookId: number;
+  answers: IAnswerValueWithQuestionId[] | null;
 }) => {
+    const { user } = React.useContext(UserContext);
+
   const [quizState, quizReducer]: [
     QuizStateI,
-    React.Dispatch<{ type: string; value: IAnswerValue }>
-  ] = useReducer(
+    React.Dispatch<{ type: string; value: IAnswerValueWithQuestionId }>
+  ] = React.useReducer(
     reducer,
-    getQuizState({ title, slug, quizThreshold, answers, chapters })
+    getQuizState({ quizThreshold, answers, chapters })
+  );
+
+
+  const answerQuestion = React.useCallback(
+    async (value: IAnswerValueWithQuestionId) => {
+      try {
+        await postAnswer({
+          questionId: value.questionId,
+          user,
+          bookId,
+          answer:
+            typeof value.answer === "string"
+            ? value.answer
+            : value.answer.join("|||"),
+          points: value.points,
+          correct: value.isCorrect,
+        });
+        quizReducer({ type: "ANSWER", value });
+      } catch (error: any) {
+        toast.error(
+          `Something went wrong. Answers are not saved.${
+            error.message ? ` Error: ${error.message}` : ""
+          }`
+        );
+      }
+    },
+    [user, bookId, quizReducer]
   );
 
   const {
@@ -182,52 +194,39 @@ export const QuizContextProvider = ({
     () => ({
       chaptersWithMandatoryQuestions: quizState.chaptersWithQuiz.filter(
         (chapterIndex) =>
-          quizState.questions
+          Object.values(quizState.questions)
             .filter((q) => q.chapterIndex === chapterIndex)
             .some((q) => !q.optional)
       ),
 
       allCompletedChapters: quizState.chaptersWithQuiz.filter((chapterIndex) =>
-        quizState.questions
-          .filter((q) => q.chapterIndex === chapterIndex)
-          .filter((q) => !q.optional)
-          .every((q) => q.answers?.length > 0)
-      ),
+        Object.values(quizState.questions).every((q) =>
+          q.chapterIndex !== chapterIndex
+          || q.optional
+          || q.answers.length > 0)),
 
-      noOfQuestions: quizState.questions.filter((q) => !q.optional).length,
-
-      availablePoints: quizState.questions.reduce(
-        (acc, q) => acc + q.possiblePoints,
-        0
-      ),
-
-      correctlyAnsweredQuestions: quizState.questions
+      noOfQuestions: Object.values(quizState.questions)
         .filter((q) => !q.optional)
-        .reduce((acc, q) => {
-          if ((q.answers || []).some((a) => a.isCorrect)) {
-            return acc + 1;
-          }
+        .length,
 
-          return acc;
-        }, 0),
+      availablePoints: Object.values(quizState.questions)
+        .reduce((acc, q) => acc + q.maxPoints, 0),
 
-      answeredMandatoryQuestions: quizState.questions
-        .filter((q) => !q.optional)
-        .reduce((acc, q) => {
-          if (q.answers?.length) {
-            return acc + 1;
-          }
+      correctlyAnsweredQuestions: Object.values(quizState.questions)
+        .filter((q) =>
+            !q.optional
+            && q.answers.length > 0
+            && q.answers[q.answers.length - 1].isCorrect)
+        .length,
 
-          return acc;
-        }, 0),
+      answeredMandatoryQuestions: Object.values(quizState.questions)
+        .filter((q) => !q.optional && q.answers.length)
+        .length,
 
-      achievedPoints: quizState.questions.reduce((acc, q) => {
-        if ((q.answers || []).some((a) => a.isCorrect)) {
-          return acc + q.possiblePoints;
-        }
-
-        return acc;
-      }, 0),
+      achievedPoints: Object.values(quizState.questions).reduce(
+        (acc, {answers}) =>
+          acc + (answers.length && answers[answers.length - 1].points),
+        0),
     }),
     [quizState]
   );
@@ -240,7 +239,7 @@ export const QuizContextProvider = ({
   const contextValue = React.useMemo(
     () => ({
       quizState,
-      quizReducer,
+      answerQuestion,
       noOfQuestions,
       availablePoints,
       achievedPoints,
@@ -249,10 +248,11 @@ export const QuizContextProvider = ({
       isQuizComplete,
       allCompletedChapters,
       chaptersWithMandatoryQuestions,
+      getAnswers: (questionId: string) => quizState.questions[questionId]?.answers ?? []
     }),
     [
       quizState,
-      quizReducer,
+      answerQuestion,
       noOfQuestions,
       availablePoints,
       achievedPoints,

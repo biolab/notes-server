@@ -6,21 +6,12 @@ import { logger } from "@/utils/logger";
 import db from "@/utils/db";
 import { User } from "@/context/UserContextProvider";
 
-export const _getUserOrThrow = async (user: User | null) => {
-  if (!user || !user.accessToken) {
-    throw new Error("User missing");
-  }
-
-  const userFromDb = await db.get(
-    `SELECT id, email FROM users WHERE accessToken = ? and deleted = 0`,
-    [user.accessToken]
+export const getUserId = async (accessToken: string): Promise<number> => {
+  const user = await db.get(
+    `SELECT id FROM users WHERE accessToken = ? and deleted = 0`,
+    [accessToken]
   );
-
-  if (!userFromDb) {
-    throw new Error("User not found in the database");
-  }
-
-  return userFromDb;
+  return user?.id ?? null;
 };
 
 export const getUser = async ({ accessToken }: { accessToken: string }) => {
@@ -41,15 +32,18 @@ export const getUser = async ({ accessToken }: { accessToken: string }) => {
   return existingUser;
 };
 
-export const _deleteUser = async (user: User | null) => {
-  const userFromDb = await _getUserOrThrow(user);
+export const _deleteUser = async (user: User) => {
+  const userId = await getUserId(user.accessToken);
+  if (!userId) {
+    throw Error("User is not found.")
+  }
 
   // Delete user data
-  await db.run(`DELETE FROM answers WHERE userId = ?`, [userFromDb.id]);
+  await db.run(`DELETE FROM answers WHERE userId = ?`, [userId]);
 
   await db.run(
     `UPDATE users SET deleted = 1, deletedCount = deletedCount + 1 WHERE id = ?`,
-    [userFromDb.id]
+    [userId]
   );
 };
 
@@ -65,6 +59,10 @@ export const registerUser = async ({
   };
   url?: string;
 }) => {
+  if (!email) {
+    logger("registerUser: Called without email; this shouldn't have happened");
+  }
+
   let user = null;
 
   if (email) {

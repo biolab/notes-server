@@ -4,22 +4,30 @@ import { MDXProvider } from '@mdx-js/react';
 
 import Image from "./Image";
 import CcByNcNd from "./CcByNcNd";
-import Quiz, { IQuiz } from "./Quiz/Quiz";
-import { QuestionDef } from "@/types/types";
+import Question, { QuizPropsBase } from "./Quiz/Quiz";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
 
+export interface QuestionProps extends QuizPropsBase {
+  neutralOptions?: string[];
+  multichoice?: boolean;
+  longtext?: boolean;
+  optional?: boolean;
+  scorer?: (option: string) => boolean;
+  answer?: string;
+  points?: number;
+  trials?: number;
+}
+
 export const MdxContent = ({
   content,
-  chapterIndex,
-  dbQuestions,
+  chapterId,
   bookId,
   t
 }: {
   content: string;
-  chapterIndex?: number;
-  dbQuestions?: QuestionDef[];
   bookId?: number;
+  chapterId?: number;
   t: (key: string) => string;
 }) => {
   if  (!content) {
@@ -27,18 +35,36 @@ export const MdxContent = ({
   }
 
   const components = {
-    Quiz: (props: IQuiz) => {
-      if (chapterIndex === undefined) {
-        throw new Error("Introduction cannot contain questions");
+    Question: (props: QuestionProps) => {
+      if (chapterId === undefined || bookId === undefined) {
+        throw new Error("Questions can appear only in chapters");
       }
+      const { answer, scorer, options, neutralOptions, optional,
+              multichoice, longtext, points, trials,
+              ...restProps } = props;
+
+      const type =
+        multichoice ? "multichoice"
+        : options || neutralOptions ? "singlechoice"
+        : longtext ? "long-text" : "text";
+
+      const actScorer = scorer || (
+        optional ? () => undefined
+        : (x: string) => {
+          const normalized = x.trim().toLocaleLowerCase()
+          return neutralOptions?.includes(normalized) ? undefined
+            : normalized === answer!.trim().toLowerCase()
+        });
 
       return (
-        <Quiz
-          {...props}
-          //chapterIndex={chapterIndex}
-          showQuiz={true}
+        <Question
+          {...restProps}
           bookId={bookId!}
-          dbQuestions={dbQuestions!}
+          type={type}
+          scorer={actScorer}
+          options={(options || neutralOptions) && [...options || [], ...neutralOptions || []]}
+          maxPoints={points || 0}
+          maxTrials={trials || 1}
         />
       );
     },

@@ -6,9 +6,7 @@ import { MdxContent } from "../MdxContent";
 import { Chapter } from "./Chapter";
 import { ContentIndexControl } from "./ContentIndex";
 import { IntlContextProvider, useIntl } from "@/i18n";
-import {
-  IAnswerValue,
-  QuizContextProvider,
+import { IAnswerValueWithQuestionId, QuizContextProvider
 } from "@/context/QuizContextProvider";
 import { UserContext } from "@/context/UserContextProvider";
 import { getAnswers } from "@/api/QuizService";
@@ -29,7 +27,7 @@ export const Book = ({
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
   const { user, retrievingUser, showLogin } = useContext(UserContext);
-  const [answers, setAnswers] = useState<"pending" | null | IAnswerValue[]>(
+  const [answers, setAnswers] = useState<"pending" | null | IAnswerValueWithQuestionId[]>(
     "pending"
   );
 
@@ -92,10 +90,9 @@ export const Book = ({
   return (
     <IntlContextProvider lang={frontmatter.language || "en"}>
       <QuizContextProvider
+        bookId={bookId!}
         chapters={chapters}
-        title={frontmatter.title}
-        answers={answers as IAnswerValue[] | null}
-        slug={slug}
+        answers={answers}
         quizThreshold={frontmatter.quizThreshold || 0.8}
       >
         <Layout
@@ -135,6 +132,7 @@ export const Book = ({
               <Chapter
                 {...chapterDef}
                 bookId={bookId!}
+                chapterId={chapterDef.chapterId}
                 key={chapterDef.frontmatter.title}
                 index={index}
                 setIsChapterIndexVisible={setIsChapterIndexVisible}

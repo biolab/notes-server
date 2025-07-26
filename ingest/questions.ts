@@ -36,7 +36,7 @@ export const extractQuizzes = async (
       if (
         args.length > 1 &&
         t.isIdentifier(args[0]) &&
-        args[0].name === "Quiz"
+        args[0].name === "Question"
       ) {
         const props = args[1];
         if (t.isObjectExpression(props)) {
@@ -59,6 +59,9 @@ export const extractQuizzes = async (
             }
             return prop.value.value;
           };
+
+          const hasProp = (name: string): boolean =>
+            !!findProp(name);
 
           const getNumProp = (where: string, name: string): number | null => {
             const prop = findProp(name);
@@ -139,42 +142,37 @@ export const extractQuizzes = async (
             question.length > 50 ? "(...)" : ""
           }`;
 
-          const type = getProp(where, "type") || "multi";
-          if (["multi", "text", "long-text", "choice"].indexOf(type) === -1) {
-            logError(
-              where,
-              `Question type "${type}" is not supported. Use "multi", "text" or "long-text".`
-            );
-            return;
-          }
-
           const questionId = getProp(where, "id") || question;
           const points = getNumProp(where, "points") || 0;
           const optional = getBoolProp(where, "optional") ?? false;
           const options = getPropArray(where, "options");
+          const neutral = getPropArray(where, "neutral");
           const answer = getProp(where, "answer");
+          const hasScorer = hasProp("scorer");
           const newErrors: string[] = (
             [
               /* Add more as needed */
               [
-                options &&
-                answer &&
+                options && answer &&
                 !options
                   .map((s) => s.toLocaleLowerCase())
                   .includes(answer.toLocaleLowerCase()),
-                `Correct answer is not listed in options`,
+                `Correct answer is not listed in options`
+              ],
+              [ hasProp("multichoice") &&
+                (options?.length ?? 0) + (neutral?.length ?? 0) === 0,
+                "Multichoice requires options"
+              ],
+              [ hasProp("longtext") && (options || neutral),
+                "longtext is incompatible with options"
+              ],
+              [
+                answer && hasScorer,
+                `Provide either answer or scorer, not both`
               ],
               [
                 options && new Set(options).size != options.length,
-                `Options are not unique`,
-              ],
-              [
-                options && type !== "multi" && type !== "choice",
-                "Options are only allowed for multi-choice questions",
-              ],
-              [
-                (type === "multi" || type === "choice") && !options,
-                "Options are required for multi-choice questions",
+                `Options are not unique`
               ],
             ] as [boolean, string][]
           )
@@ -189,7 +187,7 @@ export const extractQuizzes = async (
           questions.push({
             questionId,
             question,
-            type: type as QuestionTypes,
+            type: "singlechoice", // TODO: set the correct type or omit the field
             options,
             answer,
             points,

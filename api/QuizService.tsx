@@ -1,48 +1,68 @@
 "use server";
 
-import { IAnswerValue } from "@/context/QuizContextProvider";
+import { IAnswerValueWithQuestionId } from "@/context/QuizContextProvider";
 import { User } from "@/context/UserContextProvider";
 import db from "@/utils/db";
-import { _getUserOrThrow } from "./UserService";
+import { getUserId } from "./UserService";
+
+const getToken = (user: User | null) => {
+  if (!user || !user.accessToken) {
+    throw Error("User is not logged in.")
+  }
+  return user.accessToken;
+}
 
 export const postAnswer = async ({
-  id,
-  value,
   user,
   bookId,
+  questionId,
+  answer,
+  correct,
+  points
 }: {
-  id: number;
-  value: IAnswerValue;
   user: User | null;
   bookId: number;
+  questionId: string;
+  answer: string;
+  correct?: boolean;
+  points?: number
 }) => {
-  const userFromDb = await _getUserOrThrow(user);
-
+  const userId = await getUserId(getToken(user));
+  if (!userId) {
+    throw Error("User is not found.")
+  }
+  const question = await db.get(`
+  SELECT id FROM questions q
+  JOIN books_chapters bc ON q.chapterId = bc.chapterId
+  WHERE questionId = ? AND bc.bookId = ?
+  `, [questionId, bookId]);
+  if (!question) {
+    throw Error(`Question ${questionId} not found in book with id ${bookId}`)
+  }
   await db.run(
-    `INSERT INTO answers (userId, bookId, questionId, answerValue) VALUES (?, ?, ?, ?)`,
-    [userFromDb.id, bookId, id, JSON.stringify(value)]
+    `INSERT INTO answers (userId, bookId, questionId, answer, isCorrect, points)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [userId, bookId, question.id, answer, correct, points]
   );
 };
 
 export const getAnswers = async ({
   user,
-  bookId,
+  bookId
 }: {
   user: User | null;
   bookId: number;
-}): Promise<IAnswerValue[] | null> => {
-  const userFromDb = await _getUserOrThrow(user);
-
-  const events = await db.all(
-    `SELECT answerValue
+}): Promise<IAnswerValueWithQuestionId[] | null> => {
+  const userId = await getUserId(getToken(user));
+  if (!userId) {
+    throw Error("User is not found.")
+  }
+  return (await db.all(
+    `SELECT answers.answer, q.questionId, isCorrect, points
     FROM answers
+    JOIN questions q ON answers.questionId = q.id
     WHERE userId = ? AND bookId = ?
-    ORDER BY answers.createdAt ASC`,
-    [userFromDb.id, bookId]
-  );
-
-  return events.map(
-    ({ answerValue }: { answerValue: string }) =>
-      JSON.parse(answerValue) as IAnswerValue
-  );
+    ORDER BY answers.createdAt`,
+    [userId, bookId]
+  )).map(({isCorrect, ...rest}) => ({isCorrect: !!isCorrect, ...rest}));
 };

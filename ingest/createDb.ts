@@ -176,12 +176,14 @@ export const rebuildDatabase = async () => {
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             createdAt   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             userId      INTEGER   NOT NULL,
-            bookId      TEXT,
-            questionId  TEXT      NOT NULL,
-            answerValue JSON      NOT NULL,
-            FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
-                FOREIGN KEY (bookId) REFERENCES books(id) ON DELETE SET NULL
-                FOREIGN KEY (questionId) REFERENCES questions(id) ON DELETE SET NULL
+            bookId      INTEGER   NOT NULL,
+            questionId  INTEGER   NOT NULL,
+            answer      TEXT      NOT NULL,
+            isCorrect   BOOLEAN,
+            points      INTEGER,
+            FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (bookId) REFERENCES books (id) ON DELETE CASCADE,
+            FOREIGN KEY (questionId) REFERENCES questions (id) ON DELETE CASCADE
         );
     `);
 
