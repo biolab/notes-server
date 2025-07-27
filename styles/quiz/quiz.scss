@@ -44,6 +44,17 @@
     }
   }
 
+  &.submission-errored {
+    border-color: red;
+    background: $grayTransparent;
+
+    button.selected {
+      border-color: $gray;
+      background: $gray;
+      color: white;
+    }
+  }
+
   input,
   textarea {
     border: 1px solid $inputBorder;

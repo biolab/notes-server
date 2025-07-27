@@ -17,7 +17,8 @@
     "quiz.correct": "Correct!",
     "quiz.points": "Points",
     "quiz.delay": "Next attempt in",
-    "quiz.seconds": "seconds."
+    "quiz.seconds": "seconds.",
+    "quiz.submission-error": "Your answer was not recorded. If this is not due to your internet connection, please report the problem."
   },
   "sl": {
     "books": "Knjige",
@@ -38,6 +39,7 @@
     "quiz.points": "Število točk",
     "quiz.delay": "Naslednji poskus čez",
     "quiz.seconds": "sekund.",
+    "quiz.submission-error": "Odgovor ni bil zabeležen. Če težava ni v vaši internetni povezavi, vas prosimo, da nas obvestite o napaki.",
     "text-replacements": {
       "/(\\s)\"/": "$1»",
       "/(\\S)\"/": "$1«"

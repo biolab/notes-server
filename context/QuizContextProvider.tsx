@@ -2,7 +2,6 @@ import { ChapterDef } from "@/types/types";
 import React from "react";
 import { logger } from "@/utils/logger";
 import { postAnswer } from "@/api/QuizService";
-import { toast } from "react-toastify";
 import { UserContext } from "@/context/UserContextProvider";
 
 export type Answer = {
@@ -21,6 +20,7 @@ export interface QuestionI {
   chapterIndex: number;
   answers: Answer[];
   optional: boolean;
+  submissionErrored?: boolean;
 }
 
 type Questions = {[questionID: string]: QuestionI};
@@ -73,42 +73,44 @@ const getQuizState = ({
   return state;
 };
 
-const reducer = (
-  state: QuizStateI,
-  action: {
-    type: string;
-    value: AnswerWithQuestionId
-  }
-) => {
-  const { questionId, ...data } = action.value
-  const prev = state.questions[questionId];
+type ActionType =
+  { type: "ANSWER", value: AnswerWithQuestionId } |
+  { type: "ERROR",  value: {questionId: string}
+}
 
+const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
+  const { questionId, ...data } = action.value;
+  const prev = state.questions[questionId];
   switch (action.type) {
-    case "ANSWER":
+    case "ANSWER": {
       const questions = {
         ...state.questions,
         [questionId]: {
           ...prev,
-          answers: [...prev?.answers ?? [], data]
+          submissionErrored: false,
+          answers: [...prev?.answers ?? ([] as Answer[]), data as Answer]
         }
       }
       const isComplete = Object.values(questions).every(
         (q) => q.optional || q.answers.length > 0);
-
       return {
         ...state,
         questions,
         isQuizComplete: isComplete,
       }
-
-    default:
-      return state;
+    }
+    case "ERROR": {
+      const questions = {
+        ...state.questions,
+        [questionId]: {...prev, submissionErrored: true}
+      }
+      return {...state, questions}
+    }
   }
 }
 
 export const QuizContext = React.createContext<{
   quizState: QuizStateI | null;
-  answerQuestion: (value: AnswerWithQuestionId) => Promise<void>;
   noOfQuestions: number;
   availablePoints: number;
   achievedPoints: number;
@@ -117,10 +119,11 @@ export const QuizContext = React.createContext<{
   isQuizComplete: boolean;
   allCompletedChapters: number[];
   chaptersWithMandatoryQuestions: number[];
-  getAnswers: (questionId: string) => Answer[]
+  answerQuestion: (value: AnswerWithQuestionId) => Promise<boolean>;
+  getAnswers: (questionId: string) => Answer[];
+  submissionErrored: (questionId: string) => boolean;
 }>({
   quizState: null,
-  answerQuestion: async () => {},
   noOfQuestions: 0,
   availablePoints: 0,
   achievedPoints: 0,
@@ -129,7 +132,9 @@ export const QuizContext = React.createContext<{
   isQuizComplete: false,
   allCompletedChapters: [],
   chaptersWithMandatoryQuestions: [],
-  getAnswers: () => []
+  answerQuestion: async () => false,
+  getAnswers: () => [],
+  submissionErrored: () => false
 });
 
 export const QuizContextProvider = ({
@@ -147,31 +152,30 @@ export const QuizContextProvider = ({
 }) => {
     const { user } = React.useContext(UserContext);
 
-  const [quizState, quizReducer]: [
-    QuizStateI,
-    React.Dispatch<{ type: string; value: AnswerWithQuestionId }>
-  ] = React.useReducer(
-    reducer,
-    getQuizState({ quizThreshold, answers, chapters })
-  );
+  const [quizState, quizReducer]: [QuizStateI, React.Dispatch<ActionType>] =
+    React.useReducer(
+      reducer,
+      getQuizState({ quizThreshold, answers, chapters })
+    );
 
   const answerQuestion = React.useCallback(
-    async (value: AnswerWithQuestionId) => {
+    async (value: AnswerWithQuestionId): Promise<boolean> => {
       const {questionId, answer, points, isCorrect} = value;
       try {
         await postAnswer({
-          questionId, user, bookId, points, isCorrect,
+          questionId,
+          user,
+          bookId: bookId,
           answer: typeof answer === "string" ? answer : answer.join("|||"),
+          points,
+          isCorrect,
         });
-        quizReducer({ type: "ANSWER", value });
       } catch (error: any) {
-        // todo: add error state to question and report it there (via useLastAnswer)
-        toast.error(
-          `Something went wrong. Answers are not saved.${
-            error.message ? ` Error: ${error.message}` : ""
-          }`
-        );
+        quizReducer({ type: "ERROR", value: {questionId}});
+        return false;
       }
+      quizReducer({ type: "ANSWER", value });
+      return true;
     },
     [user, bookId, quizReducer]
   );
@@ -233,7 +237,6 @@ export const QuizContextProvider = ({
   const contextValue = React.useMemo(
     () => ({
       quizState,
-      answerQuestion,
       noOfQuestions,
       availablePoints,
       achievedPoints,
@@ -242,7 +245,9 @@ export const QuizContextProvider = ({
       isQuizComplete,
       allCompletedChapters,
       chaptersWithMandatoryQuestions,
-      getAnswers: (questionId: string) => quizState.questions[questionId]?.answers ?? []
+      answerQuestion,
+      getAnswers: (questionId: string) => quizState.questions[questionId]?.answers ?? [],
+      submissionErrored: (questionId: string) => !!quizState.questions[questionId]?.submissionErrored
     }),
     [
       quizState,
@@ -266,22 +271,24 @@ export const QuizContextProvider = ({
 };
 
 export const useLastAnswer = (questionId: string) => {
-  const { getAnswers, answerQuestion: aq } = React.useContext(QuizContext);
-  const answerQuestion =
-    async (value: Answer) => await aq({questionId, ...value});
-  const answers = getAnswers(questionId);
-  if (!answers || answers.length === 0) {
+  const {
+    getAnswers,
+    submissionErrored,
+    answerQuestion: aq
+  } = React.useContext(QuizContext);
+  const answers = getAnswers(questionId) || [];
+  const value = {
+    trials: answers.length,
+    submissionErrored: submissionErrored(questionId),
+    answerQuestion: async (value: Answer) => await aq({questionId, ...value})
+  };
+  if (answers.length === 0) {
     return {
+      ...value,
       isCorrect: null,
       answer: null,
       trials: 0,
-      points: null,
-      answerQuestion
-    }
+      points: null}
   }
-  return {
-    ...answers[answers.length - 1],
-    trials: answers.length,
-    answerQuestion
-  };
+  return {...value, ...answers[answers.length - 1] }
 }

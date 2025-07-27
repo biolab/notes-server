@@ -3,7 +3,8 @@ import { useTimer } from "use-timer";
 import { useIntl } from "@/i18n";
 import { useLastAnswer } from "@/context/QuizContextProvider";
 import { QuestionTypes } from "@/types/types";
-import { RiCloseCircleLine, RiCheckboxCircleFill, RiTimerLine} from "react-icons/ri";
+import { RiCloseCircleLine, RiCheckboxCircleFill, RiTimerLine, RiAlertLine
+} from "react-icons/ri";
 
 export interface QuizPropsBase {
   question: string;
@@ -36,7 +37,8 @@ export default function Question({
 }: IQuestion) {
   const [answer, setAnswer] = React.useState<null | string | string[]>(null);
   const [submitted, setSubmitted] = React.useState(false);
-  const { isCorrect, points, trials, answer: last, answerQuestion } = useLastAnswer(id);
+  const { isCorrect, points, trials, answer: last, submissionErrored,
+          answerQuestion } = useLastAnswer(id);
   React.useEffect(() => {
     if (last) {
       setSubmitted(true);
@@ -54,8 +56,10 @@ export default function Question({
   );
 
   const submitDisabled = React.useMemo(
-    () => isCorrect || timeoutRunning || maxTrials && trials >= maxTrials,
-  [isCorrect, timeoutRunning, maxTrials, trials]);
+    () => maxTrials && trials >= maxTrials
+          || timeoutRunning
+          || !submissionErrored && isCorrect,
+  [submissionErrored, isCorrect, timeoutRunning, maxTrials, trials]);
 
   const onSubmit = React.useCallback(
     async (e: React.MouseEvent, option: string ) => {
@@ -72,14 +76,17 @@ export default function Question({
       if (errored) {
         return;
       }
-      setSubmitted(true);
 
       const isCorrect = scorer(_normalizedAnswer as string);
-      await answerQuestion({
+      if (!await answerQuestion({
         isCorrect,
         answer: _answer,
         points: isCorrect ? maxPoints : 0,
-      });
+      })) {
+        return;
+      }
+
+      setSubmitted(true);
       if (isCorrect == false && timeout && trials + 1 < maxTrials) {
         startTimer();
       }
@@ -89,6 +96,9 @@ export default function Question({
   );
 
   const message = React.useMemo(() => {
+    if (submissionErrored) {
+      return;
+    }
     switch (isCorrect) {
       case null: {
         if (maxTrials > 1) {
@@ -115,25 +125,29 @@ export default function Question({
       default:
         return null;
     }
-  }, [t, isCorrect, timeoutRunning, trials, maxTrials, points, timeLeft]);
+  }, [t, submissionErrored, isCorrect, timeoutRunning,
+      trials, maxTrials, points, timeLeft]);
 
   const correctnessClass = React.useMemo(() => {
+    if (submissionErrored) {
+      return "submission-errored";
+    }
     switch (isCorrect) {
       case undefined: return "neutral";
       case true: return "correct";
       case false: return "incorrect";
       default: return ""
     }
-  }, [isCorrect]);
-  console.log(isCorrect, correctnessClass);
+  }, [submissionErrored, isCorrect]);
 
   const icon = React.useMemo(() =>
-    type === "long-text" && submitted ? <RiCheckboxCircleFill />
+    submissionErrored ? <RiAlertLine />
+    : type === "long-text" && submitted ? <RiCheckboxCircleFill />
     : isCorrect === true ? <RiCheckboxCircleFill />
     : timeoutRunning ? <RiTimerLine />
     : isCorrect === false ? <RiCloseCircleLine />
     : null,
-  [isCorrect, submitted, timeoutRunning, type]);
+  [submissionErrored, isCorrect, submitted, timeoutRunning, type]);
 
   const childrenWithProps: any = React.Children.map(children, (child) => {
     if (
@@ -143,7 +157,7 @@ export default function Question({
       return React.cloneElement(child as React.ReactElement<any>, {
         ntrials: trials,
         maxTrialsUsed: !!(maxTrials && maxTrials === trials),
-        isCorrect,
+        isCorrect: !submissionErrored && isCorrect,
       });
     }
     return child;
@@ -195,7 +209,7 @@ export default function Question({
                 />
               )}
 
-              {!isCorrect && (
+              {(submissionErrored || !isCorrect) && (
                 <button
                   disabled={!answer}
                   onClick={(e) => onSubmit(e, answer as string)}
@@ -228,6 +242,14 @@ export default function Question({
         </fieldset>
 
         {message && <p className="quiz-message">{message}</p>}
+        {submissionErrored &&
+          <div
+            className="bg-red-100 order-red-500 text-red-700 mt-2 p-1 pl-4 rounded"
+            role="alert"
+          >
+            <p>{t("quiz.submission-error")}</p>
+          </div>
+        }
         {formatError && <p className="error">{formatError}</p>}
         {childrenWithProps}
       </form>
