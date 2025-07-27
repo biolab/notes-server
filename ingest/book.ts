@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { ChapterDefBase, ChapterFrontmatter, BookFrontmatter } from "@/types/types";
+import { BookFrontmatter, ChapterDefBase, ChapterFrontmatter } from "@/types/types";
 import { pathExists } from "@/ingest/paths";
 import { checkedMatter, getMdFile, parseMd, readPublicDirMd } from "./md-helpers";
 import { catchErrors, logError } from "@/ingest/errors";
@@ -98,3 +98,4 @@ export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
     chapters,
   };
 };
+

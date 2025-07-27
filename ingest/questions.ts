@@ -9,6 +9,9 @@ import { getImageSize } from "@/ingest/getImageSize";
 import { QuestionDef } from "@/types/types";
 import { logError } from "@/ingest/errors";
 
+
+import { determineQuestionType } from "@/utils/questions";
+
 export const extractQuizzes = async (
   mdxContent: string,
   slug: string
@@ -146,9 +149,12 @@ export const extractQuizzes = async (
           const points = getNumProp(where, "points") || 0;
           const optional = getBoolProp(where, "optional") ?? false;
           const options = getPropArray(where, "options");
-          const neutral = getPropArray(where, "neutral");
+          const neutralOptions = getPropArray(where, "neutral");
           const answer = getProp(where, "answer");
           const hasScorer = hasProp("scorer");
+          const multichoice = getBoolProp(where, "multichoice");
+          const longtext = getBoolProp(where, "longtext");
+          const type = determineQuestionType({options, neutralOptions, multichoice, longtext})
           const newErrors: string[] = (
             [
               /* Add more as needed */
@@ -159,17 +165,23 @@ export const extractQuizzes = async (
                   .includes(answer.toLocaleLowerCase()),
                 `Correct answer is not listed in options`
               ],
-              [ hasProp("multichoice") &&
-                (options?.length ?? 0) + (neutral?.length ?? 0) === 0,
+              [ multichoice &&
+                (options?.length ?? 0) + (neutralOptions?.length ?? 0) === 0,
                 "Multichoice requires options"
               ],
-              [ hasProp("longtext") && (options || neutral),
+              [ longtext && (multichoice || options || neutralOptions),
                 "longtext is incompatible with options"
               ],
               [
                 answer && hasScorer,
                 `Provide either answer or scorer, not both`
               ],
+              // TODO: If there is neither scorer nor answer, the question is optional?
+              // Why do we have flag "optional", then?
+              /*[ options?.length &&
+                !(optional || answer || hasScorer || options.some((opt) => opt.startsWith("** "))),
+                `Provide an answer or scorer, or prefix the correct option with '* '`
+              ],*/
               [
                 options && new Set(options).size != options.length,
                 `Options are not unique`
@@ -187,7 +199,7 @@ export const extractQuizzes = async (
           questions.push({
             questionId,
             question,
-            type: "singlechoice", // TODO: set the correct type or omit the field
+            type,
             options,
             answer,
             points,

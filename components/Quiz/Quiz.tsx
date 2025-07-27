@@ -3,8 +3,7 @@ import { useTimer } from "use-timer";
 import { useIntl } from "@/i18n";
 import { useLastAnswer } from "@/context/QuizContextProvider";
 import { QuestionTypes } from "@/types/types";
-import { RiCloseCircleLine, RiCheckboxCircleFill, RiTimerLine, RiAlertLine
-} from "react-icons/ri";
+import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine, RiTimerLine } from "react-icons/ri";
 
 export interface QuizPropsBase {
   question: string;
@@ -267,5 +266,7 @@ const answerFromOption = (
   : currentAnswer.includes(option) ? currentAnswer.filter((v) => v !== option)
   : [...currentAnswer, option];
 
-const getNormalizedAnswer = (answer: string | string[] | null) =>
-  typeof answer === "string" ? answer.trim().toLowerCase() : answer;
+export const getNormalizedAnswer = (answer: string | string[] | null) =>
+  typeof answer === "string" ? answer.trim().toLowerCase()
+  : answer?.map((x) => x.trim().toLowerCase());
+
