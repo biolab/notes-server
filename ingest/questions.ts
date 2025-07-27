@@ -6,7 +6,7 @@ import * as babelParser from "@babel/parser";
 import * as t from "@babel/types";
 import traverse, { NodePath } from "@babel/traverse";
 import { getImageSize } from "@/ingest/getImageSize";
-import { QuestionDef, QuestionTypes } from "@/types/types";
+import { QuestionDef } from "@/types/types";
 import { logError } from "@/ingest/errors";
 
 export const extractQuizzes = async (

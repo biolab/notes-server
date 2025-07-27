@@ -5,13 +5,13 @@ import { postAnswer } from "@/api/QuizService";
 import { toast } from "react-toastify";
 import { UserContext } from "@/context/UserContextProvider";
 
-export type IAnswerValue = {
-  isCorrect: boolean | undefined;
+export type Answer = {
   answer: string | string[];
+  isCorrect: boolean | undefined;
   points: number;
 };
 
-export type IAnswerValueWithQuestionId = IAnswerValue & {
+export type AnswerWithQuestionId = Answer & {
   questionId: string
 }
 
@@ -19,7 +19,7 @@ export interface QuestionI {
   questionId: string;
   maxPoints: number;
   chapterIndex: number;
-  answers: IAnswerValue[];
+  answers: Answer[];
   optional: boolean;
 }
 
@@ -54,7 +54,7 @@ const getQuizState = ({
 }: {
   chapters: ChapterDef[];
   quizThreshold: number;
-  answers?: IAnswerValueWithQuestionId[] | null;
+  answers?: AnswerWithQuestionId[] | null;
 }) => {
   const state: QuizStateI = {
     questions: getQuestionsFromChapters(chapters),
@@ -66,7 +66,7 @@ const getQuizState = ({
   };
   (answers || []).forEach((answer) => {
     const {questionId, ...answerWOutId} = answer;
-    state.questions[questionId].answers.push(answerWOutId as IAnswerValue);
+    state.questions[questionId].answers.push(answerWOutId as Answer);
     }
   )
   logger("Quiz state initialized with answers:", state);
@@ -77,7 +77,7 @@ const reducer = (
   state: QuizStateI,
   action: {
     type: string;
-    value: IAnswerValueWithQuestionId
+    value: AnswerWithQuestionId
   }
 ) => {
   const { questionId, ...data } = action.value
@@ -108,7 +108,7 @@ const reducer = (
 
 export const QuizContext = React.createContext<{
   quizState: QuizStateI | null;
-  answerQuestion: (value: IAnswerValueWithQuestionId) => void;
+  answerQuestion: (value: AnswerWithQuestionId) => Promise<void>;
   noOfQuestions: number;
   availablePoints: number;
   achievedPoints: number;
@@ -117,10 +117,10 @@ export const QuizContext = React.createContext<{
   isQuizComplete: boolean;
   allCompletedChapters: number[];
   chaptersWithMandatoryQuestions: number[];
-  getAnswers: (questionId: string) => IAnswerValue[]
+  getAnswers: (questionId: string) => Answer[]
 }>({
   quizState: null,
-  answerQuestion: () => {},
+  answerQuestion: async () => {},
   noOfQuestions: 0,
   availablePoints: 0,
   achievedPoints: 0,
@@ -143,35 +143,29 @@ export const QuizContextProvider = ({
   quizThreshold: number;
   chapters: ChapterDef[];
   bookId: number;
-  answers: IAnswerValueWithQuestionId[] | null;
+  answers: AnswerWithQuestionId[] | null;
 }) => {
     const { user } = React.useContext(UserContext);
 
   const [quizState, quizReducer]: [
     QuizStateI,
-    React.Dispatch<{ type: string; value: IAnswerValueWithQuestionId }>
+    React.Dispatch<{ type: string; value: AnswerWithQuestionId }>
   ] = React.useReducer(
     reducer,
     getQuizState({ quizThreshold, answers, chapters })
   );
 
-
   const answerQuestion = React.useCallback(
-    async (value: IAnswerValueWithQuestionId) => {
+    async (value: AnswerWithQuestionId) => {
+      const {questionId, answer, points, isCorrect} = value;
       try {
         await postAnswer({
-          questionId: value.questionId,
-          user,
-          bookId,
-          answer:
-            typeof value.answer === "string"
-            ? value.answer
-            : value.answer.join("|||"),
-          points: value.points,
-          correct: value.isCorrect,
+          questionId, user, bookId, points, isCorrect,
+          answer: typeof answer === "string" ? answer : answer.join("|||"),
         });
         quizReducer({ type: "ANSWER", value });
       } catch (error: any) {
+        // todo: add error state to question and report it there (via useLastAnswer)
         toast.error(
           `Something went wrong. Answers are not saved.${
             error.message ? ` Error: ${error.message}` : ""
@@ -265,6 +259,29 @@ export const QuizContextProvider = ({
   );
 
   return (
-    <QuizContext.Provider value={contextValue}>{children}</QuizContext.Provider>
+    <QuizContext.Provider value={contextValue}>
+      {children}
+    </QuizContext.Provider>
   );
 };
+
+export const useLastAnswer = (questionId: string) => {
+  const { getAnswers, answerQuestion: aq } = React.useContext(QuizContext);
+  const answerQuestion =
+    async (value: Answer) => await aq({questionId, ...value});
+  const answers = getAnswers(questionId);
+  if (!answers || answers.length === 0) {
+    return {
+      isCorrect: null,
+      answer: null,
+      trials: 0,
+      points: null,
+      answerQuestion
+    }
+  }
+  return {
+    ...answers[answers.length - 1],
+    trials: answers.length,
+    answerQuestion
+  };
+}

@@ -1,6 +1,6 @@
 "use server";
 
-import { IAnswerValueWithQuestionId } from "@/context/QuizContextProvider";
+import { AnswerWithQuestionId } from "@/context/QuizContextProvider";
 import { User } from "@/context/UserContextProvider";
 import db from "@/utils/db";
 import { getUserId } from "./UserService";
@@ -17,14 +17,14 @@ export const postAnswer = async ({
   bookId,
   questionId,
   answer,
-  correct,
+  isCorrect,
   points
 }: {
   user: User | null;
   bookId: number;
   questionId: string;
   answer: string;
-  correct?: boolean;
+  isCorrect?: boolean;
   points?: number
 }) => {
   const userId = await getUserId(getToken(user));
@@ -42,7 +42,7 @@ export const postAnswer = async ({
   await db.run(
     `INSERT INTO answers (userId, bookId, questionId, answer, isCorrect, points)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [userId, bookId, question.id, answer, correct, points]
+    [userId, bookId, question.id, answer, isCorrect, points]
   );
 };
 
@@ -52,7 +52,7 @@ export const getAnswers = async ({
 }: {
   user: User | null;
   bookId: number;
-}): Promise<IAnswerValueWithQuestionId[] | null> => {
+}): Promise<AnswerWithQuestionId[] | null> => {
   const userId = await getUserId(getToken(user));
   if (!userId) {
     throw Error("User is not found.")
@@ -64,5 +64,8 @@ export const getAnswers = async ({
     WHERE userId = ? AND bookId = ?
     ORDER BY answers.createdAt`,
     [userId, bookId]
-  )).map(({isCorrect, ...rest}) => ({isCorrect: !!isCorrect, ...rest}));
+  )).map(({isCorrect, ...rest}) => ({
+    // DB stores 0 and 1 even if the column is declared as BOOLEAN
+    isCorrect: isCorrect === null ? undefined : !!isCorrect,
+    ...rest}));
 };

@@ -9,6 +9,7 @@ import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
 
 export interface QuestionProps extends QuizPropsBase {
+  id?: string;
   neutralOptions?: string[];
   multichoice?: boolean;
   longtext?: boolean;
@@ -40,7 +41,7 @@ export const MdxContent = ({
         throw new Error("Questions can appear only in chapters");
       }
       const { answer, scorer, options, neutralOptions, optional,
-              multichoice, longtext, points, trials,
+              multichoice, longtext, points, trials, id, question,
               ...restProps } = props;
 
       const type =
@@ -59,6 +60,8 @@ export const MdxContent = ({
       return (
         <Question
           {...restProps}
+          question={question}
+          id={id || question}
           bookId={bookId!}
           type={type}
           scorer={actScorer}

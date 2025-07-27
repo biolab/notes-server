@@ -1,13 +1,12 @@
 import React, { JSXElementConstructor } from "react";
 import { useTimer } from "use-timer";
-import { RiCloseCircleLine, RiCheckboxCircleFill, RiTimerLine} from "react-icons/ri";
-import { useIntl } from "../../i18n";
-import { QuizContext, useLastAnswer } from "@/context/QuizContextProvider";
+import { useIntl } from "@/i18n";
+import { useLastAnswer } from "@/context/QuizContextProvider";
 import { QuestionTypes } from "@/types/types";
+import { RiCloseCircleLine, RiCheckboxCircleFill, RiTimerLine} from "react-icons/ri";
 
 export interface QuizPropsBase {
   question: string;
-  id?: string;
   options?: string[];
   checker?: (option: string) => string | null;
   timeout?: number;
@@ -15,10 +14,10 @@ export interface QuizPropsBase {
 }
 
 export interface IQuestion extends QuizPropsBase {
+  id: string;
   type: QuestionTypes;
   scorer: (option: string) => (boolean | undefined)
   bookId: number;
-
   maxPoints: number;
   maxTrials: number;
 }
@@ -35,188 +34,106 @@ export default function Question({
   timeout = 0,
   children,
 }: IQuestion) {
-  const { answerQuestion, quizState, getAnswers } = React.useContext(QuizContext);
-  // const { isCorrect: correct, trials } = useLastAnswer(id || question);
-  const [answer, setAnswer] =
-    React.useState<null | string | string[]>(null);
-  const [normalizedAnswer, setNormalizedAnswer] = 
-    React.useState<null | string | string[]>(null);
-  const answers = React.useMemo(
-    () => getAnswers(id || question),
-    [getAnswers, id, question]);
-  const correct = React.useMemo(
-    () => answers.length === 0 ? null : answers[answers.length - 1].isCorrect,
-    [answers]);
-  const trial = React.useMemo(
-    () => answers.filter((a) => !a.isCorrect === undefined).length,
-    [answers]);
-  const [error, setError] = React.useState<null | string>(null);
+  const [answer, setAnswer] = React.useState<null | string | string[]>(null);
   const [submitted, setSubmitted] = React.useState(false);
-  const [isLoading] = React.useState(false);
+  const { isCorrect, points, trials, answer: last, answerQuestion } = useLastAnswer(id);
+  React.useEffect(() => {
+    if (last) {
+      setSubmitted(true);
+      setAnswer(last);
+    }
+  }, [last])
+  const [formatError, setFormatError] = React.useState<null | string>(null);
   const { t } = useIntl();
 
-  const {
-    time: timeLeft,
-    start: startTimer,
-    status: timerStatus,
-  } = useTimer({
-    initialTime: timeout,
-    endTime: 0,
-    timerType: "DECREMENTAL",
-  });
-
-  React.useEffect(() => {
-    if (answers.length === 0) {
-      return;
-    }
-    const { answer } = answers[answers.length - 1];
-    if (type === "long-text") {
-      setSubmitted(true);
-    }
-    setAnswer(answer);
-    setNormalizedAnswer(getNormalizedAnswer(answer));
-  },
-  [answers, type]);
-
+  const { time: timeLeft, start: startTimer, status: timerStatus } =
+    useTimer({ initialTime: timeout, endTime: 0, timerType: "DECREMENTAL" });
   const timeoutRunning = React.useMemo(
     () => timeout && timerStatus === "RUNNING" && timeLeft,
     [timerStatus, timeLeft, timeout]
   );
 
-  const message = React.useMemo(() => {
-    if (type === "long-text") {
-      return null;
-    }
-    if (correct === undefined || !trial) {
-      const remaining = maxTrials - trial;
-      return maxTrials && maxTrials > 1
-        ? `You have ${remaining} ${remaining === 1 ? "attempt" : "attempts"}.`
-        : "";
-    }
-    if (correct && maxPoints) {
-      return `Correct! You scored ${maxPoints} point${maxPoints === 1 ? "" : "s"}.`;
-    }
-    if (timeoutRunning) {
-      return `Your answer is not correct. You may answer again in ${timeLeft} seconds.`;
-    }
-    if (correct === false && trial < maxTrials) {
-      if (trial < maxTrials) {
-        const remaining = maxTrials - trial;
-        return `Your answer is not correct. You have ${remaining} ${
-          remaining === 1 ? "attempt" : "attempts"
-        } left.`;
-      } else {
-        return "Your answers were not correct.";
-      }
-    }
-    return "";
-  }, [
-    type,
-    correct,
-    timeoutRunning,
-    trial,
-    maxTrials,
-    maxPoints,
-    timeLeft,
-  ]);
-
-  const disabled = React.useMemo(() =>
-    quizState!.isQuizComplete
-    || correct
-    || timeoutRunning
-    || isLoading
-    || maxTrials && trial >= maxTrials,
-  [quizState, correct, timeoutRunning, isLoading, maxTrials, trial]);
+  const submitDisabled = React.useMemo(
+    () => isCorrect || timeoutRunning || maxTrials && trials >= maxTrials,
+  [isCorrect, timeoutRunning, maxTrials, trials]);
 
   const onSubmit = React.useCallback(
-    async (
-      e: React.MouseEvent,
-      option: string,
-      isNeutralOption: boolean = false
-    ) => {
+    async (e: React.MouseEvent, option: string ) => {
       e.preventDefault();
-
-      if (disabled || !option) {
+      if (submitDisabled || !option) {
         return;
       }
 
-      const _answer = getAnswer(
-        option,
-        answer as string | string[],
-        type,
-        isNeutralOption
-      );
+      const _answer = answerFromOption(option, answer!, type);
       const _normalizedAnswer = getNormalizedAnswer(_answer);
-
+      const errored = checker ? checker(_normalizedAnswer as string) : null;
       setAnswer(_answer);
-      setNormalizedAnswer(_normalizedAnswer);
-      setError(null);
-
-      if (checker) {
-        const _checker = checker(_normalizedAnswer as string);
-
-        if (_checker) {
-          setError(_checker);
-          return;
-        }
+      setFormatError(errored);
+      if (errored) {
+        return;
       }
+      setSubmitted(true);
 
       const isCorrect = scorer(_normalizedAnswer as string);
       await answerQuestion({
-        questionId: id || question,
         isCorrect,
         answer: _answer,
         points: isCorrect ? maxPoints : 0,
       });
-
-      setSubmitted(true);
-
-      if ((isCorrect === null || isCorrect == false) && !isCorrect && timeout && trial + 1 < maxTrials) {
+      if (isCorrect == false && timeout && trials + 1 < maxTrials) {
         startTimer();
       }
     },
-    [
-      disabled,
-      answer,
-      checker,
-      scorer,
-      type,
-      id,
-      question,
-      maxPoints,
-      trial,
-      maxTrials,
-      answerQuestion,
-      timeout,
-      startTimer,
-    ]
+    [submitDisabled, answer, checker, scorer, type, maxPoints, trials,
+     maxTrials, answerQuestion, timeout, startTimer]
   );
 
-  const correctnessClass = React.useMemo(() =>
-    correct === undefined ? "neutral"
-    : correct === true ? "correct"
-    : correct === false ? "incorrect"
-    : "",
-   [correct]);
+  const message = React.useMemo(() => {
+    switch (isCorrect) {
+      case null: {
+        if (maxTrials > 1) {
+          return `${t("quiz.attempts")}: ${maxTrials - trials}`;
+        }
+        return;
+      }
+      case false: {
+        let msg = t("quiz.incorrect");
+        if (timeoutRunning) {
+          msg += `${t("quiz.delay")} ${timeLeft} ${t("quiz.seconds")}.`;
+        } else if (trials < maxTrials && maxTrials > 1) {
+          msg += `${t("quiz.remaining")}: ${maxTrials - trials}`
+        }
+        return msg;
+      }
+      case true: {
+        let msg = t("quiz.correct");
+        if (points) {
+          msg += `${t("quiz.points")}: ${points}`;
+        }
+        return msg;
+      }
+      default:
+        return null;
+    }
+  }, [t, isCorrect, timeoutRunning, trials, maxTrials, points, timeLeft]);
 
-  const icon = React.useMemo(() => {
-    if (type === "long-text" && submitted) {
-      return <RiCheckboxCircleFill />;
+  const correctnessClass = React.useMemo(() => {
+    switch (isCorrect) {
+      case undefined: return "neutral";
+      case true: return "correct";
+      case false: return "incorrect";
+      default: return ""
     }
-    if (correct === true) {
-      return <RiCheckboxCircleFill />;
-    }
-    if (correct === false) {
-      return timeoutRunning ? <RiTimerLine /> : <RiCloseCircleLine />;
-    }
+  }, [isCorrect]);
+  console.log(isCorrect, correctnessClass);
 
-    return null;
-  }, [
-    correct,
-    submitted,
-    timeoutRunning,
-    type,
-  ]);
+  const icon = React.useMemo(() =>
+    type === "long-text" && submitted ? <RiCheckboxCircleFill />
+    : isCorrect === true ? <RiCheckboxCircleFill />
+    : timeoutRunning ? <RiTimerLine />
+    : isCorrect === false ? <RiCloseCircleLine />
+    : null,
+  [isCorrect, submitted, timeoutRunning, type]);
 
   const childrenWithProps: any = React.Children.map(children, (child) => {
     if (
@@ -224,13 +141,15 @@ export default function Question({
       (child.type as JSXElementConstructor<any>).name === "Explanation"
     ) {
       return React.cloneElement(child as React.ReactElement<any>, {
-        ntrials: trial,
-        maxTrialsUsed: !!(maxTrials && maxTrials === trial),
-        correct,
+        ntrials: trials,
+        maxTrialsUsed: !!(maxTrials && maxTrials === trials),
+        isCorrect,
       });
     }
     return child;
   });
+
+  const normalizedAnswer = React.useMemo(() => getNormalizedAnswer(answer), [answer]);
 
   return (
     <div className={`quiz ${correctnessClass}`}>
@@ -249,12 +168,11 @@ export default function Question({
         <h3>
           {question} {!!maxPoints && <span>({maxPoints}pt.)</span>}
         </h3>
-
         {icon}
       </div>
 
       <form>
-        <fieldset disabled={!!disabled}>
+        <fieldset disabled={!!submitDisabled}>
           {type.includes("text") && (
             <>
               {type === "long-text" ? (
@@ -263,7 +181,7 @@ export default function Question({
                   onChange={(e) => {
                     setSubmitted(false);
                     setAnswer(e.target.value);
-                    setError(null);
+                    setFormatError(null);
                   }}
                 />
               ) : (
@@ -272,12 +190,12 @@ export default function Question({
                   value={answer || ""}
                   onChange={(e) => {
                     setAnswer(e.target.value);
-                    setError(null);
+                    setFormatError(null);
                   }}
                 />
               )}
 
-              {!correct && (
+              {!isCorrect && (
                 <button
                   disabled={!answer}
                   onClick={(e) => onSubmit(e, answer as string)}
@@ -310,37 +228,22 @@ export default function Question({
         </fieldset>
 
         {message && <p className="quiz-message">{message}</p>}
-        {error && <p className="error">{error}</p>}
+        {formatError && <p className="error">{formatError}</p>}
         {childrenWithProps}
       </form>
     </div>
   );
 }
 
-function getAnswer(
+const answerFromOption = (
   option: string,
   currentAnswer: string | string[],
   type: QuestionTypes,
-  isNeutralOption?: boolean
-) {
-  const _answer = option || "";
+) =>
+  type !== "multichoice" ? option
+  : !Array.isArray(currentAnswer) ? [option]
+  : currentAnswer.includes(option) ? currentAnswer.filter((v) => v !== option)
+  : [...currentAnswer, option];
 
-  if (type !== "multichoice" || isNeutralOption) {
-    return _answer;
-  }
-
-  if (!Array.isArray(currentAnswer)) {
-    return [_answer];
-  }
-
-  if (currentAnswer.includes(_answer)) {
-    return (currentAnswer as string[]).filter((v) => v !== _answer);
-  }
-
-  return [...new Set([...currentAnswer, _answer])];
-}
-
-const getNormalizedAnswer = (answer: string | string[]) =>
-  Array.isArray(answer)
-  ? answer.map((a) => a.trim().toLowerCase())
-  : answer.trim().toLowerCase();
+const getNormalizedAnswer = (answer: string | string[] | null) =>
+  typeof answer === "string" ? answer.trim().toLowerCase() : answer;

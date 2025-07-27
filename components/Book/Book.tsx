@@ -6,7 +6,7 @@ import { MdxContent } from "../MdxContent";
 import { Chapter } from "./Chapter";
 import { ContentIndexControl } from "./ContentIndex";
 import { IntlContextProvider, useIntl } from "@/i18n";
-import { IAnswerValueWithQuestionId, QuizContextProvider
+import { AnswerWithQuestionId, QuizContextProvider
 } from "@/context/QuizContextProvider";
 import { UserContext } from "@/context/UserContextProvider";
 import { getAnswers } from "@/api/QuizService";
@@ -27,7 +27,7 @@ export const Book = ({
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
   const { user, retrievingUser, showLogin } = useContext(UserContext);
-  const [answers, setAnswers] = useState<"pending" | null | IAnswerValueWithQuestionId[]>(
+  const [answers, setAnswers] = useState<"pending" | null | AnswerWithQuestionId[]>(
     "pending"
   );
 
@@ -45,10 +45,8 @@ export const Book = ({
       return;
     }
 
-    getAnswers({
-      user,
-      bookId: bookId!,
-    })
+    // todo: doesn't bookId always exist?
+    getAnswers({ user, bookId: bookId! })
       .then((_answers) => {
         logger("Quiz answers fetched:", _answers);
         setAnswers(_answers);
@@ -133,7 +131,7 @@ export const Book = ({
                 {...chapterDef}
                 bookId={bookId!}
                 chapterId={chapterDef.chapterId}
-                key={chapterDef.frontmatter.title}
+                key={chapterDef.chapterDir}
                 index={index}
                 setIsChapterIndexVisible={setIsChapterIndexVisible}
                 chapterNumber={chapterNumbers[index]}
