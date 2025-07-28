@@ -4,22 +4,35 @@ import { MDXProvider } from '@mdx-js/react';
 
 import Image from "./Image";
 import CcByNcNd from "./CcByNcNd";
-import Quiz, { IQuiz } from "./Quiz/Quiz";
-import { QuestionDef } from "@/types/types";
+import Question, { QuizPropsBase, getNormalizedAnswer } from "./Quiz/Quiz";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
+import { determineQuestionType } from "@/utils/questions";
+
+
+export interface QuestionProps extends QuizPropsBase {
+  id?: string;
+  neutralOptions?: string[];
+  multichoice?: boolean;
+  longtext?: boolean;
+  optional?: boolean;
+  scorer?: (option: string) => boolean;
+  answer?: string;
+  points?: number;
+  trials?: number;
+}
+
+const CorrectAnswerPrefix = "*";
 
 export const MdxContent = ({
   content,
-  chapterIndex,
-  dbQuestions,
+  chapterId,
   bookId,
   t
 }: {
   content: string;
-  chapterIndex?: number;
-  dbQuestions?: QuestionDef[];
   bookId?: number;
+  chapterId?: number;
   t: (key: string) => string;
 }) => {
   if  (!content) {
@@ -27,33 +40,60 @@ export const MdxContent = ({
   }
 
   const components = {
-    Quiz: (props: IQuiz) => {
-      if (chapterIndex === undefined) {
-        throw new Error("Introduction cannot contain questions");
+    Question: (props: QuestionProps) => {
+      if (chapterId === undefined || bookId === undefined) {
+        throw new Error("Questions can appear only in chapters");
       }
+      const { answer, scorer, options, neutralOptions, optional,
+              multichoice, longtext, points, trials, id, question,
+              ...restProps } = props;
+
+      const actAnswer = getNormalizedAnswer(
+        answer
+         || options
+          ?.find((opt) => opt.startsWith(CorrectAnswerPrefix))
+          ?.slice(CorrectAnswerPrefix.length)
+         || null);
+
+      const actOptions = options?.map(
+        (opt) => opt.startsWith(CorrectAnswerPrefix)
+                 ? opt.slice(CorrectAnswerPrefix.length).trim()
+                 : opt);
+
+      const type = determineQuestionType({options, neutralOptions, multichoice, longtext});
+      const normNeut = getNormalizedAnswer(neutralOptions ?? null);
+      const actScorer = scorer || (
+        optional || actAnswer === undefined
+        ? () => undefined
+        : (x: string) => normNeut?.includes(x) ? undefined : x === actAnswer);
 
       return (
-        <Quiz
-          {...props}
-          //chapterIndex={chapterIndex}
-          showQuiz={true}
+        <Question
+          {...restProps}
+          question={question}
+          id={id || question}
           bookId={bookId!}
-          dbQuestions={dbQuestions!}
+          type={type}
+          scorer={actScorer}
+          options={
+            actOptions || neutralOptions
+              ? [...actOptions || [], ...neutralOptions || []]
+              : undefined
+          }
+          maxPoints={points || 0}
+          maxTrials={trials || 1}
         />
       );
     },
+
     Explanation: (props: IExplanation) => <Explanation {...props} />,
+
     Sidenote: ({ children }: { children: React.ReactNode }) => (
       <div className="float-aside">{children}</div>
     ),
-    ExpandingSideImg: ({
-                         src,
-                         alt,
-                         retina,
-                       }: {
-      src: string;
-      alt?: string;
-      retina?: boolean;
+
+    ExpandingSideImg: (
+      {src, alt, retina}: { src: string; alt?: string; retina?: boolean;
     }) => (
       <Image
         src={src}
@@ -63,6 +103,7 @@ export const MdxContent = ({
         className={"expanding-side-img" + (retina ? " retina" : "")}
       />
     ),
+
     ReplayImg: ({ src, alt }: { src: string; alt?: string }) => {
       const [_src, setSrc] = React.useState(src ? src + "?" : null);
       const replay = React.useCallback(() => {
@@ -83,6 +124,7 @@ export const MdxContent = ({
         </>
       );
     },
+
     YouTube: ({ embedId }: { embedId: string }) =>
       React.useMemo(
         () => (
@@ -99,8 +141,10 @@ export const MdxContent = ({
         ),
         [embedId]
       ),
+
     CcByNcNd,
-    QuizSection: () => <div>Quiz Section</div>,
+
+    QuizSection: (props: IExplanation) => <div className="quiz-section" {...props} />,
   }
 
   const fn = new Function('mdx', content);

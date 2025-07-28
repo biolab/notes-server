@@ -80,6 +80,7 @@ export const getBook = async (id: number): Promise<BookProps> => {
 
     chapters.push({
       chapterDir: chapter.path,
+      chapterId: chapter.id,
       frontmatter: {title: chapter.title, date: chapter.date},
       questions,
       content: chapter.content

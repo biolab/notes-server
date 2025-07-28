@@ -1,6 +1,6 @@
 /* Questions */
 
-export type QuestionTypes = "multi" | "text" | "long-text" | "choice";
+export type QuestionTypes = "singlechoice" | "multichoice" | "text" | "long-text";
 
 export type QuestionDef = {
   id?: number;
@@ -31,6 +31,7 @@ export interface ChapterDefBase {
 
 export interface ChapterDef extends ChapterDefBase {
   content: string;
+  chapterId: number;
 }
 
 

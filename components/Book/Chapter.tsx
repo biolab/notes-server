@@ -14,8 +14,8 @@ export const Chapter = ({
   index,
   setIsChapterIndexVisible,
   chapterNumber,
-  questions,
   bookId,
+  chapterId
 }: ChapterDef & {
   index: number;
   setIsChapterIndexVisible: React.Dispatch<
@@ -35,14 +35,13 @@ export const Chapter = ({
   const mdxContent = React.useMemo(() => {
     return (
       <MdxContent
-        chapterIndex={index}
         content={content}
-        dbQuestions={questions}
         bookId={bookId}
+        chapterId={chapterId}
         t = {t}
       />
     );
-  }, [t, bookId, content, index, questions]);
+  }, [t, bookId, chapterId, content]);
 
   return (
     <div ref={ref} className="flex-container">

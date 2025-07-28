@@ -17,6 +17,7 @@ function BookLogin({
   const [email, setEmail] = React.useState("");
   const [error, setError] = React.useState(null);
   const [message, setMessage] = React.useState("");
+  const isValidEmail = React.useMemo(() => /.+@.+\..+/.test(email), [email])
 
   const { retrievingUser } = React.useContext(UserContext);
 
@@ -65,7 +66,7 @@ function BookLogin({
           </div>
 
           <div className="mt-4">
-            <button className="border-white border-2 rounded p-2" type="submit">
+            <button className="border-white border-2 rounded p-2" type="submit" disabled={!isValidEmail}>
               Login
             </button>
           </div>
