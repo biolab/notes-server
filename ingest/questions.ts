@@ -24,7 +24,9 @@ export const extractQuizzes = async (
     mdxContent,
     {
       outputFormat: "function-body",
-      remarkPlugins: [remarkMath],
+      remarkPlugins: [
+        remarkMath
+      ],
       rehypePlugins: [
         rehypeKatex,
         addRelativePath({ relativePath: slug }),

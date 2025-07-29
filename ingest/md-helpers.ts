@@ -42,12 +42,13 @@ export const parseMd = (content: string) =>
   content
     .replaceAll(
       /<!!!(.*)!!!>/g,
-      (_, styles) => `<div ${
-        styles.split(" ")
-        .filter(Boolean)
-        .map((style: string) => `data-${style.trim()}`)
-        .join(" ")}></div>`)
-      .replaceAll("<\\!!!", "<!!!");
+      (_, styles) => `<div ${styles
+                             .split(" ")
+                             .filter(Boolean)
+                             .map((x: string) => `data-${x.trim()}`)
+                             .join(" ")}></div>`
+    )
+    .replaceAll("<\\!!!", "<!!!");
 
 export function checkedMatter<T>(
   indexMd: string,
@@ -101,7 +102,9 @@ export const serializedContent = async (
     providerImportSource: '@mdx-js/react',
     jsxImportSource: 'react',
     development: false,
-    remarkPlugins: [remarkMath, replacer({ language })],
+    remarkPlugins: [
+      remarkMath,
+      replacer({ language })],
     rehypePlugins: [
       rehypeKatex,
       addRelativePath( { relativePath }),
