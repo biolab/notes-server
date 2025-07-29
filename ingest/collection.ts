@@ -24,7 +24,7 @@ export const parseCollection = async (pathParts: string[]): Promise<RawCollectio
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts, "collection")!, "utf-8");
   const { frontmatter, content } = collectionMatter(indexMd, fullPath);
-  const mdxContent = parseMd(content, path.join(path.sep, ...pathParts));
+  const mdxContent = parseMd(content);
 
   const recursivePaths = (spath: string, type: string): string[] =>
     readPublicDir(spath)

@@ -3,7 +3,7 @@ import path from "path";
 import matter from "gray-matter";
 import { compile } from "@mdx-js/mdx";
 import remarkMath from "remark-math";
-import { replacer } from "@/ingest/plugins";
+import { addRelativePath, replacer } from "@/ingest/plugins";
 import rehypeKatex from "rehype-katex";
 import { getImageSize } from "@/ingest/getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "@/ingest/paths";
@@ -38,49 +38,17 @@ export const readPublicDirMd = (spath: string | string[], base = "index") => {
   );
 };
 
-export function parseMd(content: string, imgRelativePath: string = "") {
-  content = addRelativePathToImages(content, imgRelativePath);
-
-  const macroStart = "<!!!";
-  const macroEnd = "!!!>";
-
-  const startIndex = content.indexOf(macroStart);
-  const endIndex = content.indexOf(macroEnd);
-
-  if (startIndex === -1 || endIndex === -1) {
-    return content;
-  }
-
-  const macro = content
-    .substring(startIndex + macroStart.length, endIndex)
-    .split(" ")
-    .map((s) => s.trim())
-    .filter((s) => !s.includes(macroStart) && !s.includes(macroEnd))
-    .filter(Boolean);
-
-  const insert =
-    `<div ${macro.map((m) => "data-" + m).join(" ")}></div>` + "\n";
-
-  return parseMd(
-    content.substring(0, startIndex) +
-      insert +
-      content.substring(endIndex + macroEnd.length),
-  );
-}
-
-export function addRelativePathToImages(
-  content: string,
-  imgRelativePath: string,
-): string {
-  if (!imgRelativePath || !content) {
-    return content;
-  }
-
-  // Add relative path IF img src does NOT start with 'http' OR '/'
-  return content
-    .replace(/src="(?!(http)|(\/))/g, `src="${imgRelativePath}/`)
-    .replace(/\]\((?!(http)|(\/))/g, `](${imgRelativePath}/`);
-}
+export const parseMd = (content: string) =>
+  content
+    .replaceAll(
+      /<!!!(.*)!!!>/g,
+      (_, styles) => `<div ${styles
+                             .split(" ")
+                             .filter(Boolean)
+                             .map((x: string) => `data-${x.trim()}`)
+                             .join(" ")}></div>`
+    )
+    .replaceAll("<\\!!!", "<!!!");
 
 export function checkedMatter<T>(
   indexMd: string,
@@ -126,14 +94,22 @@ export function checkedMatter<T>(
   };
 }
 
-export const serializedContent = async (source: string, language: string) => {
+export const serializedContent = async (
+  source: string, language: string, relativePath: string
+) => {
   const compiled = await compile(source, {
     outputFormat: 'function-body',
     providerImportSource: '@mdx-js/react',
     jsxImportSource: 'react',
     development: false,
-    remarkPlugins: [remarkMath, replacer({ language })],
-    rehypePlugins: [rehypeKatex, getImageSize],
+    remarkPlugins: [
+      remarkMath,
+      replacer({ language })],
+    rehypePlugins: [
+      rehypeKatex,
+      addRelativePath( { relativePath }),
+      getImageSize,
+    ],
   });
   return compiled.value as string;
 }

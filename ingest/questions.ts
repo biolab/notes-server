@@ -11,6 +11,7 @@ import { logError } from "@/ingest/errors";
 
 
 import { determineQuestionType } from "@/utils/questions";
+import { addRelativePath } from "@/ingest/plugins";
 
 export const extractQuizzes = async (
   mdxContent: string,
@@ -23,8 +24,14 @@ export const extractQuizzes = async (
     mdxContent,
     {
       outputFormat: "function-body",
-      remarkPlugins: [remarkMath],
-      rehypePlugins: [rehypeKatex, getImageSize],
+      remarkPlugins: [
+        remarkMath
+      ],
+      rehypePlugins: [
+        rehypeKatex,
+        addRelativePath({ relativePath: slug }),
+        getImageSize
+      ],
     }
   );
   const ast = babelParser.parse(`() => {${String(compiledMdx)}}`, {
