@@ -5,7 +5,7 @@ export interface IExplanation {
   after?: "attempt" | "correct" | "correctOrMaxTrials" | null;
   ntrials?: number;
   maxTrialsUsed?: boolean;
-  correct?: boolean;
+  isCorrect?: boolean;
   gptExplanation?: string;
   children?: JSX.Element | JSX.Element[];
 }
@@ -14,7 +14,7 @@ export function Explanation({
   after,
   ntrials,
   maxTrialsUsed,
-  correct,
+  isCorrect,
   gptExplanation,
   children,
 }: IExplanation) {
@@ -38,7 +38,7 @@ export function Explanation({
   }, [after]);
 
   const button = React.useMemo(() => {
-    if (correct) {
+    if (isCorrect) {
       /* If the answer is correct, we offer an "explanation"; the user already knows the answer. */
       return t(shown ? "chapter.hideexplanation" : "chapter.showexplanation");
     }
@@ -55,10 +55,10 @@ export function Explanation({
     }
 
     return null;
-  }, [after, correct, ntrials, shown, t, maxTrialsUsed]);
+  }, [after, isCorrect, ntrials, shown, t, maxTrialsUsed]);
 
   const renderExplanationContent = React.useMemo(() => {
-    if (gptExplanation && !correct && !maxTrialsUsed) {
+    if (gptExplanation && !isCorrect && !maxTrialsUsed) {
       return (
         <>
           <p>{gptExplanation}</p>
@@ -69,7 +69,7 @@ export function Explanation({
       );
     }
     return children;
-  }, [children, gptExplanation, correct, maxTrialsUsed]);
+  }, [children, gptExplanation, isCorrect, maxTrialsUsed]);
 
   if (!button) {
     return null;

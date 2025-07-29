@@ -16,7 +16,7 @@ export interface QuestionProps extends QuizPropsBase {
   multichoice?: boolean;
   longtext?: boolean;
   optional?: boolean;
-  scorer?: (option: string) => boolean;
+  scorer?: (option: string) => (boolean | undefined);
   answer?: string;
   points?: number;
   trials?: number;
