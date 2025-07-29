@@ -38,35 +38,16 @@ export const readPublicDirMd = (spath: string | string[], base = "index") => {
   );
 };
 
-export function parseMd(content: string, imgRelativePath: string = "") {
-  content = addRelativePathToImages(content, imgRelativePath);
-
-  const macroStart = "<!!!";
-  const macroEnd = "!!!>";
-
-  const startIndex = content.indexOf(macroStart);
-  const endIndex = content.indexOf(macroEnd);
-
-  if (startIndex === -1 || endIndex === -1) {
-    return content;
-  }
-
-  const macro = content
-    .substring(startIndex + macroStart.length, endIndex)
-    .split(" ")
-    .map((s) => s.trim())
-    .filter((s) => !s.includes(macroStart) && !s.includes(macroEnd))
-    .filter(Boolean);
-
-  const insert =
-    `<div ${macro.map((m) => "data-" + m).join(" ")}></div>` + "\n";
-
-  return parseMd(
-    content.substring(0, startIndex) +
-      insert +
-      content.substring(endIndex + macroEnd.length),
-  );
-}
+export const parseMd = (content: string, imgRelativePath: string = "") =>
+  addRelativePathToImages(content, imgRelativePath)
+    .replaceAll(
+    /<!!!(.*)!!!>/g,
+    (_, styles) => `<div ${
+      styles.split(" ")
+      .filter(Boolean)
+      .map((style: string) => `data-${style.trim()}`)
+      .join(" ")}></div>`)
+    .replaceAll("<\\!!!", "<!!!");
 
 export function addRelativePathToImages(
   content: string,
