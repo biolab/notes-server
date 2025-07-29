@@ -1,62 +1,37 @@
-import { Processor } from "unified";
 import { visit } from "unist-util-visit";
 import probe, { ProbeResult } from "probe-image-size";
 import { readFileSync } from "fs";
-import type { Node } from "unist";
+import type { Root } from "hast";
 import { notesPath } from "@/ingest/paths";
 
-interface ImgNode {
-  tagName: "img";
-  properties: {
-    src: string;
-    alt: string;
-    height?: number;
-    width?: number;
-  };
-}
-
-export function getImageSize(this: Processor) {
-  function imageNode(node: any): boolean {
-    const img = node as ImgNode;
-    return Boolean(
-      img.tagName === "img" &&
-        img.properties?.src &&
-        !img.properties.src.startsWith("http")
-    );
-  }
-
-  return async function transformer(tree: Node): Promise<Node> {
-    const imageNodes: ImgNode[] = [];
-
-    visit(tree, "element", (node: ImgNode) => {
-      if (imageNode(node)) {
-        imageNodes.push(node);
-      }
-    });
-
-    for (const node of imageNodes) {
-      let size: ProbeResult | null = null;
-
-      const imgSrc = node.properties.src;
-
-      try {
-        const img = readFileSync(`${notesPath}${imgSrc}`);
-        size = probe.sync(img);
-      } catch (e) {
-        console.log(e);
-        console.log(`imgSrc: ${imgSrc}`);
-        throw new Error(`Missing imgSrc: ${imgSrc}`);
-      }
-
-      if (size) {
-        node.properties = {
-          ...node.properties,
-          width: size.width,
-          height: size.height,
-        };
-      }
+export const getImageSize = () => (tree: Root) => {
+  visit(tree, "element", (node: any) => {
+    if (
+      node.tagName !== "img" ||
+      !node.properties?.src ||
+      /https?:\/\//.test(node.properties.src)
+    ) {
+      return;
     }
 
-    return tree;
-  };
+    const imgSrc = node.properties.src;
+    let img: Buffer | undefined;
+    let size: ProbeResult | undefined | null;
+
+    try {
+      img = readFileSync(`${notesPath}/${imgSrc}`);
+    } catch (e) {
+      console.log(`Error reading file: ${imgSrc}`);
+      throw e;
+    }
+    try {
+      size = probe.sync(img);
+    } catch {
+      console.log(`Warning: ${imgSrc} may be unreadable`);
+    }
+    if (size) {
+      node.properties.width = size.width;
+      node.properties.height = size.height;
+    }
+  });
 }
