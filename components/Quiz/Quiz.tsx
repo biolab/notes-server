@@ -108,16 +108,16 @@ export default function Question({
       case false: {
         let msg = t("quiz.incorrect");
         if (timeoutRunning) {
-          msg += `${t("quiz.delay")} ${timeLeft} ${t("quiz.seconds")}.`;
+          msg += ` ${t("quiz.delay")} ${timeLeft} ${t("quiz.seconds")}.`;
         } else if (trials < maxTrials && maxTrials > 1) {
-          msg += `${t("quiz.remaining")}: ${maxTrials - trials}`
+          msg += ` ${t("quiz.remaining")}: ${maxTrials - trials}`
         }
         return msg;
       }
       case true: {
         let msg = t("quiz.correct");
         if (points) {
-          msg += `${t("quiz.points")}: ${points}`;
+          msg += ` ${t("quiz.points")}: ${points}`;
         }
         return msg;
       }
