@@ -38,13 +38,13 @@ const checkBooks = async (
   for (const book of books) {
     // Check that book content can be serialized
     await catchErrors(book.slug, async () =>
-      await serializedContent(book.mdxContent, book.frontmatter.language)
+      await serializedContent(book.mdxContent, book.frontmatter.language, book.slug)
     );
 
     // Check that chapters' content can be serialized
     for (const { mdxContent, chapterDir } of book.chapters) {
       await catchErrors(chapterDir, async () =>
-        serializedContent(mdxContent, book.frontmatter.language)
+        serializedContent(mdxContent, book.frontmatter.language, chapterDir)
       );
     }
 
@@ -171,7 +171,10 @@ const checkCollections = async (
   for (const collection of collections) {
     // Check that collection content can be serialized
     await catchErrors(collection.slug, async () =>
-      serializedContent(collection.mdxContent, collection.frontmatter.language)
+      serializedContent(
+        collection.mdxContent,
+        collection.frontmatter.language,
+        collection.slug)
     );
 
     // Check that all books in the collection exist
@@ -181,7 +184,8 @@ const checkCollections = async (
     if (missingBooks.length > 0) {
       logError(
         collection.slug,
-        `The following books are missing in the collection:\n ${missingBooks
+        `The following books are missing in the collection:\n
+        ${missingBooks
           .map((b) => `  ${b.slug}`)
           .join("\n")}`
       );
@@ -194,7 +198,8 @@ const checkCollections = async (
     if (missingCollections.length > 0) {
       logError(
         collection.slug,
-        `The following collections are missing in the collection:\n ${missingCollections
+        `The following collections are missing in the collection:\n
+         ${missingCollections
           .map((c) => `  ${c.slug}`)
           .join("\n")}`
       );
@@ -213,7 +218,7 @@ const insertChapters = async (
                        [chapterDir, buildId])) {
         continue;
       }
-      const content = await serializedContent(mdxContent, language);
+      const content = await serializedContent(mdxContent, language, chapterDir);
       const chapterId = (
         await db.get(
           `
@@ -261,7 +266,7 @@ const insertBooks = async (
       title, subTitle, date, public: isPublic, language, tocInHeader,
       coverImg, requireLogin, quizThreshold, loginSubtitle, email },
   } of books) {
-    const content = await serializedContent(mdxContent, language);
+    const content = await serializedContent(mdxContent, language, slug);
     // Do not change this to "DELETE + INSERT" because it will delete rows that use this book's id as foreign key.
     const {id: bookId} = await db.get(
       `
@@ -326,7 +331,7 @@ const insertCollections = async (
     frontmatter: { title, subTitle, date, public: isPublic, language, coverImg, recursiveContent },
     mdxContent
   } of collections) {
-    const content = await serializedContent(mdxContent, language);
+    const content = await serializedContent(mdxContent, language, collectionSlug);
     // Do not change this to "DELETE + INSERT" because it will delete rows that use this collection's id as foreign key.
     await db.get(
       `

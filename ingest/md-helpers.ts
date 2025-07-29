@@ -3,7 +3,7 @@ import path from "path";
 import matter from "gray-matter";
 import { compile } from "@mdx-js/mdx";
 import remarkMath from "remark-math";
-import { replacer } from "@/ingest/plugins";
+import { addRelativePath, replacer } from "@/ingest/plugins";
 import rehypeKatex from "rehype-katex";
 import { getImageSize } from "@/ingest/getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "@/ingest/paths";
@@ -38,30 +38,16 @@ export const readPublicDirMd = (spath: string | string[], base = "index") => {
   );
 };
 
-export const parseMd = (content: string, imgRelativePath: string = "") =>
-  addRelativePathToImages(content, imgRelativePath)
+export const parseMd = (content: string) =>
+  content
     .replaceAll(
-    /<!!!(.*)!!!>/g,
-    (_, styles) => `<div ${
-      styles.split(" ")
-      .filter(Boolean)
-      .map((style: string) => `data-${style.trim()}`)
-      .join(" ")}></div>`)
-    .replaceAll("<\\!!!", "<!!!");
-
-export function addRelativePathToImages(
-  content: string,
-  imgRelativePath: string,
-): string {
-  if (!imgRelativePath || !content) {
-    return content;
-  }
-
-  // Add relative path IF img src does NOT start with 'http' OR '/'
-  return content
-    .replace(/src="(?!(http)|(\/))/g, `src="${imgRelativePath}/`)
-    .replace(/\]\((?!(http)|(\/))/g, `](${imgRelativePath}/`);
-}
+      /<!!!(.*)!!!>/g,
+      (_, styles) => `<div ${
+        styles.split(" ")
+        .filter(Boolean)
+        .map((style: string) => `data-${style.trim()}`)
+        .join(" ")}></div>`)
+      .replaceAll("<\\!!!", "<!!!");
 
 export function checkedMatter<T>(
   indexMd: string,
@@ -107,14 +93,20 @@ export function checkedMatter<T>(
   };
 }
 
-export const serializedContent = async (source: string, language: string) => {
+export const serializedContent = async (
+  source: string, language: string, relativePath: string
+) => {
   const compiled = await compile(source, {
     outputFormat: 'function-body',
     providerImportSource: '@mdx-js/react',
     jsxImportSource: 'react',
     development: false,
     remarkPlugins: [remarkMath, replacer({ language })],
-    rehypePlugins: [rehypeKatex, getImageSize],
+    rehypePlugins: [
+      rehypeKatex,
+      addRelativePath( { relativePath }),
+      getImageSize,
+    ],
   });
   return compiled.value as string;
 }

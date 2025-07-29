@@ -52,7 +52,7 @@ export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts)!, "utf-8");
   const { frontmatter, content } = bookMatter(indexMd);
-  const mdxContent = parseMd(content, path.join(path.sep, ...pathParts));
+  const mdxContent = parseMd(content);
 
   const chapterDirs =
     frontmatter.chapters?.map((_slug) =>
@@ -82,7 +82,7 @@ export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
     }
     const chapterMd = fs.readFileSync(index, "utf-8");
     const { frontmatter, content } = chapterMatter(chapterMd, chapterDir);
-    const mdxContent = parseMd(content, "/" + chapterDir);
+    const mdxContent = parseMd(content);
     const questions = await extractQuizzes(mdxContent, chapterDir);
     chapters.push({
       chapterDir,
