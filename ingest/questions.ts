@@ -169,6 +169,12 @@ export const extractQuizzes = async (
           const newErrors: string[] = (
             [
               /* Add more as needed */
+              [ correctOptions && correctOptions.length > 1,
+                `Single choice question should have at most one correct options`
+              ],
+              [ correctOptions?.length === 1 && answer && correctOptions[0] !== answer,
+                `Correct answer does not match the one marked as correct in options`
+              ],
               [
                 options && answer &&
                 !options
