@@ -34,12 +34,12 @@ export const addRelativePath = ({relativePath}: {relativePath: string}) => () =>
           && node.properties?.src
           && !/https?:\/\//.test(node.properties.src)
       ) {
-        node.properties.src = `${relativePath}/${node.properties.src}`;
+        node.properties.src = `/${relativePath}/${node.properties.src}`;
       }
       if (node.type === "mdxJsxFlowElement") {
         node.attributes.forEach((attr: {name: string, value: string}) => {
           if (attr.name === "src") {
-            attr.value = `${relativePath}/${attr.value}`;
+            attr.value = `/${relativePath}/${attr.value}`;
           }
         });
       }
