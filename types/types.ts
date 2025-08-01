@@ -10,6 +10,7 @@ export type QuestionDef = {
   options: string[] | null;
   answer: string | null;
   points: number | null;
+  position: number;
 };
 
 

@@ -221,7 +221,8 @@ export const extractQuizzes = async (
             type,
             options,
             answer,
-            points
+            points,
+            position: questions.length
           });
         }
       }

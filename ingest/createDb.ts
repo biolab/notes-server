@@ -143,8 +143,10 @@ export const rebuildDatabase = async () => {
             answer       TEXT,
             questionType TEXT    NOT NULL,
             lastBuildId  INTEGER NOT NULL,
+            position     INTEGER NOT NULL,
 
             UNIQUE (chapterId, questionId),
+            UNIQUE (chapterId, position),
             FOREIGN KEY (chapterId) REFERENCES chapters (id) ON DELETE CASCADE,
             FOREIGN KEY (questionId) REFERENCES questions (id) ON DELETE CASCADE,
             FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
