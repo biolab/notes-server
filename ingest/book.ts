@@ -10,13 +10,11 @@ import { extractQuizzes } from "@/ingest/questions";
 const chapterFrontmatterDefaults: ChapterFrontmatter = {
   title: "",
   omitAsChapter: false,
-  date: "",
 };
 
 const bookFrontmatterDefaults: BookFrontmatter = {
   title: "",
   subTitle: "",
-  date: "",
   public: true,
   language: "en",
   tocInHeader: false,

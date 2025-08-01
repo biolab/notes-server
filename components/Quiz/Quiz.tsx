@@ -1,15 +1,13 @@
 import React, { JSXElementConstructor } from "react";
-import { useTimer } from "use-timer";
 import { useIntl } from "@/i18n";
 import { useLastAnswer } from "@/context/QuizContextProvider";
 import { QuestionTypes } from "@/types/types";
-import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine, RiTimerLine } from "react-icons/ri";
+import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine } from "react-icons/ri";
 
 export interface QuizPropsBase {
   question: string;
   options?: string[];
   checker?: (option: string) => string | null;
-  timeout?: number;
   children?: Element;
 }
 
@@ -31,10 +29,9 @@ export default function Question({
   scorer,
   maxPoints = 0,
   maxTrials = 1,
-  timeout = 0,
   children,
 }: IQuestion) {
-  const [answer, setAnswer] = React.useState<null | string | string[]>(null);
+  const [answer, setAnswer] = React.useState<null | string>(null);
   const [submitted, setSubmitted] = React.useState(false);
   const { isCorrect, points, trials, answer: last, submissionErrored,
           answerQuestion } = useLastAnswer(id);
@@ -47,18 +44,10 @@ export default function Question({
   const [formatError, setFormatError] = React.useState<null | string>(null);
   const { t } = useIntl();
 
-  const { time: timeLeft, start: startTimer, status: timerStatus } =
-    useTimer({ initialTime: timeout, endTime: 0, timerType: "DECREMENTAL" });
-  const timeoutRunning = React.useMemo(
-    () => timeout && timerStatus === "RUNNING" && timeLeft,
-    [timerStatus, timeLeft, timeout]
-  );
-
   const submitDisabled = React.useMemo(
     () => maxTrials && trials >= maxTrials
-          || timeoutRunning
           || !submissionErrored && isCorrect,
-  [submissionErrored, isCorrect, timeoutRunning, maxTrials, trials]);
+  [submissionErrored, isCorrect, maxTrials, trials]);
 
   const onSubmit = React.useCallback(
     async (e: React.MouseEvent, option: string ) => {
@@ -67,31 +56,21 @@ export default function Question({
         return;
       }
 
-      const _answer = answerFromOption(option, answer!, type);
-      const _normalizedAnswer = getNormalizedAnswer(_answer);
-      const errored = checker ? checker(_normalizedAnswer as string) : null;
-      setAnswer(_answer);
+      const normalizedAnswer = option.trim().toLowerCase();
+      const errored = checker ? checker(normalizedAnswer) : null;
+      setAnswer(answer);
       setFormatError(errored);
       if (errored) {
         return;
       }
 
-      const isCorrect = scorer(_normalizedAnswer as string);
-      if (!await answerQuestion({
-        isCorrect,
-        answer: _answer,
-        points: isCorrect ? maxPoints : 0,
-      })) {
-        return;
-      }
-
-      setSubmitted(true);
-      if (isCorrect == false && timeout && trials + 1 < maxTrials) {
-        startTimer();
+      const isCorrect = scorer(normalizedAnswer);
+      const points = isCorrect ? maxPoints : 0;
+      if (await answerQuestion({answer: option, isCorrect, points})) {
+        setSubmitted(true);
       }
     },
-    [submitDisabled, answer, checker, scorer, type, maxPoints, trials,
-     maxTrials, answerQuestion, timeout, startTimer]
+    [submitDisabled, answer, checker, scorer, type, maxPoints, answerQuestion]
   );
 
   const message = React.useMemo(() => {
@@ -107,9 +86,7 @@ export default function Question({
       }
       case false: {
         let msg = t("quiz.incorrect");
-        if (timeoutRunning) {
-          msg += ` ${t("quiz.delay")} ${timeLeft} ${t("quiz.seconds")}.`;
-        } else if (trials < maxTrials && maxTrials > 1) {
+        if (trials < maxTrials && maxTrials > 1) {
           msg += ` ${t("quiz.remaining")}: ${maxTrials - trials}`
         }
         return msg;
@@ -124,8 +101,7 @@ export default function Question({
       default:
         return null;
     }
-  }, [t, submissionErrored, isCorrect, timeoutRunning,
-      trials, maxTrials, points, timeLeft]);
+  }, [t, submissionErrored, isCorrect, trials, maxTrials, points]);
 
   const correctnessClass = React.useMemo(() => {
     if (submissionErrored) {
@@ -143,10 +119,9 @@ export default function Question({
     submissionErrored ? <RiAlertLine />
     : type === "long-text" && submitted ? <RiCheckboxCircleFill />
     : isCorrect === true ? <RiCheckboxCircleFill />
-    : timeoutRunning ? <RiTimerLine />
     : isCorrect === false ? <RiCloseCircleLine />
     : null,
-  [submissionErrored, isCorrect, submitted, timeoutRunning, type]);
+  [submissionErrored, isCorrect, submitted, type]);
 
   const childrenWithProps: any = React.Children.map(children, (child) => {
     if (
@@ -162,21 +137,12 @@ export default function Question({
     return child;
   });
 
-  const normalizedAnswer = React.useMemo(() => getNormalizedAnswer(answer), [answer]);
+  const normalizedAnswer = React.useMemo(
+    () => answer?.trim().toLowerCase(),
+    [answer]);
 
   return (
     <div className={`quiz ${correctnessClass}`}>
-      {
-        <div
-          className="quiz-countdown"
-          style={{
-            transform: `scaleX(${
-              timeoutRunning ? (timeLeft || 0) / timeout : 0
-            })`,
-          }}
-        ></div>
-      }
-
       <div className="quiz-question">
         <h3>
           {question} {!!maxPoints && <span>({maxPoints}pt.)</span>}
@@ -223,13 +189,7 @@ export default function Question({
             <div className="buttons-wrapper">
               {options.map((option) => (
                 <button
-                  className={
-                    normalizedAnswer === option.toLowerCase() ||
-                    (type === "multichoice" &&
-                      normalizedAnswer?.includes(option.toLowerCase()))
-                      ? "selected "
-                      : ""
-                  }
+                  className={normalizedAnswer === option.toLowerCase() ? "selected ": ""}
                   onClick={(e) => onSubmit(e, option)}
                   key={option}
                 >
@@ -255,18 +215,3 @@ export default function Question({
     </div>
   );
 }
-
-const answerFromOption = (
-  option: string,
-  currentAnswer: string | string[],
-  type: QuestionTypes,
-) =>
-  type !== "multichoice" ? option
-  : !Array.isArray(currentAnswer) ? [option]
-  : currentAnswer.includes(option) ? currentAnswer.filter((v) => v !== option)
-  : [...currentAnswer, option];
-
-export const getNormalizedAnswer = (answer: string | string[] | null) =>
-  typeof answer === "string" ? answer.trim().toLowerCase()
-  : answer?.map((x) => x.trim().toLowerCase());
-

@@ -5,7 +5,7 @@ import { postAnswer } from "@/api/QuizService";
 import { UserContext } from "@/context/UserContextProvider";
 
 export type Answer = {
-  answer: string | string[];
+  answer: string;
   isCorrect: boolean | undefined;
   points: number;
 };
@@ -19,7 +19,6 @@ export interface QuestionI {
   maxPoints: number;
   chapterIndex: number;
   answers: Answer[];
-  optional: boolean;
   submissionErrored?: boolean;
 }
 
@@ -35,14 +34,13 @@ export interface QuizStateI {
 const getQuestionsFromChapters = (chapters: ChapterDef[]): Questions =>
   Object.fromEntries(
     chapters.flatMap((chapter, chapterIndex) =>
-      (chapter.questions || []).map(({questionId, points, optional}) => [
+      (chapter.questions || []).map(({questionId, points}) => [
         questionId,
         {
           questionId,
           maxPoints: points || 0,
           chapterIndex,
           answers: [],
-          optional: optional || false,
         }
       ]
   )));
@@ -92,7 +90,7 @@ const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
         }
       }
       const isComplete = Object.values(questions).every(
-        (q) => q.optional || q.answers.length > 0);
+        (q) => !q.maxPoints || q.answers.length > 0);
       return {
         ...state,
         questions,
@@ -162,14 +160,7 @@ export const QuizContextProvider = ({
     async (value: AnswerWithQuestionId): Promise<boolean> => {
       const {questionId, answer, points, isCorrect} = value;
       try {
-        await postAnswer({
-          questionId,
-          user,
-          bookId: bookId,
-          answer: typeof answer === "string" ? answer : answer.join("|||"),
-          points,
-          isCorrect,
-        });
+        await postAnswer({user, questionId, bookId, answer, isCorrect, points});
       } catch (error: any) {
         quizReducer({ type: "ERROR", value: {questionId}});
         return false;
@@ -194,17 +185,17 @@ export const QuizContextProvider = ({
         (chapterIndex) =>
           Object.values(quizState.questions)
             .filter((q) => q.chapterIndex === chapterIndex)
-            .some((q) => !q.optional)
+            .some((q) => q.maxPoints)
       ),
 
       allCompletedChapters: quizState.chaptersWithQuiz.filter((chapterIndex) =>
         Object.values(quizState.questions).every((q) =>
           q.chapterIndex !== chapterIndex
-          || q.optional
+          || q.maxPoints
           || q.answers.length > 0)),
 
       noOfQuestions: Object.values(quizState.questions)
-        .filter((q) => !q.optional)
+        .filter((q) => q.maxPoints)
         .length,
 
       availablePoints: Object.values(quizState.questions)
@@ -212,13 +203,13 @@ export const QuizContextProvider = ({
 
       correctlyAnsweredQuestions: Object.values(quizState.questions)
         .filter((q) =>
-            !q.optional
+            !q.maxPoints
             && q.answers.length > 0
             && q.answers[q.answers.length - 1].isCorrect)
         .length,
 
       answeredMandatoryQuestions: Object.values(quizState.questions)
-        .filter((q) => !q.optional && q.answers.length)
+        .filter((q) => q.maxPoints && q.answers.length)
         .length,
 
       achievedPoints: Object.values(quizState.questions).reduce(

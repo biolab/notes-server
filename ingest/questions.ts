@@ -152,19 +152,28 @@ export const extractQuizzes = async (
             question.length > 50 ? "(...)" : ""
           }`;
 
+
           const questionId = getProp(where, "id") || question;
-          const points = getNumProp(where, "points") || 0;
-          const optional = getBoolProp(where, "optional") ?? false;
+          const points = getNumProp(where, "points");
+          const ungraded = getBoolProp(where, "ungraded") ?? false;
           const options = getPropArray(where, "options");
-          const neutralOptions = getPropArray(where, "neutral");
           const answer = getProp(where, "answer");
+          const correctOptions = options
+            ?.filter((opt) => opt.startsWith("* "))
+            .map((opt) => opt.slice(2).trim());
+          const hasAnswer = hasProp("answer") || correctOptions?.length;
           const hasScorer = hasProp("scorer");
-          const multichoice = getBoolProp(where, "multichoice");
           const longtext = getBoolProp(where, "longtext");
-          const type = determineQuestionType({options, neutralOptions, multichoice, longtext})
+          const type = determineQuestionType({options, longtext})
           const newErrors: string[] = (
             [
               /* Add more as needed */
+              [ correctOptions && correctOptions.length > 1,
+                `Single choice question should have at most one correct options`
+              ],
+              [ correctOptions?.length === 1 && answer && correctOptions[0] !== answer,
+                `Correct answer does not match the one marked as correct in options`
+              ],
               [
                 options && answer &&
                 !options
@@ -172,23 +181,26 @@ export const extractQuizzes = async (
                   .includes(answer.toLocaleLowerCase()),
                 `Correct answer is not listed in options`
               ],
-              [ multichoice &&
-                (options?.length ?? 0) + (neutralOptions?.length ?? 0) === 0,
-                "Multichoice requires options"
-              ],
-              [ longtext && (multichoice || options || neutralOptions),
+              [ longtext && options,
                 "longtext is incompatible with options"
               ],
+              [ !hasAnswer && !hasScorer && !ungraded && !longtext,
+                `Mark question as ungraded or provide answer or scorer`
+              ],
+              [ ungraded && points && points > 0,
+                `Ungraded questions should not have points`
+              ],
               [
-                answer && hasScorer,
+                hasAnswer && hasScorer,
                 `Provide either answer or scorer, not both`
               ],
-              // TODO: If there is neither scorer nor answer, the question is optional?
-              // Why do we have flag "optional", then?
-              /*[ options?.length &&
-                !(optional || answer || hasScorer || options.some((opt) => opt.startsWith("** "))),
-                `Provide an answer or scorer, or prefix the correct option with '* '`
-              ],*/
+              [ ungraded && (points || hasAnswer || hasScorer),
+                `Ungraded questions should not have points, answer or scorer`
+              ],
+              [
+                options && options.length < 2,
+                `Options should contain at least two items`
+              ],
               [
                 options && new Set(options).size != options.length,
                 `Options are not unique`
@@ -209,10 +221,7 @@ export const extractQuizzes = async (
             type,
             options,
             answer,
-            points,
-            optional,
-
-            line: path.node.loc?.start.line || -1,
+            points
           });
         }
       }

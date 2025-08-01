@@ -1,6 +1,6 @@
 /* Questions */
 
-export type QuestionTypes = "singlechoice" | "multichoice" | "text" | "long-text";
+export type QuestionTypes = "singlechoice" | "text" | "long-text";
 
 export type QuestionDef = {
   id?: number;
@@ -9,9 +9,7 @@ export type QuestionDef = {
   type: QuestionTypes;
   options: string[] | null;
   answer: string | null;
-  line: number;
-  points: number;
-  optional: boolean;
+  points: number | null;
 };
 
 
@@ -20,7 +18,6 @@ export type QuestionDef = {
 export interface ChapterFrontmatter {
   title: string;
   omitAsChapter?: boolean;
-  date: string;
 }
 
 export interface ChapterDefBase {
@@ -40,7 +37,6 @@ export interface ChapterDef extends ChapterDefBase {
 export interface BookFrontmatter {
   title: string;
   subTitle: string;
-  date: string;
   public: boolean;
   language: string;
   tocInHeader: boolean;
@@ -58,7 +54,6 @@ export interface BookFrontmatter {
 export interface CollectionFrontmatter {
   title: string;
   subTitle: string;
-  date: string;
   public: boolean;
   language: string;
   coverImg: string;
@@ -70,7 +65,6 @@ export interface CollectionFrontmatter {
 export const defaultCollectionFrontmatter: CollectionFrontmatter = {
   title: "",
   subTitle: "",
-  date: "",
   public: true,
   language: "en",
   coverImg: "",

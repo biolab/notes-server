@@ -4,7 +4,7 @@ import { MDXProvider } from '@mdx-js/react';
 
 import Image from "./Image";
 import CcByNcNd from "./CcByNcNd";
-import Question, { QuizPropsBase, getNormalizedAnswer } from "./Quiz/Quiz";
+import Question, { QuizPropsBase } from "./Quiz/Quiz";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
 import { determineQuestionType } from "@/utils/questions";
@@ -12,10 +12,8 @@ import { determineQuestionType } from "@/utils/questions";
 
 export interface QuestionProps extends QuizPropsBase {
   id?: string;
-  neutralOptions?: string[];
-  multichoice?: boolean;
   longtext?: boolean;
-  optional?: boolean;
+  ungraded?: boolean;
   scorer?: (option: string) => (boolean | undefined);
   answer?: string;
   points?: number;
@@ -44,28 +42,29 @@ export const MdxContent = ({
       if (chapterId === undefined || bookId === undefined) {
         throw new Error("Questions can appear only in chapters");
       }
-      const { answer, scorer, options, neutralOptions, optional,
-              multichoice, longtext, points, trials, id, question,
+      const { answer, scorer, options, ungraded,
+              longtext, points, trials, id, question,
               ...restProps } = props;
 
-      const actAnswer = getNormalizedAnswer(
-        answer
+      const actAnswer =
+        (answer
          || options
           ?.find((opt) => opt.startsWith(CorrectAnswerPrefix))
           ?.slice(CorrectAnswerPrefix.length)
-         || null);
+         || undefined)
+         ?.trim()
+          .toLowerCase()
 
       const actOptions = options?.map(
         (opt) => opt.startsWith(CorrectAnswerPrefix)
                  ? opt.slice(CorrectAnswerPrefix.length).trim()
                  : opt);
 
-      const type = determineQuestionType({options, neutralOptions, multichoice, longtext});
-      const normNeut = getNormalizedAnswer(neutralOptions ?? null);
+      const type = determineQuestionType({options, longtext});
       const actScorer = scorer || (
-        optional || actAnswer === undefined
+        ungraded || points === 0 || actAnswer === undefined
         ? () => undefined
-        : (x: string) => normNeut?.includes(x) ? undefined : x === actAnswer);
+        : (x: string) => x === actAnswer);
 
       return (
         <Question
@@ -75,12 +74,8 @@ export const MdxContent = ({
           bookId={bookId!}
           type={type}
           scorer={actScorer}
-          options={
-            actOptions || neutralOptions
-              ? [...actOptions || [], ...neutralOptions || []]
-              : undefined
-          }
-          maxPoints={points || 0}
+          options={actOptions}
+          maxPoints={ungraded ? 0 : (points ?? 1)}
           maxTrials={trials || 1}
         />
       );

@@ -78,7 +78,7 @@ const checkBooks = async (
           book.slug,
           `Duplicate question "${questionId.slice(0, 15)} (...)" in\n` +
             questions
-              .map(({ chapter, question: { line } }) => `- ${chapter}:${line}`)
+              .map(({ chapter }) => `- ${chapter}`)
               .join("\n")
         );
       }
@@ -115,9 +115,9 @@ const checkBooks = async (
         console.log(
           "Hint: if any of the new questions is an edit of an existing, set its `id` to its original text."
         );
-        extras.forEach(({ chapter, question: { questionId, line } }) => {
+        extras.forEach(({ chapter, question: { questionId } }) => {
           console.log(
-            `- ${chapter}:${line} "${questionId.slice(0, 15)} (...)"`
+            `- ${chapter} "${questionId.slice(0, 15)} (...)"`
           );
         });
         console.log();
@@ -263,7 +263,7 @@ const insertBooks = async (
   for (const {
     mdxContent, chapters, slug,
     frontmatter: {
-      title, subTitle, date, public: isPublic, language, tocInHeader,
+      title, subTitle, public: isPublic, language, tocInHeader,
       coverImg, requireLogin, quizThreshold, loginSubtitle, email },
   } of books) {
     const content = await serializedContent(mdxContent, language, slug);
@@ -271,16 +271,15 @@ const insertBooks = async (
     const {id: bookId} = await db.get(
       `
           INSERT INTO books (lastBuildId,
-                             path, title, subtitle, date,
+                             path, title, subtitle,
                              public, language, tocInHeader,
                              coverImg, requireLogin, quizThreshold, loginSubtitle,
                              email_subject, email_body,
                              content)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT DO UPDATE SET lastBuildId          = excluded.lastBuildId,
                                     title                = excluded.title,
                                     subtitle             = excluded.subtitle,
-                                    date                 = excluded.date,
                                     public               = excluded.public,
                                     language             = excluded.language,
                                     tocInHeader          = excluded.tocInHeader,
@@ -295,7 +294,7 @@ const insertBooks = async (
       `,
       [
         buildId,
-        slug, title, subTitle, date,
+        slug, title, subTitle,
         isPublic, language, tocInHeader,
         coverImg, requireLogin, quizThreshold, loginSubtitle,
         email?.subject, email?.body,
@@ -328,7 +327,7 @@ const insertCollections = async (
 ) => {
   for (const {
     slug: collectionSlug,
-    frontmatter: { title, subTitle, date, public: isPublic, language, coverImg, recursiveContent },
+    frontmatter: { title, subTitle, public: isPublic, language, coverImg, recursiveContent },
     mdxContent
   } of collections) {
     const content = await serializedContent(mdxContent, language, collectionSlug);
@@ -336,14 +335,13 @@ const insertCollections = async (
     await db.get(
       `
           INSERT INTO collections (lastBuildId,
-                                   path, title, subtitle, date,
+                                   path, title, subtitle,
                                    public, language, coverImg, recursiveContent,
                                    content)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(path) DO UPDATE SET title            = excluded.title,
                                           lastBuildId      = excluded.lastBuildId,
                                           subtitle         = excluded.subtitle,
-                                          date             = excluded.date,
                                           public           = excluded.public,
                                           language         = excluded.language,
                                           coverImg         = excluded.coverImg,
@@ -351,7 +349,7 @@ const insertCollections = async (
                                           content          = excluded.content
           RETURNING id
       `,
-      [buildId, collectionSlug, title, subTitle, date, isPublic, language,
+      [buildId, collectionSlug, title, subTitle, isPublic, language,
        coverImg, recursiveContent, content]
     );
   }
