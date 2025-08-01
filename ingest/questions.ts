@@ -154,7 +154,7 @@ export const extractQuizzes = async (
 
 
           const questionId = getProp(where, "id") || question;
-          const points = getNumProp(where, "points") || 0;
+          const points = getNumProp(where, "points");
           const ungraded = getBoolProp(where, "ungraded") ?? false;
           const options = getPropArray(where, "options");
           const answer = getProp(where, "answer");
@@ -186,6 +186,9 @@ export const extractQuizzes = async (
               ],
               [ !hasAnswer && !hasScorer && !ungraded && !longtext,
                 `Mark question as ungraded or provide answer or scorer`
+              ],
+              [ ungraded && points && points > 0,
+                `Ungraded questions should not have points`
               ],
               [
                 hasAnswer && hasScorer,

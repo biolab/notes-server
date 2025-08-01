@@ -75,7 +75,7 @@ export const MdxContent = ({
           type={type}
           scorer={actScorer}
           options={actOptions}
-          maxPoints={ungraded ? 0 : (points || 0)}
+          maxPoints={ungraded ? 0 : (points ?? 1)}
           maxTrials={trials || 1}
         />
       );
