@@ -20,7 +20,6 @@ export type QuestionDef = {
 export interface ChapterFrontmatter {
   title: string;
   omitAsChapter?: boolean;
-  date: string;
 }
 
 export interface ChapterDefBase {
@@ -40,7 +39,6 @@ export interface ChapterDef extends ChapterDefBase {
 export interface BookFrontmatter {
   title: string;
   subTitle: string;
-  date: string;
   public: boolean;
   language: string;
   tocInHeader: boolean;
@@ -58,7 +56,6 @@ export interface BookFrontmatter {
 export interface CollectionFrontmatter {
   title: string;
   subTitle: string;
-  date: string;
   public: boolean;
   language: string;
   coverImg: string;
@@ -70,7 +67,6 @@ export interface CollectionFrontmatter {
 export const defaultCollectionFrontmatter: CollectionFrontmatter = {
   title: "",
   subTitle: "",
-  date: "",
   public: true,
   language: "en",
   coverImg: "",

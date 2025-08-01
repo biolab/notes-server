@@ -81,7 +81,7 @@ export const getBook = async (id: number): Promise<BookProps> => {
     chapters.push({
       chapterDir: chapter.path,
       chapterId: chapter.id,
-      frontmatter: {title: chapter.title, date: chapter.date},
+      frontmatter: {title: chapter.title},
       questions,
       content: chapter.content
     });
@@ -91,7 +91,7 @@ export const getBook = async (id: number): Promise<BookProps> => {
     slug: book.path,
     bookId: book.id,
     frontmatter: {
-      title: book.title, subTitle: book.subtitle, date: book.date,
+      title: book.title, subTitle: book.subtitle,
       requireLogin: book.requireLogin === 1, quizThreshold: book.quizThreshold,
       public: book.public === 1, coverImg: book.coverImg,
       tocInHeader: book.tocInHeader === 1, language: book.language,
@@ -129,7 +129,7 @@ export const getCollection = async (id: number): Promise<CollectionProps> => {
     slug: collection.path,
     frontmatter: {
       title: collection.title, subTitle: collection.subtitle,
-      coverImg: collection.coverImg, language: collection.language, date: collection.date,
+      coverImg: collection.coverImg, language: collection.language,
       public: collection.public === 1, recursiveContent: collection.recursiveContent === 1,
     },
     content: collection.content,
