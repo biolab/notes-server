@@ -1,10 +1,10 @@
 export const determineQuestionType = (
-  {options, neutralOptions, multichoice, longtext}
+  {options, multichoice, longtext}
     : {
-    options?: string[] | null, neutralOptions?: string[] | null,
+    options?: string[] | null,
     multichoice?: boolean | null, longtext?: boolean | null
   }
 ) =>
-  options?.length || neutralOptions?.length
+  options?.length
   ? (multichoice ? "multichoice" : "singlechoice")
   : (longtext ? "long-text" : "text");

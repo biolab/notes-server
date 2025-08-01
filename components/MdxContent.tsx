@@ -12,7 +12,6 @@ import { determineQuestionType } from "@/utils/questions";
 
 export interface QuestionProps extends QuizPropsBase {
   id?: string;
-  neutralOptions?: string[];
   multichoice?: boolean;
   longtext?: boolean;
   optional?: boolean;
@@ -44,7 +43,7 @@ export const MdxContent = ({
       if (chapterId === undefined || bookId === undefined) {
         throw new Error("Questions can appear only in chapters");
       }
-      const { answer, scorer, options, neutralOptions, optional,
+      const { answer, scorer, options, optional,
               multichoice, longtext, points, trials, id, question,
               ...restProps } = props;
 
@@ -60,12 +59,11 @@ export const MdxContent = ({
                  ? opt.slice(CorrectAnswerPrefix.length).trim()
                  : opt);
 
-      const type = determineQuestionType({options, neutralOptions, multichoice, longtext});
-      const normNeut = getNormalizedAnswer(neutralOptions ?? null);
+      const type = determineQuestionType({options, multichoice, longtext});
       const actScorer = scorer || (
         optional || actAnswer === undefined
         ? () => undefined
-        : (x: string) => normNeut?.includes(x) ? undefined : x === actAnswer);
+        : (x: string) => x === actAnswer);
 
       return (
         <Question
@@ -75,11 +73,7 @@ export const MdxContent = ({
           bookId={bookId!}
           type={type}
           scorer={actScorer}
-          options={
-            actOptions || neutralOptions
-              ? [...actOptions || [], ...neutralOptions || []]
-              : undefined
-          }
+          options={actOptions}
           maxPoints={points || 0}
           maxTrials={trials || 1}
         />

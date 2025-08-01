@@ -156,12 +156,11 @@ export const extractQuizzes = async (
           const points = getNumProp(where, "points") || 0;
           const optional = getBoolProp(where, "optional") ?? false;
           const options = getPropArray(where, "options");
-          const neutralOptions = getPropArray(where, "neutral");
           const answer = getProp(where, "answer");
           const hasScorer = hasProp("scorer");
           const multichoice = getBoolProp(where, "multichoice");
           const longtext = getBoolProp(where, "longtext");
-          const type = determineQuestionType({options, neutralOptions, multichoice, longtext})
+          const type = determineQuestionType({options, multichoice, longtext})
           const newErrors: string[] = (
             [
               /* Add more as needed */
@@ -172,11 +171,10 @@ export const extractQuizzes = async (
                   .includes(answer.toLocaleLowerCase()),
                 `Correct answer is not listed in options`
               ],
-              [ multichoice &&
-                (options?.length ?? 0) + (neutralOptions?.length ?? 0) === 0,
+              [ multichoice && options?.length,
                 "Multichoice requires options"
               ],
-              [ longtext && (multichoice || options || neutralOptions),
+              [ longtext && (multichoice || options),
                 "longtext is incompatible with options"
               ],
               [
