@@ -218,9 +218,7 @@ export const extractQuizzes = async (
             type,
             options,
             answer,
-            points,
-
-            line: path.node.loc?.start.line || -1,
+            points
           });
         }
       }

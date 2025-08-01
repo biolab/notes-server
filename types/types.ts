@@ -9,7 +9,6 @@ export type QuestionDef = {
   type: QuestionTypes;
   options: string[] | null;
   answer: string | null;
-  line: number;
   points: number | null;
 };
 

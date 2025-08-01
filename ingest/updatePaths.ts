@@ -78,7 +78,7 @@ const checkBooks = async (
           book.slug,
           `Duplicate question "${questionId.slice(0, 15)} (...)" in\n` +
             questions
-              .map(({ chapter, question: { line } }) => `- ${chapter}:${line}`)
+              .map(({ chapter }) => `- ${chapter}`)
               .join("\n")
         );
       }
@@ -115,9 +115,9 @@ const checkBooks = async (
         console.log(
           "Hint: if any of the new questions is an edit of an existing, set its `id` to its original text."
         );
-        extras.forEach(({ chapter, question: { questionId, line } }) => {
+        extras.forEach(({ chapter, question: { questionId } }) => {
           console.log(
-            `- ${chapter}:${line} "${questionId.slice(0, 15)} (...)"`
+            `- ${chapter} "${questionId.slice(0, 15)} (...)"`
           );
         });
         console.log();
