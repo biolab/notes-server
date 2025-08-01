@@ -1,6 +1,6 @@
 /* Questions */
 
-export type QuestionTypes = "singlechoice" | "multichoice" | "text" | "long-text";
+export type QuestionTypes = "singlechoice" | "text" | "long-text";
 
 export type QuestionDef = {
   id?: number;

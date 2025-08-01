@@ -4,7 +4,7 @@ import { MDXProvider } from '@mdx-js/react';
 
 import Image from "./Image";
 import CcByNcNd from "./CcByNcNd";
-import Question, { QuizPropsBase, getNormalizedAnswer } from "./Quiz/Quiz";
+import Question, { QuizPropsBase } from "./Quiz/Quiz";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
 import { determineQuestionType } from "@/utils/questions";
@@ -12,7 +12,6 @@ import { determineQuestionType } from "@/utils/questions";
 
 export interface QuestionProps extends QuizPropsBase {
   id?: string;
-  multichoice?: boolean;
   longtext?: boolean;
   ungraded?: boolean;
   scorer?: (option: string) => (boolean | undefined);
@@ -44,24 +43,26 @@ export const MdxContent = ({
         throw new Error("Questions can appear only in chapters");
       }
       const { answer, scorer, options, ungraded,
-              multichoice, longtext, points, trials, id, question,
+              longtext, points, trials, id, question,
               ...restProps } = props;
 
-      const actAnswer = getNormalizedAnswer(
-        answer
+      const actAnswer =
+        (answer
          || options
           ?.find((opt) => opt.startsWith(CorrectAnswerPrefix))
           ?.slice(CorrectAnswerPrefix.length)
-         || null);
+         || undefined)
+         ?.trim()
+          .toLowerCase()
 
       const actOptions = options?.map(
         (opt) => opt.startsWith(CorrectAnswerPrefix)
                  ? opt.slice(CorrectAnswerPrefix.length).trim()
                  : opt);
 
-      const type = determineQuestionType({options, multichoice, longtext});
+      const type = determineQuestionType({options, longtext});
       const actScorer = scorer || (
-        ungraded || actAnswer === undefined
+        ungraded || points === 0 || actAnswer === undefined
         ? () => undefined
         : (x: string) => x === actAnswer);
 

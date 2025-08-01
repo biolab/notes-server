@@ -31,7 +31,7 @@ export default function Question({
   maxTrials = 1,
   children,
 }: IQuestion) {
-  const [answer, setAnswer] = React.useState<null | string | string[]>(null);
+  const [answer, setAnswer] = React.useState<null | string>(null);
   const [submitted, setSubmitted] = React.useState(false);
   const { isCorrect, points, trials, answer: last, submissionErrored,
           answerQuestion } = useLastAnswer(id);
@@ -56,25 +56,19 @@ export default function Question({
         return;
       }
 
-      const _answer = answerFromOption(option, answer!, type);
-      const _normalizedAnswer = getNormalizedAnswer(_answer);
-      const errored = checker ? checker(_normalizedAnswer as string) : null;
-      setAnswer(_answer);
+      const normalizedAnswer = option.trim().toLowerCase();
+      const errored = checker ? checker(normalizedAnswer) : null;
+      setAnswer(answer);
       setFormatError(errored);
       if (errored) {
         return;
       }
 
-      const isCorrect = scorer(_normalizedAnswer as string);
-      if (!await answerQuestion({
-        isCorrect,
-        answer: _answer,
-        points: isCorrect ? maxPoints : 0,
-      })) {
-        return;
+      const isCorrect = scorer(normalizedAnswer);
+      const points = isCorrect ? maxPoints : 0;
+      if (await answerQuestion({answer: option, isCorrect, points})) {
+        setSubmitted(true);
       }
-
-      setSubmitted(true);
     },
     [submitDisabled, answer, checker, scorer, type, maxPoints, answerQuestion]
   );
@@ -143,7 +137,9 @@ export default function Question({
     return child;
   });
 
-  const normalizedAnswer = React.useMemo(() => getNormalizedAnswer(answer), [answer]);
+  const normalizedAnswer = React.useMemo(
+    () => answer?.trim().toLowerCase(),
+    [answer]);
 
   return (
     <div className={`quiz ${correctnessClass}`}>
@@ -193,13 +189,7 @@ export default function Question({
             <div className="buttons-wrapper">
               {options.map((option) => (
                 <button
-                  className={
-                    normalizedAnswer === option.toLowerCase() ||
-                    (type === "multichoice" &&
-                      normalizedAnswer?.includes(option.toLowerCase()))
-                      ? "selected "
-                      : ""
-                  }
+                  className={normalizedAnswer === option.toLowerCase() ? "selected ": ""}
                   onClick={(e) => onSubmit(e, option)}
                   key={option}
                 >
@@ -225,18 +215,3 @@ export default function Question({
     </div>
   );
 }
-
-const answerFromOption = (
-  option: string,
-  currentAnswer: string | string[],
-  type: QuestionTypes,
-) =>
-  type !== "multichoice" ? option
-  : !Array.isArray(currentAnswer) ? [option]
-  : currentAnswer.includes(option) ? currentAnswer.filter((v) => v !== option)
-  : [...currentAnswer, option];
-
-export const getNormalizedAnswer = (answer: string | string[] | null) =>
-  typeof answer === "string" ? answer.trim().toLowerCase()
-  : answer?.map((x) => x.trim().toLowerCase());
-

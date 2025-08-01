@@ -5,7 +5,7 @@ import { postAnswer } from "@/api/QuizService";
 import { UserContext } from "@/context/UserContextProvider";
 
 export type Answer = {
-  answer: string | string[];
+  answer: string;
   isCorrect: boolean | undefined;
   points: number;
 };
@@ -160,14 +160,7 @@ export const QuizContextProvider = ({
     async (value: AnswerWithQuestionId): Promise<boolean> => {
       const {questionId, answer, points, isCorrect} = value;
       try {
-        await postAnswer({
-          questionId,
-          user,
-          bookId: bookId,
-          answer: typeof answer === "string" ? answer : answer.join("|||"),
-          points,
-          isCorrect,
-        });
+        await postAnswer({user, questionId, bookId, answer, isCorrect, points});
       } catch (error: any) {
         quizReducer({ type: "ERROR", value: {questionId}});
         return false;
