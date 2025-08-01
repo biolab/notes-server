@@ -85,6 +85,8 @@ export const Book = ({
     );
   }
 
+  let questionNumberOffset = 1;
+
   return (
     <IntlContextProvider lang={frontmatter.language || "en"}>
       <QuizContextProvider
@@ -126,8 +128,8 @@ export const Book = ({
               />
             )}
 
-            {chapters.map((chapterDef, index) => (
-              <Chapter
+            {chapters.map((chapterDef, index) => {
+              const chapter = <Chapter
                 {...chapterDef}
                 bookId={bookId!}
                 chapterId={chapterDef.chapterId}
@@ -135,8 +137,11 @@ export const Book = ({
                 index={index}
                 setIsChapterIndexVisible={setIsChapterIndexVisible}
                 chapterNumber={chapterNumbers[index]}
-              />
-            ))}
+                questionNumberOffset={questionNumberOffset}
+              />;
+              questionNumberOffset += chapterDef.questions?.length || 0;
+              return chapter;
+            })}
           </div>
         </Layout>
       </QuizContextProvider>

@@ -26,22 +26,30 @@ export const MdxContent = ({
   content,
   chapterId,
   bookId,
+  questionNumberOffset,
   t
 }: {
   content: string;
   bookId?: number;
   chapterId?: number;
+  questionNumberOffset?: number;
   t: (key: string) => string;
 }) => {
   if  (!content) {
     return;
   }
 
+  let questionNumber = questionNumberOffset;
+
   const components = {
     Question: (props: QuestionProps) => {
       if (chapterId === undefined || bookId === undefined) {
         throw new Error("Questions can appear only in chapters");
       }
+      if (questionNumber === undefined) {
+        throw new Error("Chapter with questions was called without questionNumberOffset");
+      }
+
       const { answer, scorer, options, ungraded,
               longtext, points, trials, id, question,
               ...restProps } = props;
@@ -77,6 +85,7 @@ export const MdxContent = ({
           options={actOptions}
           maxPoints={ungraded ? 0 : (points ?? 1)}
           maxTrials={trials || 1}
+          questionNumber={questionNumber++}
         />
       );
     },

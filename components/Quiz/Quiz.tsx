@@ -18,6 +18,7 @@ export interface IQuestion extends QuizPropsBase {
   bookId: number;
   maxPoints: number;
   maxTrials: number;
+  questionNumber: number;
 }
 
 export default function Question({
@@ -29,6 +30,7 @@ export default function Question({
   scorer,
   maxPoints = 0,
   maxTrials = 1,
+  questionNumber,
   children,
 }: IQuestion) {
   const [answer, setAnswer] = React.useState<null | string>(null);
@@ -70,7 +72,7 @@ export default function Question({
         setSubmitted(true);
       }
     },
-    [submitDisabled, answer, checker, scorer, type, maxPoints, answerQuestion]
+    [submitDisabled, answer, checker, scorer, maxPoints, answerQuestion]
   );
 
   const message = React.useMemo(() => {
@@ -145,7 +147,7 @@ export default function Question({
     <div className={`quiz ${correctnessClass}`}>
       <div className="quiz-question">
         <h3>
-          {question} {!!maxPoints && <span>({maxPoints}pt.)</span>}
+          {t("quiz.short")}{questionNumber}: {question} {!!maxPoints && <span>({maxPoints}pt.)</span>}
         </h3>
         {icon}
       </div>

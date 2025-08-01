@@ -15,7 +15,8 @@ export const Chapter = ({
   setIsChapterIndexVisible,
   chapterNumber,
   bookId,
-  chapterId
+  chapterId,
+  questionNumberOffset
 }: ChapterDef & {
   index: number;
   setIsChapterIndexVisible: React.Dispatch<
@@ -23,6 +24,7 @@ export const Chapter = ({
   >;
   chapterNumber: number;
   bookId: number;
+  questionNumberOffset: number;
 }) => {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const isVisible = useOnScreen(ref);
@@ -38,10 +40,11 @@ export const Chapter = ({
         content={content}
         bookId={bookId}
         chapterId={chapterId}
+        questionNumberOffset={questionNumberOffset}
         t = {t}
       />
     );
-  }, [t, bookId, chapterId, content]);
+  }, [t, bookId, chapterId, content, questionNumberOffset]);
 
   return (
     <div ref={ref} className="flex-container">
