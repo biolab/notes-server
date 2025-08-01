@@ -152,11 +152,16 @@ export const extractQuizzes = async (
             question.length > 50 ? "(...)" : ""
           }`;
 
+
           const questionId = getProp(where, "id") || question;
           const points = getNumProp(where, "points") || 0;
-          const optional = getBoolProp(where, "optional") ?? false;
+          const ungraded = getBoolProp(where, "ungraded") ?? false;
           const options = getPropArray(where, "options");
           const answer = getProp(where, "answer");
+          const correctOptions = options
+            ?.filter((opt) => opt.startsWith("* "))
+            .map((opt) => opt.slice(2).trim());
+          const hasAnswer = hasProp("answer") || correctOptions?.length;
           const hasScorer = hasProp("scorer");
           const multichoice = getBoolProp(where, "multichoice");
           const longtext = getBoolProp(where, "longtext");
@@ -177,16 +182,20 @@ export const extractQuizzes = async (
               [ longtext && (multichoice || options),
                 "longtext is incompatible with options"
               ],
+              [ !hasAnswer && !hasScorer && !ungraded && !longtext,
+                `Mark question as ungraded or provide answer or scorer`
+              ],
               [
-                answer && hasScorer,
+                hasAnswer && hasScorer,
                 `Provide either answer or scorer, not both`
               ],
-              // TODO: If there is neither scorer nor answer, the question is optional?
-              // Why do we have flag "optional", then?
-              /*[ options?.length &&
-                !(optional || answer || hasScorer || options.some((opt) => opt.startsWith("** "))),
-                `Provide an answer or scorer, or prefix the correct option with '* '`
-              ],*/
+              [ ungraded && (points || hasAnswer || hasScorer),
+                `Ungraded questions should not have points, answer or scorer`
+              ],
+              [
+                options && options.length < 2,
+                `Options should contain at least two items`
+              ],
               [
                 options && new Set(options).size != options.length,
                 `Options are not unique`
@@ -208,7 +217,6 @@ export const extractQuizzes = async (
             options,
             answer,
             points,
-            optional,
 
             line: path.node.loc?.start.line || -1,
           });

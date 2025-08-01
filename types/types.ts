@@ -10,8 +10,7 @@ export type QuestionDef = {
   options: string[] | null;
   answer: string | null;
   line: number;
-  points: number;
-  optional: boolean;
+  points: number | null;
 };
 
 

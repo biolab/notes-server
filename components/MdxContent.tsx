@@ -14,7 +14,7 @@ export interface QuestionProps extends QuizPropsBase {
   id?: string;
   multichoice?: boolean;
   longtext?: boolean;
-  optional?: boolean;
+  ungraded?: boolean;
   scorer?: (option: string) => (boolean | undefined);
   answer?: string;
   points?: number;
@@ -43,7 +43,7 @@ export const MdxContent = ({
       if (chapterId === undefined || bookId === undefined) {
         throw new Error("Questions can appear only in chapters");
       }
-      const { answer, scorer, options, optional,
+      const { answer, scorer, options, ungraded,
               multichoice, longtext, points, trials, id, question,
               ...restProps } = props;
 
@@ -61,7 +61,7 @@ export const MdxContent = ({
 
       const type = determineQuestionType({options, multichoice, longtext});
       const actScorer = scorer || (
-        optional || actAnswer === undefined
+        ungraded || actAnswer === undefined
         ? () => undefined
         : (x: string) => x === actAnswer);
 
@@ -74,7 +74,7 @@ export const MdxContent = ({
           type={type}
           scorer={actScorer}
           options={actOptions}
-          maxPoints={points || 0}
+          maxPoints={ungraded ? 0 : (points || 0)}
           maxTrials={trials || 1}
         />
       );
