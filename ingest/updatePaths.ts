@@ -10,7 +10,7 @@ const checkBooks = async (
   books: RawBookDef[],
   allBookSlugs: Set<string>,
   db: Database,
-  updatePath: string
+  pathPrefix: string
 ) => {
   // All books that include questions with answers must exist (with the same slug)
   // JOIN answers ON questions.id = answers.questionId filters out the questions
@@ -23,7 +23,7 @@ const checkBooks = async (
      JOIN questions ON chapters.id = questions.chapterId
      JOIN answers ON questions.id = answers.questionId
      WHERE books.path LIKE ?`,
-     [`${updatePath}/%`]
+     [`${pathPrefix}/%`]
   );
   booksWithQuestions
     .filter(({ path }) => !allBookSlugs.has(path))
@@ -168,9 +168,11 @@ const insertChapters = async (
   buildId: number
 ) => {
   for (const { chapters, frontmatter: {language}} of books) {
-    for (const { chapterDir, frontmatter: {title, omitAsChapter}, mdxContent, questions } of chapters) {
-      if (await db.get(`SELECT 1 FROM chapters WHERE path = ? AND lastBuildId = ?`,
-                       [chapterDir, buildId])) {
+    for (const { chapterDir, mdxContent, questions,
+                 frontmatter: {title, omitAsChapter} } of chapters) {
+      if (await db.get(
+          `SELECT 1 FROM chapters WHERE path = ? AND lastBuildId = ?`,
+          [chapterDir, buildId])) {
         continue;
       }
       const content = await serializedContent(mdxContent, language, chapterDir);
@@ -194,16 +196,12 @@ const insertChapters = async (
               INSERT INTO questions (chapterId, questionId, question, options, answer, questionType, lastBuildId)
               VALUES (?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT DO UPDATE SET question    = excluded.question,
+                                        options     = excluded.options,
+                                        answer      = excluded.answer,
+                                        questionType = excluded.questionType,
                                         lastBuildId = excluded.lastBuildId`,
-          [
-            chapterId,
-            questionId,
-            question,
-            JSON.stringify(options),
-            answer,
-            type,
-            buildId,
-          ]
+          [chapterId, questionId, question, JSON.stringify(options),
+           answer, type, buildId]
         );
       }
     }
@@ -369,6 +367,30 @@ const insertFavicons = async (
     }));
 }
 
+const cleanup = async (
+  db: Database,
+  pathPrefix: string,
+  buildId: number
+) => {
+  await Promise.all(
+    ["chapters", "books", "collections", "faviconpaths"].map((table) =>
+      db.run(
+        `DELETE FROM ${table}
+         WHERE (path = ? OR path LIKE ?) AND lastBuildId <> ?`,
+        [pathPrefix, pathPrefix + "/%", buildId]
+      )
+    )
+  );
+  await db.run(
+    `
+     DELETE FROM questions
+     WHERE chapterId IN (
+         SELECT id FROM chapters WHERE lastBuildId = ?
+     ) AND lastBuildId <> ?;`,
+    [buildId, buildId]
+  );
+}
+
 export const updatePaths = async (
   bookSlugs: string[][],
   collectionSlugs: string[][],
@@ -400,4 +422,6 @@ export const updatePaths = async (
   await insertBooks(books, db, buildId);
   await insertCollections(collections, db, buildId);
   await insertFavicons(faviconPaths, db, buildId);
+
+  await cleanup(db, pathPrefix, buildId);
 };
