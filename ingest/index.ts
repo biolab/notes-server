@@ -14,6 +14,8 @@ export async function updateDb(pathPrefix: string, update=false) {
     filename: path.join(DB_FILE),
     driver: sqlite3.Database,
   });
+  await db.exec("PRAGMA foreign_keys = ON");
+
   let buildId, prefix;
   if (update) {
     buildId = (await db.get(`SELECT MAX(id) as buildId FROM builds;`)).buildId;

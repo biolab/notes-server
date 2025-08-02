@@ -12,8 +12,10 @@ export const rebuildDatabase = async () => {
   }
   const conn = new sqlite3.Database(DB_FILE);
   const run = promisify(conn.run.bind(conn));
+  const exec = promisify(conn.exec.bind(conn));
 
   try {
+    await exec("PRAGMA foreign_keys = ON");
     await run(`DROP TABLE IF EXISTS builds`);
     await run(`
         CREATE TABLE builds
@@ -148,7 +150,6 @@ export const rebuildDatabase = async () => {
 
             UNIQUE (chapterId, questionId),
             FOREIGN KEY (chapterId) REFERENCES chapters (id) ON DELETE CASCADE,
-            FOREIGN KEY (questionId) REFERENCES questions (id) ON DELETE CASCADE,
             FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
         );
     `);
