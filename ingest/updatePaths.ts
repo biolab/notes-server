@@ -302,6 +302,7 @@ const insertBooks = async (
       ]
     );
 
+    await db.run(`DELETE FROM books_chapters WHERE bookId = ?`, [bookId]);
     await Promise.all(
       chapters.map(({ chapterDir }, position) =>
         db.run(
@@ -358,6 +359,9 @@ const insertCollections = async (
     const collectionId = (await db.get(`SELECT id FROM collections WHERE path = ?`, [collectionSlug])).id;
     const explicitBooks = !!frontmatter.books;
     const explicitCollections = !!frontmatter.collections;
+    await db.run(
+      `DELETE FROM collections_books WHERE collectionId = ?`,
+      [collectionId]);
     await Promise.all(
       books.map(({ slug }, position) =>
         db.run(
@@ -373,6 +377,9 @@ const insertCollections = async (
       `,
       [collectionId, position, explicitBooks, buildId, slug]))
     );
+    await db.run(
+      `DELETE FROM collections_collections WHERE collectionId = ?`,
+      [collectionId]);
     await Promise.all(
       subCollections.map(({ slug }, position) => {
         db.run(
