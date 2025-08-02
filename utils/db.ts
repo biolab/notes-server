@@ -9,5 +9,6 @@ const db = await open({
   filename: path.join(DB_FILE),
   driver: sqlite3.Database,
 });
+await db.exec("PRAGMA foreign_keys = ON");
 
 export default db;

@@ -1,6 +1,7 @@
 import sqlite3 from "sqlite3";
 import fs from "fs";
 import path from "path";
+import { promisify } from "util";
 
 const DB_PATH = path.join(process.cwd(), "db");
 const DB_FILE = path.join(DB_PATH, "notes.sqlite");
@@ -10,10 +11,11 @@ export const rebuildDatabase = async () => {
     fs.mkdirSync(DB_PATH);
   }
   const conn = new sqlite3.Database(DB_FILE);
+  const run = promisify(conn.run.bind(conn));
 
-  conn.serialize(() => {
-    conn.run(`DROP TABLE IF EXISTS builds`);
-    conn.run(`
+  try {
+    await run(`DROP TABLE IF EXISTS builds`);
+    await run(`
         CREATE TABLE builds
         (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,8 +25,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS collections`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS collections`);
+    await run(`
         CREATE TABLE collections
         (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,8 +44,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS books`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS books`);
+    await run(`
         CREATE TABLE books
         (
             id                   INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,8 +68,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS chapters`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS chapters`);
+    await run(`
         CREATE TABLE chapters
         (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,8 +83,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS collections_collections`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS collections_collections`);
+    await run(`
         CREATE TABLE collections_collections
         (
             collectionId    INTEGER NOT NULL REFERENCES collections (id) ON DELETE CASCADE,
@@ -98,8 +100,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS collections_books`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS collections_books`);
+    await run(`
         CREATE TABLE collections_books
         (
             collectionId INTEGER NOT NULL REFERENCES collections (id) ON DELETE CASCADE,
@@ -115,8 +117,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS books_chapters`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS books_chapters`);
+    await run(`
         CREATE TABLE books_chapters
         (
             bookId      INTEGER NOT NULL REFERENCES books (id) ON DELETE CASCADE,
@@ -131,8 +133,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS questions`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS questions`);
+    await run(`
         CREATE TABLE questions
         (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,8 +153,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS users`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS users`);
+    await run(`
         CREATE TABLE users
         (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -167,8 +169,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS answers`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS answers`);
+    await run(`
         CREATE TABLE answers
         (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -185,8 +187,8 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    conn.run(`DROP TABLE IF EXISTS faviconpaths`);
-    conn.run(`
+    await run(`DROP TABLE IF EXISTS faviconpaths`);
+    await run(`
         CREATE TABLE faviconpaths
         (
             path        TEXT NOT NULL,
@@ -194,5 +196,8 @@ export const rebuildDatabase = async () => {
             FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
         )
     `)
-  });
+  }
+  finally {
+    conn.close();
+  }
 }
