@@ -2,30 +2,26 @@ import { serializedContent } from "./md-helpers";
 import { Database } from "sqlite";
 import { parseCollection, RawCollectionDef } from "@/ingest/collection";
 import { parseBook, RawBookDef } from "@/ingest/book";
-import { ChapterFrontmatter, QuestionDef } from "@/types/types";
+import { QuestionDef } from "@/types/types";
 import { catchErrors, hasError, logError } from "@/ingest/errors";
+import { elide } from "@/utils/string";
 
 const checkBooks = async (
   books: RawBookDef[],
   allBookSlugs: Set<string>,
   db: Database,
   updatePath: string
-): Promise<
-  Record<string, { frontmatter: ChapterFrontmatter; questions: QuestionDef[] }>
-> => {
-  const chapters: Record<
-    string,
-    { frontmatter: ChapterFrontmatter; questions: QuestionDef[] }
-  > = {};
-
-  // All books that include questions (found in table questions) must exist (with the same slug)
-  // TODO: We may allow removing books with questions that nobody has answered yet.
+) => {
+  // All books that include questions with answers must exist (with the same slug)
+  // JOIN answers ON questions.id = answers.questionId filters out the questions
+  // that do not have answers.
   const booksWithQuestions = await db.all(
     `SELECT DISTINCT books.path
      FROM books
      JOIN books_chapters ON books.id = books_chapters.bookId
      JOIN chapters ON books_chapters.chapterId = chapters.id
      JOIN questions ON chapters.id = questions.chapterId
+     JOIN answers ON questions.id = answers.questionId
      WHERE books.path LIKE ?`,
      [`${updatePath}/%`]
   );
@@ -56,17 +52,14 @@ const checkBooks = async (
 
     // Extract all questions in the book
     type QuestionAndChapter = { chapter: string; question: QuestionDef };
-    const allQuestions: QuestionAndChapter[] = [];
-    for (const { frontmatter, questions, chapterDir } of book.chapters) {
-      allQuestions.push(
-        ...questions.map((question) => ({chapter: chapterDir, question}))
+    const bookQuestions: QuestionAndChapter[] =
+      book.chapters.flatMap(({ questions, chapterDir }) =>
+        questions.map((question) => ({chapter: chapterDir, question}))
       );
-      chapters[chapterDir] = { frontmatter, questions };
-    }
 
     // Check that no questions within the same book have the same questionId
     const questionsByIds: Record<string, QuestionAndChapter[]> = {};
-    for (const { chapter, question } of allQuestions) {
+    for (const { chapter, question } of bookQuestions) {
       if (questionsByIds[question.questionId] === undefined) {
         questionsByIds[question.questionId] = [];
       }
@@ -76,7 +69,7 @@ const checkBooks = async (
       if (questions.length > 1) {
         logError(
           book.slug,
-          `Duplicate question "${questionId.slice(0, 15)} (...)" in\n` +
+          `Duplicate question "${elide(questionId)} (...)" in\n` +
             questions
               .map(({ chapter }) => `- ${chapter}`)
               .join("\n")
@@ -84,83 +77,45 @@ const checkBooks = async (
       }
     }
 
-    // No question may disappear from the book
-    // TODO: We may allow removing questions that nobody has answered yet.
+    // No question with answers may disappear from the book
     const pastQuestions = (
       (await db.all(
         `
-        SELECT questions.questionId
+        SELECT DISTINCT questions.questionId, a.id IS NOT NULL AS hasAnswer
         FROM questions
-                 JOIN chapters ON questions.chapterId = chapters.id
-                 JOIN books_chapters ON chapters.id = books_chapters.chapterId
-                 JOIN books ON books_chapters.bookId = books.id
+        JOIN chapters ON questions.chapterId = chapters.id
+        JOIN books_chapters ON chapters.id = books_chapters.chapterId
+        JOIN books ON books_chapters.bookId = books.id
+        LEFT JOIN answers a ON questions.id = a.questionId AND a.bookId = books.id
         WHERE books.path = ?`,
         [book.slug]
-      )) as { questionId: string }[]
-    ).map(({ questionId }) => questionId);
+      )) as { questionId: string, hasAnswer: boolean }[]
+    );
     const missingQuestions = pastQuestions.filter(
-      (questionId) => !questionsByIds[questionId]
+      ({ questionId, hasAnswer }) => hasAnswer && !questionsByIds[questionId]
     );
     if (missingQuestions.length > 0) {
-      missingQuestions.forEach((questionId) => {
+      missingQuestions.forEach(({questionId}) => {
         logError(
           book.slug,
-          `Question "${questionId.slice(0, 15)} (...)" is missing.`
+          `Question "${elide(questionId)}" is missing.`
         );
       });
-      const extras = allQuestions.filter(
-        ({ question: { questionId } }) => !pastQuestions.includes(questionId)
+      const knownIds = pastQuestions.map(({ questionId }) => questionId);
+      const extras = bookQuestions.filter(
+        ({ question: { questionId } }) => !knownIds.includes(questionId)
       );
       if (extras.length > 0) {
-        console.log(
-          "Hint: if any of the new questions is an edit of an existing, set its `id` to its original text."
+        console.log(`Hint: if the above question(s) is an edit of an existing,
+        set its 'id' to its original text.`
         );
         extras.forEach(({ chapter, question: { questionId } }) => {
-          console.log(
-            `- ${chapter} "${questionId.slice(0, 15)} (...)"`
-          );
+          console.log(`- ${chapter} "${elide(questionId)}"`);
         });
         console.log();
       }
     }
   }
-  return chapters;
-};
-
-const checkQuestions = async (
-  chapters: Record<
-    string,
-    { frontmatter: ChapterFrontmatter; questions: QuestionDef[] }
-  >,
-  db: Database
-) => {
-  const questions = Object.fromEntries(
-    Object.entries(chapters).map(([chapterDir, { questions }]) => [
-      chapterDir,
-      Object.fromEntries(
-        questions.map(({ questionId, answer }) => [questionId, answer])
-      ),
-    ])
-  );
-
-  // Answers may not change
-  // TODO: We can allow that, but have to change existing answers
-  // TODO: We may allow changing answers to questions that nobody has answered yet.
-  const prevAnswers = await db.all(`
-    SELECT chapterId, questionId, answer
-    FROM questions`);
-  prevAnswers.forEach(({ chapterId, questionId, question, answer }) => {
-    const newAnswer = questions[chapterId]?.[questionId];
-    if (newAnswer !== undefined && newAnswer !== answer) {
-      logError(
-        chapterId,
-        `Question "${questionId}" (${question.slice(
-          0,
-          20
-        )}) changed the answer from "${answer}" to "${newAnswer}". This is not allowed.`
-      );
-    }
-  });
 };
 
 const checkCollections = async (
@@ -435,8 +390,7 @@ export const updatePaths = async (
   ).filter(x => x) as RawCollectionDef[];
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
-  const chapters = await checkBooks(books, allBookSlugs, db, pathPrefix);
-  await checkQuestions(chapters, db);
+  await checkBooks(books, allBookSlugs, db, pathPrefix);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   if (hasError()) {
     process.exit(1);
