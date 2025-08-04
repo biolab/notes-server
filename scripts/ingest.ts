@@ -10,12 +10,17 @@ import { rebuildDatabase } from "@/ingest/createDb";
 program
   .option("-p, --path <path>", "Path to the directory to update", "")
   .option("-u, --update", "Update without increasing the build number", false)
-  .option("--recreate", "Recreate the database from scratch", false);
+  .option("--recreate", "Recreate the database from scratch", false)
+  .option("-c --check", "Check, but don't update the database", false);
 program.parseOptions(process.argv.slice(2));
-const { path: pathPrefix, update, recreate } = program.opts();
+const { path: pathPrefix, update, recreate, check } = program.opts();
 
 if (pathPrefix && update) {
   console.error("Both --path and --update options are provided. Please provide only one.");
+  process.exit(1);
+}
+if (check && (update || recreate)) {
+  console.error("Error: --check cannot be used with --update or --recreate.");
   process.exit(1);
 }
 
@@ -38,7 +43,7 @@ const ask = (question: string): Promise<string> => {
     await rebuildDatabase();
   }
 
-  await updateDb(pathPrefix, update).catch((err) => {
+  await updateDb(pathPrefix, update, check).catch((err) => {
     console.error("Error:", err);
     process.exit(1);
   });
