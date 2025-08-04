@@ -420,7 +420,8 @@ export const updatePaths = async (
   faviconPaths: string[],
   db: Database,
   buildId: number,
-  pathPrefix: string
+  pathPrefix: string,
+  check: boolean
 ) => {
   const books = (await Promise.all(
     bookSlugs.map((book) => catchErrors(
@@ -440,6 +441,9 @@ export const updatePaths = async (
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   if (hasError()) {
     process.exit(1);
+  }
+  if (check) {
+    return;
   }
 
   await insertChapters(books, db, buildId);

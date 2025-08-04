@@ -9,7 +9,7 @@ import { getFaviconPaths } from "@/ingest/favicons";
 export const DB_PATH = path.join(process.cwd(), "db");
 export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
-export async function updateDb(pathPrefix: string, update=false) {
+export async function updateDb(pathPrefix: string, update=false, check=false) {
   const db = await open({
     filename: path.join(DB_FILE),
     driver: sqlite3.Database,
@@ -31,5 +31,5 @@ export async function updateDb(pathPrefix: string, update=false) {
   const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
   const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
   const faviconPaths = getFaviconPaths(prefix);
-  await updatePaths(bookPaths, collectionPaths, faviconPaths, db, buildId, prefix);
+  await updatePaths(bookPaths, collectionPaths, faviconPaths, db, buildId, prefix, check);
 }
