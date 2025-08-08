@@ -16,22 +16,18 @@ export async function updateDb(pathPrefix: string, update=false, check=false) {
   });
   await db.exec("PRAGMA foreign_keys = ON");
 
-  let buildId, prefix;
-  if (update) {
-    buildId = (await db.get(`SELECT MAX(id) as buildId FROM builds;`)).buildId;
-    prefix = (await db.get(`SELECT path
-                            FROM builds
-                            WHERE id = ?;`, [buildId.buildId])).path;
-  } else {
-    buildId = (await db.get(`INSERT INTO builds (path)
-                             VALUES (?)
-                             RETURNING id;`, [pathPrefix])).id;
-    prefix = pathPrefix;
-  }
+  const buildId =
+    check ? null
+    : update ? (await db.get(`SELECT MAX(id) as id FROM builds;`)).id
+    : (await db.get(`INSERT INTO builds (path) VALUES (?) RETURNING id`, [pathPrefix])).id;
 
-  const paths: [string[], boolean][] = getPaths(prefix ? prefix.split("/") : []);
+  const prefix =
+    update ? (await db.get(`SELECT path FROM builds WHERE id = ?;`, [buildId])).path
+    : pathPrefix;
+
+  const paths: [string[], boolean][] = getPaths(prefix ? [prefix] : []);
   const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
   const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
   const faviconPaths = getFaviconPaths(prefix);
-  await updatePaths(bookPaths, collectionPaths, faviconPaths, db, buildId, prefix, check);
+  await updatePaths(bookPaths, collectionPaths, faviconPaths, db, buildId, prefix);
 }
