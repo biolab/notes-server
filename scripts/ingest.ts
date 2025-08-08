@@ -15,15 +15,14 @@ program
 program.parseOptions(process.argv.slice(2));
 const { path: pathPrefix, update, recreate, check } = program.opts();
 
-if (pathPrefix && update) {
-  console.error("Both --path and --update options are provided. Please provide only one.");
+if (pathPrefix.includes("/") || pathPrefix.includes("\\")) {
+  console.error("Error: The path may contain only a top-level directory name.");
   process.exit(1);
 }
 if (check && (update || recreate)) {
   console.error("Error: --check cannot be used with --update or --recreate.");
   process.exit(1);
 }
-
 
 const ask = (question: string): Promise<string> => {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
