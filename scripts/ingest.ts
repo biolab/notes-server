@@ -3,6 +3,7 @@ dotenv.config({ path: ".env.local" });
 
 import { program } from "commander";
 import readline from "readline";
+import fs from "fs";
 
 import { updateDb } from "@/ingest";
 import { rebuildDatabase } from "@/ingest/createDb";
@@ -15,7 +16,7 @@ program
   .option("-c, --check", "Check, but don't update the database", false)
   .argument("[path]", "Path to the notes directory (default: from .env)", "");
 
-program.parseOptions(process.argv.slice(2));
+program.parse(process.argv);
 const { path: pathPrefix, update, recreate, check } = program.opts();
 const [notesPath] = program.args;
 
@@ -29,6 +30,10 @@ if (check && (update || recreate)) {
 }
 
 if (notesPath) {
+  if (!fs.existsSync(notesPath)) {
+    console.error(`Error: Path ${notesPath} does not exist.`);
+    process.exit(1);
+  }
   setNotesPath(notesPath);
 }
 
