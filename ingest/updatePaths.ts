@@ -396,9 +396,8 @@ export const updatePaths = async (
   collectionSlugs: string[][],
   faviconPaths: string[],
   db: Database,
-  buildId: number,
+  buildId: number | null,
   pathPrefix: string,
-  check: boolean
 ) => {
   const books = (await Promise.all(
     bookSlugs.map((book) => catchErrors(
@@ -418,7 +417,7 @@ export const updatePaths = async (
   if (hasError()) {
     process.exit(1);
   }
-  if (check) {
+  if (buildId === null) {
     return;
   }
 
