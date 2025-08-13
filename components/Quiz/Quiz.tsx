@@ -70,7 +70,7 @@ export default function Question({
         setSubmitted(true);
       }
     },
-    [submitDisabled, answer, checker, scorer, type, maxPoints, answerQuestion]
+    [submitDisabled, answer, checker, scorer, maxPoints, answerQuestion]
   );
 
   const message = React.useMemo(() => {
