@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import mime from 'mime';
 import { NextRequest, NextResponse } from "next/server";
-import { notesPath } from "@/ingest/paths";
+import { getNotesPath } from "@/ingest/paths";
 
 const publicDir = path.join(process.cwd(), "public");
 
@@ -27,7 +27,7 @@ export async function GET(
   const segments = (await params).path;
 
   const content =
-    await tryServe(notesPath, segments)
+    await tryServe(getNotesPath(), segments)
     || await tryServe(publicDir, segments);
   if (!content) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

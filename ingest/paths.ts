@@ -6,11 +6,13 @@ if (!maybeNotesPath) {
   throw new Error("Set NEXT_NOTES_PATH (e.g. /Users/janez/notes) in .env")
 }
 
-export let notesPath = maybeNotesPath.replace(/\/$/, "");
+let notesPath = maybeNotesPath.replace(/\/$/, "");
 
 export const setNotesPath = (newPath: string) => {
   notesPath = newPath.replace(/\/$/, "");
 }
+
+export const getNotesPath = () => notesPath;
 
 export const joinedPath = (spath: string | string[]) =>
   path.join(notesPath, ...(typeof spath === "string" ? [spath] : spath));

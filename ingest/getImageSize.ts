@@ -2,7 +2,7 @@ import { visit } from "unist-util-visit";
 import probe, { ProbeResult } from "probe-image-size";
 import { readFileSync } from "fs";
 import type { Root } from "hast";
-import { notesPath } from "@/ingest/paths";
+import { getNotesPath } from "@/ingest/paths";
 
 export const getImageSize = () => (tree: Root) => {
   visit(tree, "element", (node: any) => {
@@ -19,7 +19,7 @@ export const getImageSize = () => (tree: Root) => {
     let size: ProbeResult | undefined | null;
 
     try {
-      img = readFileSync(`${notesPath}/${imgSrc}`);
+      img = readFileSync(`${getNotesPath()}/${imgSrc}`);
     } catch (e) {
       console.log(`Error reading file: ${imgSrc}`);
       throw e;
