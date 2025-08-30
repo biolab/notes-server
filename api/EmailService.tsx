@@ -1,3 +1,5 @@
+"use server";
+
 import nodemailer from "nodemailer";
 
 const SMTP_SERVER_HOST = process.env.SMTP_SERVER_HOST;

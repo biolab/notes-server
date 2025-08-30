@@ -47,8 +47,10 @@ const ask = (question: string): Promise<string> => {
 
 (async () => {
   if (recreate) {
-    const answer = await ask("" +
-      "Are you sure you want to delete the database and start from scratch? (y/N) ");
+    const answer =
+      process.env.DEVELOPMENT ? "y"
+      : await ask("" +
+        "Are you sure you want to delete the database and start from scratch? (y/N) ");
     if (answer.toLowerCase() !== "y") {
       process.exit();
     }

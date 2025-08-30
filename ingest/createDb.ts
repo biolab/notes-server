@@ -12,11 +12,23 @@ export const rebuildDatabase = async () => {
   }
   const conn = new sqlite3.Database(DB_FILE);
   const run = promisify(conn.run.bind(conn));
-  const exec = promisify(conn.exec.bind(conn));
+
+  const LAST_BUILD_ID =  "lastBuildId INTEGER NOT NULL REFERENCES builds (id) ON DELETE RESTRICT"
+
+  const handle = async (table: string) => {
+    // This is to enable having some log when recreating the database.
+    // Otherwise we get SQLITE errors with too little information.
+
+    // console.log("Dropping and recreating table:", table);
+    try {
+      await run(`DROP TABLE IF EXISTS ${table}`);
+    } catch (err) {
+      console.error(`Error dropping table ${table}:`, err);
+    }
+  }
 
   try {
-    await exec("PRAGMA foreign_keys = ON");
-    await run(`DROP TABLE IF EXISTS builds`);
+    await handle("builds");
     await run(`
         CREATE TABLE builds
         (
@@ -27,7 +39,7 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS collections`);
+    await handle("collections");
     await run(`
         CREATE TABLE collections
         (
@@ -35,23 +47,20 @@ export const rebuildDatabase = async () => {
             path             TEXT    NOT NULL UNIQUE,
             title            TEXT    NOT NULL,
             subtitle         TEXT,
-            lastBuildId      INTEGER NOT NULL,
             public           BOOLEAN NOT NULL DEFAULT 0,
             language         TEXT    NOT NULL DEFAULT 'en',
             coverImg         TEXT,
             recursiveContent BOOLEAN NOT NULL DEFAULT 0,
             content          TEXT,
-
-            FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
+            ${LAST_BUILD_ID}
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS books`);
+    await handle("books");
     await run(`
         CREATE TABLE books
         (
             id                   INTEGER PRIMARY KEY AUTOINCREMENT,
-            lastBuildId          INTEGER NOT NULL,
             path                 TEXT    NOT NULL UNIQUE,
             title                TEXT    NOT NULL,
             subtitle             TEXT,
@@ -65,27 +74,54 @@ export const rebuildDatabase = async () => {
             email_subject        TEXT,
             email_body           TEXT,
             content              TEXT    NOT NULL,
-
-            FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
+            ${LAST_BUILD_ID}
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS chapters`);
+    await handle("groups");
+    await run(`
+        CREATE TABLE groups
+        (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            name     TEXT NOT NULL UNIQUE
+        );
+    `);
+
+    await handle("tokens");
+    await run(`
+        CREATE TABLE tokens
+        (
+            id     INTEGER PRIMARY KEY AUTOINCREMENT,
+            token  TEXT NOT NULL UNIQUE
+        );
+    `);
+
+    await handle("books_groups");
+    await run(`
+        CREATE TABLE books_groups
+        (
+            bookId  INTEGER NOT NULL REFERENCES books (id) ON DELETE CASCADE,
+            groupId INTEGER DEFAULT NULL REFERENCES groups (id) ON DELETE SET NULL,
+            tokenId INTEGER DEFAULT NULL REFERENCES tokens (id) ON DELETE SET NULL,
+            
+            UNIQUE (bookId, groupId, tokenId)
+        );
+    `);
+
+    await handle("chapters");
     await run(`
         CREATE TABLE chapters
         (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            lastBuildId   INTEGER NOT NULL,
             path          TEXT    NOT NULL UNIQUE,
             title         TEXT    NOT NULL,
             omitAsChapter BOOLEAN NOT NULL DEFAULT 0,
             content       TEXT,
-
-            FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
+            ${LAST_BUILD_ID}
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS collections_collections`);
+    await handle("collections_collections");
     await run(`
         CREATE TABLE collections_collections
         (
@@ -93,16 +129,13 @@ export const rebuildDatabase = async () => {
             subCollectionId INTEGER NOT NULL REFERENCES collections (id) ON DELETE CASCADE,
             position        INTEGER NOT NULL,
             explicit        BOOLEAN NOT NULL,
-            lastBuildId     INTEGER NOT NULL,
+            ${LAST_BUILD_ID},
 
-            UNIQUE (collectionId, subCollectionId),
-            FOREIGN KEY (collectionId) REFERENCES collections (id) ON DELETE CASCADE,
-            FOREIGN KEY (subCollectionId) REFERENCES collections (id) ON DELETE CASCADE,
-            FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
+            UNIQUE (collectionId, subCollectionId)
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS collections_books`);
+    await handle("collections_books");
     await run(`
         CREATE TABLE collections_books
         (
@@ -110,32 +143,26 @@ export const rebuildDatabase = async () => {
             bookId       INTEGER NOT NULL REFERENCES books (id) ON DELETE CASCADE,
             position     INTEGER NOT NULL,
             explicit     BOOLEAN NOT NULL,
-            lastBuildId  INTEGER NOT NULL,
+            ${LAST_BUILD_ID},
 
-            UNIQUE (collectionId, bookId),
-            FOREIGN KEY (collectionId) REFERENCES collections (id) ON DELETE CASCADE,
-            FOREIGN KEY (bookId) REFERENCES books (id) ON DELETE CASCADE,
-            FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
+            UNIQUE (collectionId, bookId)
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS books_chapters`);
+    await handle("books_chapters");
     await run(`
         CREATE TABLE books_chapters
         (
             bookId      INTEGER NOT NULL REFERENCES books (id) ON DELETE CASCADE,
             chapterId   INTEGER NOT NULL REFERENCES chapters (id) ON DELETE CASCADE,
             position    INTEGER NOT NULL,
-            lastBuildId INTEGER NOT NULL,
+            ${LAST_BUILD_ID},
 
-            UNIQUE (bookId, chapterId),
-            FOREIGN KEY (bookId) REFERENCES books (id) ON DELETE CASCADE,
-            FOREIGN KEY (chapterId) REFERENCES chapters (id) ON DELETE CASCADE,
-            FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
+            UNIQUE (bookId, chapterId)
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS questions`);
+    await handle("questions");
     await run(`
         CREATE TABLE questions
         (
@@ -146,55 +173,85 @@ export const rebuildDatabase = async () => {
             options      TEXT,
             answer       TEXT,
             questionType TEXT    NOT NULL,
-            lastBuildId  INTEGER NOT NULL,
-
-            UNIQUE (chapterId, questionId),
-            FOREIGN KEY (chapterId) REFERENCES chapters (id) ON DELETE CASCADE,
-            FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
+            ${LAST_BUILD_ID},
+            
+            UNIQUE (chapterId, questionId)
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS users`);
+    await handle("users");
     await run(`
         CREATE TABLE users
         (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            email        TEXT UNIQUE        DEFAULT NULL,
-            accessToken  TEXT      NOT NULL,
+            accessToken  TEXT UNIQUE NOT NULL,
+            name         TEXT DEFAULT NULL,
+            surname      TEXT DEFAULT NULL,
+            email        TEXT UNIQUE DEFAULT NULL,
             admin        BOOLEAN   NOT NULL DEFAULT 0,
             createdAt    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            lastUseAt    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            deleted      BOOLEAN   NOT NULL DEFAULT 0,
-            deletedCount INTEGER   NOT NULL DEFAULT 0,
-            UNIQUE (email)
+            lastUseAt    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS answers`);
+    await handle("temporary_tokens");
+    await run(`
+        CREATE TABLE temporary_tokens
+        (
+            emailToken    TEXT PRIMARY KEY,
+            userId        INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            name          TEXT DEFAULT NULL,
+            surname       TEXT DEFAULT NULL,
+            email         TEXT UNIQUE DEFAULT NULL,
+            expires       TIMESTAMP NOT NULL DEFAULT (DATETIME('now', '+4 hours'))
+        ); 
+    `);
+
+    await handle("users_books");
+    await run(`
+        CREATE TABLE users_books
+        (
+            userId      INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            bookId      INTEGER NOT NULL REFERENCES books (id) ON DELETE CASCADE,
+            groupId     INTEGER NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
+            
+            UNIQUE (userId, bookId)
+        );
+    `);
+
+    await handle("users_tokens");
+    await run(`
+        CREATE TABLE users_tokens
+        (
+            userId     INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            tokenId    INTEGER NOT NULL REFERENCES tokens (id) ON DELETE CASCADE,
+            
+            UNIQUE (userId, tokenId)
+        );
+    `);
+
+    await handle("answers");
     await run(`
         CREATE TABLE answers
         (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             createdAt   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            userId      INTEGER   NOT NULL,
-            bookId      INTEGER   NOT NULL,
-            questionId  INTEGER   NOT NULL,
-            answer      TEXT      NOT NULL,
+            userId      INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            bookId      INTEGER NOT NULL REFERENCES books (id) ON DELETE CASCADE,
+            groupId     INTEGER DEFAULT NULL REFERENCES groups (id) ON DELETE SET NULL,
+            questionId  INTEGER NOT NULL REFERENCES questions (id) ON DELETE CASCADE,
+            answer      TEXT NOT NULL,
             isCorrect   BOOLEAN,
-            points      INTEGER,
-            FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
-            FOREIGN KEY (bookId) REFERENCES books (id) ON DELETE CASCADE,
-            FOREIGN KEY (questionId) REFERENCES questions (id) ON DELETE CASCADE
+            points      INTEGER
         );
     `);
 
-    await run(`DROP TABLE IF EXISTS faviconpaths`);
+    await handle("faviconpaths");
     await run(`
         CREATE TABLE faviconpaths
         (
             path        TEXT NOT NULL,
-            lastBuildId INTEGER NOT NULL,
-            FOREIGN KEY (lastBuildId) REFERENCES builds (id) ON DELETE RESTRICT
+            ${LAST_BUILD_ID}
         )
     `)
   }

@@ -34,7 +34,7 @@ export interface ChapterDef extends ChapterDefBase {
 
 /* Books */
 
-export interface BookFrontmatter {
+export interface BookFrontmatterBase {
   title: string;
   subTitle: string;
   public: boolean;
@@ -48,6 +48,14 @@ export interface BookFrontmatter {
   email?: { subject: string; body: string };
 }
 
+export interface RawBookFrontmatter extends BookFrontmatterBase {
+  groups?: string[] | {[token: string]: string};
+  tokens?: string[];
+}
+
+export interface BookFrontmatter extends BookFrontmatterBase {
+  groups: [string, string][];
+}
 
 /* Collections */
 

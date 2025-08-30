@@ -87,6 +87,17 @@ export const getBook = async (id: number): Promise<BookProps> => {
     });
   }
 
+  const groups = (
+    (await db.all(
+       `SELECT groups.name, tokens.token
+        FROM books_groups bg
+        LEFT JOIN groups on groups.id = bg.groupId
+        LEFT JOIN tokens on tokens.id = bg.tokenId
+        WHERE bg.bookId = ?`,
+       [book.id])
+    ) as { name: string, token: string }[]
+  ).map(({ name, token }) => [name, token] as [string, string]);
+
   return {
     slug: book.path,
     bookId: book.id,
@@ -94,6 +105,7 @@ export const getBook = async (id: number): Promise<BookProps> => {
       title: book.title, subTitle: book.subtitle,
       requireLogin: book.requireLogin === 1, quizThreshold: book.quizThreshold,
       public: book.public === 1, coverImg: book.coverImg,
+      groups,
       tocInHeader: book.tocInHeader === 1, language: book.language,
       email: { subject: book.email_subject, body: book.email_body },
     },

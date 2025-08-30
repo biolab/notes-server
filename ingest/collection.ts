@@ -4,7 +4,7 @@ import path from "path";
 import { bookMatter } from "@/ingest/book";
 import { checkedMatter, getMdFile, parseMd } from "./md-helpers";
 import { isDirectory, readPublicDir } from "@/ingest/paths";
-import { BookFrontmatter, CollectionFrontmatter,
+import { RawBookFrontmatter, CollectionFrontmatter,
          defaultCollectionFrontmatter, extraCollectionMatter
 } from "@/types/types";
 
@@ -12,7 +12,7 @@ export type RawCollectionDef = {
   slug: string;
   frontmatter: CollectionFrontmatter;
   mdxContent: string;
-  books: { slug: string; frontmatter: BookFrontmatter }[];
+  books: { slug: string; frontmatter: RawBookFrontmatter }[];
   collections: { slug: string; frontmatter: CollectionFrontmatter }[];
 }
 

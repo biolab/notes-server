@@ -4,7 +4,7 @@ import React from "react";
 import { BiUserCircle } from "react-icons/bi";
 import { Modal } from "antd";
 import { UserContext } from "@/context/UserContextProvider";
-import { _deleteUser } from "@/api/UserService";
+import { deleteUser } from "@/api/UserService";
 import { logger } from "@/utils/logger";
 import { toast } from "react-toastify";
 
@@ -39,7 +39,7 @@ const UserDropdown = () => {
   const handleClose = React.useCallback(async () => {
     setConfirmLoading(true);
     try {
-      await _deleteUser(user!);
+      await deleteUser(user!.id);
       logOut();
       window.location.reload();
     } catch (error) {
