@@ -1,66 +1,58 @@
 "use server";
 
-import { AnswerWithQuestionId } from "@/context/QuizContextProvider";
 import db from "@/utils/db";
-import { User } from "./UserService";
+import { getUserId } from "@/utils/user";
 
-// TODO: these functions don't need `user`; userId is enough
+// Functions get user's accessToken rather than id because id's can be faked.
 
-export const postAnswer = async ({
-  user,
-  bookId,
-  questionId,
-  answer,
-  isCorrect,
-  points
-}: {
-  user: User | null;
+export const postAnswer = async (
+  { accessToken, group, bookId, questionId, answer, isCorrect, points}: {
+  accessToken: string;
+  group: string | null;
   bookId: number;
   questionId: string;
   answer: string;
   isCorrect?: boolean;
   points?: number
 }) => {
-  if (!user) {
-    throw Error("User is not found.")
-  }
+  const userId = await getUserId(accessToken);
+  const groupId = group ? (await db.get(
+    `SELECT id FROM groups WHERE name = ?`,
+    [group]
+  ))?.id : null;
+
   const question = await db.get(`
-  SELECT id FROM questions q
-  JOIN books_chapters bc ON q.chapterId = bc.chapterId
-  WHERE questionId = ? AND bc.bookId = ?
-  `, [questionId, bookId]);
+    SELECT id FROM questions q
+    JOIN books_chapters bc ON q.chapterId = bc.chapterId
+    WHERE questionId = ? AND bc.bookId = ?
+    `, [questionId, bookId]
+  );
   if (!question) {
     throw Error(`Question ${questionId} not found in book with id ${bookId}`)
   }
+
   await db.run(
-    `INSERT INTO answers (userId, bookId, questionId, answer, isCorrect, points)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [user.id, bookId, question.id, answer, isCorrect, points]
+    `INSERT INTO answers (userId, bookId, groupId, questionId, answer, isCorrect, points)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [userId, bookId, groupId, question.id, answer, isCorrect, points]
   );
 };
 
-export const getAnswers = async ({
-  user,
-  bookId
-}: {
-  user: User | null;
+export const getAnswers = async ({ accessToken, bookId }: {
+  accessToken: string;
   bookId: number;
-}): Promise<AnswerWithQuestionId[] | null> => {
-  if (!user) {
-    throw Error("User is not found.")
-  }
-  return (await db.all(
+}) =>
+  (await db.all(
     `SELECT answers.answer, q.questionId, isCorrect, points
     FROM answers
     JOIN questions q ON answers.questionId = q.id
     WHERE userId = ? AND bookId = ?
     ORDER BY answers.createdAt`,
-    [user.id, bookId]
+    [await getUserId(accessToken), bookId]
   )).map(({isCorrect, ...rest}) => ({
     // DB stores 0 and 1 even if the column is declared as BOOLEAN
     isCorrect: isCorrect === null ? undefined : !!isCorrect,
     ...rest}));
-};
 
 export type AnswerRecord = {
   createdAt: string;

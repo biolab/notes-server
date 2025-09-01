@@ -39,7 +39,7 @@ const UserDropdown = () => {
   const handleClose = React.useCallback(async () => {
     setConfirmLoading(true);
     try {
-      await deleteUser(user!.id);
+      await deleteUser(user!.accessToken);
       logOut();
       window.location.reload();
     } catch (error) {

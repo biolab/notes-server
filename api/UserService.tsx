@@ -2,6 +2,7 @@
 
 import { v4 } from "uuid";
 import db from "@/utils/db";
+import { getUserId } from "@/utils/user";
 
 export interface User {
   accessToken: string;
@@ -56,8 +57,8 @@ export const checkMailExists = async (email: string) =>
     [email]
   ));
 
-export const deleteUser = async (userId: number) => {
-  await db.run(`DELETE FROM users WHERE id = ?`, [userId]); // this will cascade
+export const deleteUser = async (accessToken: string) => {
+  await db.run(`DELETE FROM users WHERE accessToken = ?`, [accessToken]); // this will cascade
 };
 
 export const createUser = async (): Promise<User> => (
@@ -141,8 +142,10 @@ export const applyTemporaryToken = async (token: string): Promise<User> => {
 }
 
 export const setUserGroupAndToken = async (
-  userId: number, bookId: number, group: string | null, token: string | null) =>
+  accessToken: string, bookId: number, group: string | null, token: string | null) =>
 {
+  const userId = await getUserId(accessToken);
+
   if (group) {
     await db.run(
       `INSERT OR IGNORE INTO users_books (userId, bookId, groupId)

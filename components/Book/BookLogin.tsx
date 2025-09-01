@@ -61,7 +61,7 @@ function BookLogin({
         return;
       }
       if (group || token) {
-        await setUserGroupAndToken(user.id, bookId, group, token);
+        await setUserGroupAndToken(user.accessToken, bookId, group, token);
       }
       if (!email) {
         // Just reload to retrieve the entered group and/or token

@@ -8,7 +8,7 @@ const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
 export type BookProps = {
   slug: string;
   frontmatter: BookFrontmatter;
-  bookId?: number;
+  bookId: number;
   content: string;
   chapters: ChapterDef[];
 };

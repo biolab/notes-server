@@ -42,8 +42,8 @@ export const Book = ({
     if (!user) {
       return;
     }
-    // todo: doesn't bookId always exist?
-    getAnswers({ user, bookId: bookId! })
+    // Do we need to include a group here as well?
+    getAnswers({ accessToken: user.accessToken, bookId })
       .then((_answers) => {
         logger("Quiz answers fetched:", _answers);
         setAnswers(_answers);
@@ -52,7 +52,7 @@ export const Book = ({
         toast.error(error.message || "Failed to fetch quiz answers");
         setAnswers(null);
       });
-  }, [user, slug, bookId]);
+  }, [user, user?.accessToken, slug, bookId]);
 
   const chapterNumbers = React.useMemo(
     () =>
@@ -78,7 +78,7 @@ export const Book = ({
       // We need a group and possibly a token
 
       // Has the user read this book before and has a proper token?
-      const storedGroup = user.groups[bookId!];
+      const storedGroup = user.groups[bookId];
       console.log("Stored group:", storedGroup);
       if (storedGroup) {
         if (frontmatter.groups.some(([group, token]) =>
@@ -131,7 +131,7 @@ export const Book = ({
     return (
       <BookLogin
         title={frontmatter.title}
-        bookId={bookId!}
+        bookId={bookId}
         requireEmail={frontmatter.requireLogin}
         groups={groupRequired ? frontmatter.groups : undefined}
       />
@@ -141,7 +141,7 @@ export const Book = ({
   return (
     <IntlContextProvider lang={frontmatter.language || "en"}>
       <QuizContextProvider
-        bookId={bookId!}
+        bookId={bookId}
         chapters={chapters}
         answers={answers as AnswerWithQuestionId[] | null}
         quizThreshold={frontmatter.quizThreshold || 0.8}
@@ -170,7 +170,7 @@ export const Book = ({
             <h1 className="max-w-sm mb-0 font-medium">{frontmatter.title}</h1>
             <p className="subtitle">{frontmatter.subTitle}</p>
 
-            <MdxContent content={content} bookId={bookId!} t={t}/>
+            <MdxContent content={content} bookId={bookId} t={t}/>
 
             {!frontmatter.tocInHeader && (
               <ContentIndexControl
@@ -182,7 +182,7 @@ export const Book = ({
             {chapters.map((chapterDef, index) => (
               <Chapter
                 {...chapterDef}
-                bookId={bookId!}
+                bookId={bookId}
                 chapterId={chapterDef.chapterId}
                 key={chapterDef.chapterDir}
                 index={index}
