@@ -4,7 +4,7 @@ import { UserContextProvider } from "@/context/UserContextProvider";
 import { getBook, getCollection, getItem, getMetadata } from "@/api/BookService";
 import React, {Suspense} from "react";
 import { notFound } from "next/navigation";
-import { Results } from "@/components/Quiz/Results";
+import { BookResults, CollectionResults } from "@/components/Quiz/Results";
 
 const ignoreLogin = process && process.env.NEXT_PUBLIC_IGNORE_LOGIN === "true";
 
@@ -36,7 +36,7 @@ export default async function CollectionOrBookPage(
       <Suspense>
         <UserContextProvider requireEmail={requireEmail}>
           { results
-            ? <Results bookIds={[item.id]} />
+            ? <BookResults {...book} />
             : <Book {...book} />
           }
         </UserContextProvider>
@@ -47,7 +47,10 @@ export default async function CollectionOrBookPage(
     return (
       <Suspense>
         <UserContextProvider>
-          <Collection {...collection} />
+          { results
+            ? <CollectionResults {...collection} />
+            : <Collection {...collection} />
+          }
         </UserContextProvider>
       </Suspense>
     );

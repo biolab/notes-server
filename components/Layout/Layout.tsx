@@ -24,12 +24,16 @@ export default function Layout({
   showHome = false,
   chapters = [],
   isChapterIndexVisible = {},
+  showLinkToResults = false,
+  returnLink,
   children,
 }: {
   title: string | null;
   showHome?: boolean;
   chapters?: ChapterDef[];
   isChapterIndexVisible?: { [key: number]: boolean };
+  showLinkToResults?: boolean;
+  returnLink?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -53,7 +57,12 @@ export default function Layout({
           <div />
         )}
         <span className="page-title">{title}</span>
-        <UserDropdown />
+        <div className="flex">
+          <UserDropdown
+            showLinkToResults={showLinkToResults}
+            returnLink={returnLink}
+          />
+        </div>
       </header>
       <main className="container mx-auto flex-1">{children}</main>
     </div>

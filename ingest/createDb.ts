@@ -168,6 +168,7 @@ export const rebuildDatabase = async () => {
         (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             chapterId    INTEGER NOT NULL REFERENCES chapters (id) ON DELETE CASCADE,
+            position     INTEGER NOT NULL,
             questionId   TEXT    NOT NULL,
             question     TEXT    NOT NULL,
             options      TEXT,

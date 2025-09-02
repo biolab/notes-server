@@ -197,17 +197,19 @@ const insertChapters = async (
         )
       ).id;
 
+      let position = 0;
       for (const {questionId, question, type, options, answer} of questions) {
         await db.run(
           `
-              INSERT INTO questions (chapterId, questionId, question, options, answer, questionType, lastBuildId)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
-              ON CONFLICT DO UPDATE SET question    = excluded.question,
+              INSERT INTO questions (chapterId, position, questionId, question, options, answer, questionType, lastBuildId)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT DO UPDATE SET position    = excluded.position,
+                                        question    = excluded.question,
                                         options     = excluded.options,
                                         answer      = excluded.answer,
                                         questionType = excluded.questionType,
                                         lastBuildId = excluded.lastBuildId`,
-          [chapterId, questionId, question, JSON.stringify(options),
+          [chapterId, position++, questionId, question, JSON.stringify(options),
            answer, type, buildId]
         );
       }

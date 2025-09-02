@@ -12,7 +12,7 @@ export interface User {
   id: number;
   groups: {[bookId: number]: string};
   tokens: string[];
-  admin?: boolean;
+  admin: boolean;
 }
 
 export const getUser = async (accessToken: string) => {
@@ -48,8 +48,16 @@ export const getUser = async (accessToken: string) => {
     .map(({ bookId, name }) => [bookId, name])
   );
 
+  user.admin = !!user.admin;
+
   return user;
 };
+
+export const isAdmin = async (accessToken: string): Promise<boolean> =>
+  !!(await db.get(
+    `SELECT 1 FROM users WHERE accessToken = ? AND admin = 1`,
+    [accessToken]
+  ));
 
 export const checkMailExists = async (email: string) =>
   !!(await db.get(
@@ -61,12 +69,12 @@ export const deleteUser = async (accessToken: string) => {
   await db.run(`DELETE FROM users WHERE accessToken = ?`, [accessToken]); // this will cascade
 };
 
-export const createUser = async (): Promise<User> => (
-  await db.get(
-    `INSERT INTO users (accessToken) VALUES (?)
-     RETURNING id, accessToken`,
-    [v4()])
-) as User;
+export const createUser = async (): Promise<User> => {
+  const accessToken = v4();
+  await db.get(`INSERT INTO users (accessToken)
+                VALUES (?)`, [accessToken]);
+  return getUser(accessToken);
+}
 
 export const applyTemporaryToken = async (token: string): Promise<User> => {
   const tempData = await db.get(

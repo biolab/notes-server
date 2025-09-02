@@ -242,7 +242,7 @@ function BookLogin({
                 askEmail && (!isValidEmail || !name || !surname)
                 || askGroup && !group
                 || askToken && !token
-                || !!state
+                || !!state && state !== "UNKNOWN_MAIL"
               }
               onClick={(e) => { onSubmit(e, false); }}
               className="

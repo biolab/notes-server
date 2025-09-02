@@ -14,12 +14,14 @@ export type BookProps = {
 };
 
 export type ItemDesc = {
+  id: number;
   slug: string;
   title: string;
   subtitle?: string;
 }
 
 export type CollectionProps = {
+  collectionId: number;
   slug: string;
   frontmatter: CollectionFrontmatter;
   content: string;
@@ -30,10 +32,11 @@ export type CollectionProps = {
 export type ItemDef = {
   type: "book" | "collection";
   id: number;
+  title: string;
 }
 export const getItem = async (path: string): Promise<ItemDef | undefined> =>
-  await db.get(`SELECT 'book' as type, id FROM books WHERE path = ?`, [path])
-  || await db.get(`SELECT 'collection' as type, id FROM collections WHERE path = ?`, [path]);
+  await db.get(`SELECT 'book' as type, id, title FROM books WHERE path = ?`, [path])
+  || await db.get(`SELECT 'collection' as type, id, title FROM collections WHERE path = ?`, [path]);
 
 export const getMetadata = async (path: string):
   Promise<{title?: string, description?: string, icons?: {icon: string}} | undefined> => {
@@ -119,7 +122,7 @@ export const getCollection = async (id: number): Promise<CollectionProps> => {
   const ifHidePrivate = (s: string) => showUnpublished ? "" : s;
 
   const books = await db.all(
-    `SELECT books.path as slug, books.title, books.subtitle
+    `SELECT books.id, books.path as slug, books.title, books.subtitle
      FROM collections_books coll_books
      LEFT JOIN books ON books.id = bookId
      WHERE collectionId = ?
@@ -128,7 +131,7 @@ export const getCollection = async (id: number): Promise<CollectionProps> => {
     [id])
 
   const collections = await db.all(
-    `SELECT coll.path as slug, coll.title, coll.subtitle
+    `SELECT coll.id, coll.path as slug, coll.title, coll.subtitle
      FROM collections_collections coll_coll
      LEFT JOIN collections coll ON coll.id = subCollectionId
      WHERE collectionId = ?
@@ -138,6 +141,7 @@ export const getCollection = async (id: number): Promise<CollectionProps> => {
   )
 
   return {
+    collectionId: collection.id,
     slug: collection.path,
     frontmatter: {
       title: collection.title, subTitle: collection.subtitle,
@@ -149,3 +153,32 @@ export const getCollection = async (id: number): Promise<CollectionProps> => {
     collections,
   };
 }
+
+export type GroupList = {id: number, name: string}[];
+
+export const getBookGroups = async (bookId: number): Promise<GroupList> =>
+  (await db.all(
+    `SELECT g.id, g.name
+     FROM books_groups bg
+     JOIN groups g on g.id = bg.groupId
+     WHERE bg.bookId = ?`,
+    [bookId]
+  )) as {id: number, name: string}[];
+
+export const getCollectionGroups = async (
+  collectionId: number, withQuestions=false
+): Promise<GroupList> =>
+  (await db.all(
+    `SELECT DISTINCT g.id, g.name
+     FROM collections_books cb
+     JOIN books_groups bg ON cb.bookId = bg.bookId
+     JOIN groups g on g.id = bg.groupId
+     ${withQuestions 
+       ? ` JOIN books_chapters bc ON bg.bookId = bc.bookId
+          JOIN questions q ON bc.chapterId = q.chapterId`
+       : ""}
+     WHERE cb.collectionId = ?
+     ORDER BY g.name
+     `,
+    [collectionId]
+  )) as {id: number, name: string}[];

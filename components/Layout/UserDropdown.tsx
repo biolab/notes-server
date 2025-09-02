@@ -25,7 +25,10 @@ function useOutsideClick(ref: any, onClick: any) {
   }, [onClick, ref]);
 }
 
-const UserDropdown = () => {
+const UserDropdown = ({showLinkToResults=false, returnLink}: {
+  showLinkToResults?: boolean
+  returnLink?: string
+}) => {
   const { user, logOut } = React.useContext(UserContext);
 
   const wrapperRef = React.useRef(null);
@@ -70,6 +73,20 @@ const UserDropdown = () => {
             <li className="danger" onClick={handleShowModal}>
               Delete user data
             </li>
+            { showLinkToResults && user.admin &&
+              <li onClick={() => { window.location.assign("?results"); }}>
+                Show Quiz Results
+              </li>
+            }
+            { returnLink &&
+              <li onClick={() => {
+                const url = window.location.origin + window.location.pathname;
+                window.location.assign(url);
+              }}>
+                Show {returnLink}
+              </li>
+
+            }
             <li
               onClick={() => {
                 logOut();

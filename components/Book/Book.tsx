@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import Image from "../Image";
 import { MdxContent } from "../MdxContent";
 import { Chapter } from "./Chapter";
@@ -30,6 +30,10 @@ export const Book = ({
     "pending"
   );
   const [groupRequired, setGroupRequired] = useState<boolean | null>(null);
+  const hasQuestions = useMemo(
+    () => chapters.some((chapter) => chapter.questions.length > 0),
+    [chapters]
+  );
 
   const { t } = useIntl();
 
@@ -153,6 +157,7 @@ export const Book = ({
           isChapterIndexVisible={
             frontmatter.tocInHeader ? isChapterIndexVisible : []
           }
+          showLinkToResults={hasQuestions}
         >
           <div className="prose mx-auto book">
             {frontmatter.coverImg && (
