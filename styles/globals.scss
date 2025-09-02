@@ -478,6 +478,11 @@ table.quiz-results {
     vertical-align: bottom;
     user-select: none;
 
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
     div.rotated {
       max-height: 200px;
       white-space: nowrap;
@@ -485,12 +490,6 @@ table.quiz-results {
       writing-mode: vertical-rl;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-
-    div.rtooltip {
-      width: 300px;
-      background-color: darkblue;
-      pointer-events: none;
     }
   }
 
@@ -512,6 +511,7 @@ table.quiz-results {
   display: none;
   text-align: left;
   user-select: none;
+  pointer-events: none;
 
   // Tailwind equivalents:
   background-color: darkblue;

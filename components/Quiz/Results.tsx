@@ -36,6 +36,15 @@ function GroupsCombo({groups, value, onChange}: {
   );
 }
 
+export const TooltipWrapper = ({ children, tooltip }: {
+  children: React.ReactNode;
+  tooltip: React.ReactNode}
+) =>
+  <div className="relative group inline-block">
+    <div>{children}</div>
+    <div className="tooltip">{tooltip}</div>
+  </div>
+
 function filterResults<T extends UserDesc>(results: T[] | false | null, group: number | null): T[] | false | null
 {
   return group && results
@@ -53,7 +62,7 @@ function AnswerBreakdown({results, question, questionId}: {
       <tr>
 
     }*/
-export function BookResults({bookId, frontmatter, chapters}: BookProps) {
+export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
   const { user } = React.useContext(UserContext);
   const [results, setResults] = React.useState<AnswersInBook | false | null>(null);
   React.useEffect(() => {
@@ -112,21 +121,19 @@ export function BookResults({bookId, frontmatter, chapters}: BookProps) {
           <thead>
           <tr>
             <td/>
-            {questions.map(({id, question}) => (
+            {questions.map(({id, question, questionId}) => (
               <th key={id} className="rotated">
-                <div className="relative group inline-block">
-                  <div className="rotated">
-                    {question}
-                  </div>
-                  <div className="rtooltip absolute bottom-0 left-1/2 -translate-x-1/2 mb-4 hidden group-hover:block
-                bg-black text-white text-xs rounded px-2 py-1 z-50">
-                    {question}
-                  </div>
-                </div>
+                <a href={`/${slug}#question-${questionId}`}>
+                  <TooltipWrapper tooltip={question}>
+                    <div className="rotated">
+                      {question}
+                    </div>
+                  </TooltipWrapper>
+                </a>
               </th>
-            ))}
+              ))}
             <th>
-              Points
+            Points
             </th>
           </tr>
           </thead>
@@ -135,13 +142,14 @@ export function BookResults({bookId, frontmatter, chapters}: BookProps) {
            ? <tr><td>No results</td></tr>
             : filteredResults.map(({userId, groupId, name, surname, email, answers}) => (
             <tr key={userId}>
-              <th
-                title={
-                  [email, hasGroups && `Group: ${groups.find((g) => g.id === groupId)?.name}`]
-                    .filter(Boolean)
-                    .join("\n")}
-              >
-                {name ? `${name} ${surname}` : `User #${userId}`}
+              <th>
+                <TooltipWrapper
+                  tooltip={
+                    [email, hasGroups && `Group: ${groups.find((g) => g.id === groupId)?.name}`]
+                      .filter(Boolean)
+                      .join("\n")}>
+                  {name ? `${name} ${surname}` : `User #${userId}`}
+                </TooltipWrapper>
               </th>
               {questions.map(({id, questionId, question}) => {
                 const attempts = answers[id!];
@@ -151,11 +159,8 @@ export function BookResults({bookId, frontmatter, chapters}: BookProps) {
                 const {isCorrect} = attempts[attempts.length - 1];
                 return (
                   <td key={`${userId}-${questionId}`}>
-                    <div className="relative group inline-block">
-                      <div>
-                        {corrSym(isCorrect)}
-                      </div>
-                      <div className="tooltip">
+                    <TooltipWrapper
+                      tooltip={<>
                         <p>{question}</p>
                         <ul style={{listStyleType: "none"}}>
                           { attempts.map(({isCorrect, answer, createdAt}, i) =>
@@ -172,8 +177,10 @@ export function BookResults({bookId, frontmatter, chapters}: BookProps) {
                             </li>
                           ) }
                         </ul>
-                      </div>
-                    </div>
+                      </>}
+                    >
+                      { corrSym(isCorrect) }
+                    </TooltipWrapper>
                   </td>
                 );
               })}
@@ -185,29 +192,50 @@ export function BookResults({bookId, frontmatter, chapters}: BookProps) {
               </th>
             </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
+          <tr>
+            <th>N = {filteredResults.length}</th>
+            {questions.map(({id, question}) =>
+              <td key={`tot-${id}`}>
+                <TooltipWrapper tooltip={question}>
+                  { filteredResults
+                      .map(({answers}) =>
+                        answers[id!]?.[answers[id!].length - 1].isCorrect ? 1 : 0)
+                      .reduce((a: number, b) => a + b, 0)
+                  }
+                </TooltipWrapper>
+              </td>
+            )}
+            <th style={{textAlign: "center"}}>
+              {questions.flatMap(({id}) =>
+                filteredResults
+                  .map(({answers}) => answers[id!]?.[answers[id!].length - 1].points || 0)
+              ).reduce((a: number, b) => a + b, 0) / filteredResults.length
+              }
+            </th>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     </Layout>
-  );
-}
+    )
+      ;
+    }
 
 export function CollectionResults({collectionId, frontmatter, books}: CollectionProps) {
   const [results, setResults] = React.useState<PointsInCollection | false | null>(null);
-  const { user } = React.useContext(UserContext);
+  const {user} = React.useContext(UserContext);
   React.useEffect(() => {
     if (user) {
       getCollectionResults(collectionId, user?.accessToken || "").then(setResults);
     }
-  },
-  [user, user?.accessToken, collectionId]);
+    },
+    [user, user?.accessToken, collectionId]);
 
   const [groups, setGroups] = React.useState<GroupList>([]);
   React.useEffect(() => {
     getCollectionGroups(collectionId, true).then(setGroups);
   },
   [collectionId]);
-
 
   const [group, setGroup] = React.useState<number | null>(null);
   const filteredResults = React.useMemo(
@@ -244,15 +272,11 @@ export function CollectionResults({collectionId, frontmatter, books}: Collection
                 className="rotated"
                 onClick={() => { window.location.href = `/${slug}?results`; }}
               >
-                <div className="relative group inline-block">
+                <TooltipWrapper tooltip={title}>
                   <div className="rotated">
                     {title}
                   </div>
-                  <div className="rtooltip absolute bottom-0 left-1/2 -translate-x-1/2 hidden group-hover:block
-                bg-black text-white text-xs rounded px-2 py-1 z-50">
-                    {title}
-                  </div>
-                </div>
+                </TooltipWrapper>
               </th>
             ))}
             <th>

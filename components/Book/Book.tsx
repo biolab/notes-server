@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useContext, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import Image from "../Image";
 import { MdxContent } from "../MdxContent";
 import { Chapter } from "./Chapter";
@@ -122,6 +123,20 @@ export const Book = ({
     setGroupRequired(true);
   },
   [user, frontmatter, bookId, setUserGroup]);
+
+  const pathname = usePathname();
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return;
+      const el = document.getElementById(hash);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [pathname]);
 
   if (loading) {
     return (

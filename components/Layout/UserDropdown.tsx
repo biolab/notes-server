@@ -83,7 +83,7 @@ const UserDropdown = ({showLinkToResults=false, returnLink}: {
                 const url = window.location.origin + window.location.pathname;
                 window.location.assign(url);
               }}>
-                Show {returnLink}
+                Back to {returnLink}
               </li>
 
             }
