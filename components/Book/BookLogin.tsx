@@ -82,14 +82,30 @@ function BookLogin({
       }
 
       try {
+        const text = `Hello,
+
+Use the link below to sign in to Notes:
+
+${url}
+
+This link will expire in 30 minutes. If you didn’t request this email, you can safely ignore it.
+
+– The Notes Team`;
         const html = `
-          <p>Hello${name ? ` ${name}` : ""},</p>
-          <p>login to Notes by following this link: <a href="${url}">{url}</a></p>`;
-        await sendEmail({
-          sendTo: email,
-          subject: "Confirm your email for Notes",
-          html}
-        );
+          <p>Hello,</p>
+          <p>Use the button below to sign in to <strong>Notes</strong>:</p>
+          <p><a href="${url}" style="
+            display:inline-block;
+            padding:10px 20px;
+            background-color:#2563eb;
+            color:#ffffff;
+            text-decoration:none;
+            border-radius:6px;
+          ">Sign in</a></p>
+          <p>This link will expire in 30 minutes. If you didn’t request this email, you can safely ignore it.</p>
+          <p>– The Notes Team</p>`;
+
+        await sendEmail({sendTo: email, subject: "Sign in to Notes", text, html});
       } catch (error: any) {
         setMessage([
           "SEND_ERROR",
