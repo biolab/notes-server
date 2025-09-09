@@ -141,7 +141,8 @@ export default function Question({
     () => answer?.trim().toLowerCase(),
     [answer]);
 
-  return (
+  return <>
+    <a id={`question-${id}`} />
     <div className={`quiz ${correctnessClass}`}>
       <div className="quiz-question">
         <h3>
@@ -213,5 +214,5 @@ export default function Question({
         {childrenWithProps}
       </form>
     </div>
-  );
+  </>;
 }

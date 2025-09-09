@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { BookFrontmatter, ChapterDefBase, ChapterFrontmatter } from "@/types/types";
+import { RawBookFrontmatter, ChapterDefBase, ChapterFrontmatter } from "@/types/types";
 import { pathExists } from "@/ingest/paths";
 import { checkedMatter, getMdFile, parseMd, readPublicDirMd } from "./md-helpers";
 import { catchErrors, logError } from "@/ingest/errors";
@@ -12,7 +12,7 @@ const chapterFrontmatterDefaults: ChapterFrontmatter = {
   omitAsChapter: false,
 };
 
-const bookFrontmatterDefaults: BookFrontmatter = {
+const bookFrontmatterDefaults: RawBookFrontmatter = {
   title: "",
   subTitle: "",
   public: true,
@@ -23,14 +23,32 @@ const bookFrontmatterDefaults: BookFrontmatter = {
   quizThreshold: 0,
   loginSubtitle: "",
   email: { subject: "", body: ""},
-} satisfies BookFrontmatter & Record<string, unknown>;
+} satisfies RawBookFrontmatter & Record<string, unknown>;
 
 const extraBookMatter = {
+  groups: [],
+  tokens: [],
   chapters: [] as string[],
 } satisfies Record<string, unknown>;
 
 export const bookMatter = (indexMd: string, slug: string | null = null) =>
-  checkedMatter(indexMd, bookFrontmatterDefaults, extraBookMatter, slug);
+  checkedMatter(
+    indexMd, bookFrontmatterDefaults, extraBookMatter, slug,
+    {
+      groups: (value) =>
+        Array.isArray(value)
+          ? (value.some((x) => typeof(x) !== "string")
+            && "All groups must be strings")
+        : typeof(value) === "object"
+          ? (Object.values(value).some((token) => typeof(token) !== "string")
+            && "All groups and tokens must be strings")
+        : "'groups' must be an list of strings, or string pairs without dashes",
+
+      tokens: (value) =>
+        (!Array.isArray(value) || value.some((x) => typeof(x) !== "string"))
+        && "'tokens' must be a list of strings (don't forget the leading dashes)",
+    }
+  );
 
 const chapterMatter = (chapterMd: string, slug: string | null = null) =>
   checkedMatter(chapterMd, chapterFrontmatterDefaults, {}, slug);
@@ -41,7 +59,7 @@ interface RawChapterDef extends ChapterDefBase {
 
 export type RawBookDef = {
   slug: string;
-  frontmatter: BookFrontmatter;
+  frontmatter: RawBookFrontmatter;
   mdxContent: string;
   chapters: RawChapterDef[];
 };

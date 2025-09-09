@@ -54,7 +54,8 @@ export function checkedMatter<T>(
   indexMd: string,
   defaultMatter: T,
   extraMatter: Record<string, unknown> = {},
-  slug: string | null
+  slug: string | null,
+  typeCheckers: Record<string, (value: any) => string | boolean> = {},
 ): {
   frontmatter: T;
   content: string;
@@ -76,6 +77,7 @@ export function checkedMatter<T>(
     ...Object.entries(data)
       .map(([key, value]) =>
         !(key in allowed) ? `unexpected key '${key}'`
+        : typeCheckers[key] ? typeCheckers[key](value)
         : typeof value !== typeof allowed[key]
           ? `invalid type for '${key}': expected ${typeof allowed[key]}, got ${typeof value}`
           : "")

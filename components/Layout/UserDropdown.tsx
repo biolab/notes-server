@@ -4,7 +4,7 @@ import React from "react";
 import { BiUserCircle } from "react-icons/bi";
 import { Modal } from "antd";
 import { UserContext } from "@/context/UserContextProvider";
-import { _deleteUser } from "@/api/UserService";
+import { deleteUser } from "@/api/UserService";
 import { logger } from "@/utils/logger";
 import { toast } from "react-toastify";
 
@@ -25,7 +25,10 @@ function useOutsideClick(ref: any, onClick: any) {
   }, [onClick, ref]);
 }
 
-const UserDropdown = () => {
+const UserDropdown = ({showLinkToResults=false, returnLink}: {
+  showLinkToResults?: boolean
+  returnLink?: string
+}) => {
   const { user, logOut } = React.useContext(UserContext);
 
   const wrapperRef = React.useRef(null);
@@ -39,7 +42,7 @@ const UserDropdown = () => {
   const handleClose = React.useCallback(async () => {
     setConfirmLoading(true);
     try {
-      await _deleteUser(user!);
+      await deleteUser(user!.accessToken);
       logOut();
       window.location.reload();
     } catch (error) {
@@ -70,6 +73,20 @@ const UserDropdown = () => {
             <li className="danger" onClick={handleShowModal}>
               Delete user data
             </li>
+            { showLinkToResults && user.admin &&
+              <li onClick={() => { window.location.assign("?results"); }}>
+                Show Quiz Results
+              </li>
+            }
+            { returnLink &&
+              <li onClick={() => {
+                const url = window.location.origin + window.location.pathname;
+                window.location.assign(url);
+              }}>
+                Back to {returnLink}
+              </li>
+
+            }
             <li
               onClick={() => {
                 logOut();

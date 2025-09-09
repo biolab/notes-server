@@ -9,6 +9,7 @@ import Image from "../Image";
 
 
 import { CollectionProps, ItemDesc } from "@/api/BookService";
+import { getCollectionHasQuestions } from "@/api/QuizService";
 
 const List = ({items, title}: { title: string; items: ItemDesc[] }) => {
   const { t } = useIntl();
@@ -30,36 +31,47 @@ const List = ({items, title}: { title: string; items: ItemDesc[] }) => {
 };
 
 export const Collection = ({
+  collectionId,
   frontmatter,
   content,
   collections,
   books,
   slug,
-}: CollectionProps) =>
-    <IntlContextProvider lang={frontmatter.language}>
-      <Layout title={frontmatter.title}>
-        <div className="collection mx-auto">
-          {frontmatter.coverImg && (
-            <div className="book-cover-img">
-              <Image
-                width={650}
-                height={650}
-                layout="responsive"
-                alt="cover image"
-                src={`/${slug}/${frontmatter.coverImg}`}
-              />
-            </div>
-          )}
+}: CollectionProps) => {
+  const [hasQuestions, setHasQuestions] = React.useState<boolean | null>(null);
+  React.useEffect(() => {
+    getCollectionHasQuestions(collectionId).then(setHasQuestions);
+  },
+  [collectionId]);
 
-          <h1 className="mb-0 font-medium">{frontmatter.title}</h1>
-          { content
-            ? <MdxContent content={content} t={getT(frontmatter.language)}/>
-            : !!frontmatter.subTitle &&
-                <p className="subtitle">{frontmatter.subTitle}</p>
-          }
+  return <IntlContextProvider lang={frontmatter.language}>
+    <Layout
+      title={frontmatter.title}
+      showLinkToResults={!!hasQuestions}
+    >
+      <div className="collection mx-auto">
+        {frontmatter.coverImg && (
+          <div className="book-cover-img">
+            <Image
+              width={650}
+              height={650}
+              layout="responsive"
+              alt="cover image"
+              src={`/${slug}/${frontmatter.coverImg}`}
+            />
+          </div>
+        )}
 
-          <List items={collections} title={slug && "collections"} />
-          <List items={books} title="books" />
-        </div>
-      </Layout>
-    </IntlContextProvider>;
+        <h1 className="mb-0 font-medium">{frontmatter.title}</h1>
+        {content
+         ? <MdxContent content={content} t={getT(frontmatter.language)}/>
+         : !!frontmatter.subTitle &&
+           <p className="subtitle">{frontmatter.subTitle}</p>
+        }
+
+        <List items={collections} title={slug && "collections"}/>
+        <List items={books} title="books"/>
+      </div>
+    </Layout>
+  </IntlContextProvider>;
+}

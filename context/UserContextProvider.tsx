@@ -1,174 +1,118 @@
-// import { useMutation, useQuery } from "@tanstack/react-query";
 "use client";
 
 import React, { ReactNode } from "react";
 import { useHasMounted } from "../hooks/useHasMounted";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { registerUser, getUser } from "@/api/UserService";
+import { createUser, applyTemporaryToken, getUser, User } from "@/api/UserService";
 import { logger } from "@/utils/logger";
-
-export interface User {
-  accessToken: string;
-  email: string;
-  id: number;
-  admin?: boolean;
-}
 
 export const UserContext = React.createContext<{
   user: User | null;
-  onUserLogin: (user: User) => void;
+  userGroup: string | null;
+  setUserGroup: React.Dispatch<React.SetStateAction<string | null>>;
   logOut: () => void;
-  retrievingUser: boolean;
-  showLogin: boolean;
 }>({
   user: null,
-  onUserLogin: () => {},
+  userGroup: null,
+  setUserGroup: () => {},
   logOut: () => {},
-  retrievingUser: true,
-  showLogin: false,
 });
 
-const USER_LS_KEY = "lecture-notes::user";
+export const USER_LS_KEY = "lecture-notes::user";
 
-const getUserFromLocalStorage = () => {
-  const user = localStorage.getItem(USER_LS_KEY);
+export const retrieveAccessTokenFromLocalStorage = () =>
+  localStorage.getItem(USER_LS_KEY);
 
-  if (!user) {
-    return null;
-  }
+export const storeAccessTokenInLocalStorage = (token: string) => {
+  localStorage.setItem(USER_LS_KEY, token);
+}
 
-  try {
-    return JSON.parse(user);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
-    return null;
-  }
-};
+export const removeAccessTokenFromLocalStorage = () => {
+  localStorage.removeItem(USER_LS_KEY);
+}
 
-export const UserContextProvider = ({
-  children,
-  requireEmail = false,
-}: {
+export const UserContextProvider = ({ children }: {
   children: ReactNode;
   requireEmail?: boolean;
 }) => {
   const [user, setUser] = React.useState<User | null>(null);
-  const hasMounted = useHasMounted();
-  const [retrievingUser, setRetrievingUser] = React.useState(true);
-  const [init, setInit] = React.useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
-  const [showLogin, setShowLogin] = React.useState(false);
-
-  const searchParams = useSearchParams();
-  const accessTokenFromQuery = searchParams.get("accessToken");
+  const [userGroup, setUserGroup] = React.useState<string | null>(null);
 
   const onUserLogin = React.useCallback(
     (user: User) => {
-      if (requireEmail && !user?.email) {
-        setShowLogin(true);
-        setRetrievingUser(false);
-        return;
-      }
-
       setUser(user);
-      setRetrievingUser(false);
-
-      if (user.admin) {
-        return;
-      }
-
-      localStorage.setItem(USER_LS_KEY, JSON.stringify(user));
-    },
-    [requireEmail]
-  );
-
-  const createAnonymsUser = React.useCallback(async () => {
-    if (requireEmail) {
-      setShowLogin(true);
-      setRetrievingUser(false);
-      return;
-    }
-
-    try {
-      const { user: _user } = await registerUser({ email: null });
-      logger("Created anonyms user:", _user);
-
-      onUserLogin(_user);
-    } catch (error) {
-      setRetrievingUser(false);
-      localStorage.removeItem(USER_LS_KEY);
-    }
-  }, [onUserLogin, requireEmail]);
-
-  const fetchUser = React.useCallback(
-    async (accessToken: string) => {
-      try {
-        const _user = await getUser({ accessToken });
-
-        logger("Fetched user:", _user);
-
-        if (!_user) {
-          logger("User not found, creating anonyms user");
-          createAnonymsUser();
-          return;
-        }
-
-        onUserLogin(_user);
-      } catch (error) {
-        setRetrievingUser(false);
-        localStorage.removeItem(USER_LS_KEY);
+      if (!user.admin) {
+        storeAccessTokenInLocalStorage(user.accessToken);
       }
     },
-    [createAnonymsUser, onUserLogin]
-  );
+    []);
 
+  const createAnonymousUser = React.useCallback(async () => {
+    createUser()
+      .then((user) => {
+        logger("Created anonymous user:", user);
+        onUserLogin(user);
+      })
+      .catch((error) => {
+        logger("Error creating anonymous user:", error);
+        removeAccessTokenFromLocalStorage();
+      });
+  }, [onUserLogin]);
+
+  const [init, setInit] = React.useState(false);
+  const hasMounted = useHasMounted();
+  const searchParams = useSearchParams();
+  const accessTokenFromQuery = searchParams.get("token");
+  const router = useRouter();
+  const pathname = usePathname();
   React.useEffect(() => {
     if (!hasMounted || !!user || init) {
       return;
     }
-
     setInit(true);
 
     if (accessTokenFromQuery) {
-      localStorage.removeItem(USER_LS_KEY);
-      fetchUser(accessTokenFromQuery);
-
-      router.replace(pathname);
-
+      applyTemporaryToken(accessTokenFromQuery).then((user) => {
+        logger("Applied temporary token, got user:", user);
+        onUserLogin(user);
+        window.location.replace(pathname);
+      }).catch((error) => {
+        logger("Error applying temporary token:", error);
+        window.location.replace(pathname);
+      })
       return;
     }
 
-    const userFromLS = getUserFromLocalStorage();
-    localStorage.removeItem(USER_LS_KEY);
-
-    if (userFromLS?.accessToken) {
-      logger("User from local storage:", userFromLS);
-      fetchUser(userFromLS.accessToken);
+    const accessToken = retrieveAccessTokenFromLocalStorage();
+    if (accessToken) {
+      getUser(accessToken)
+        .then((user) => {
+          logger(user ? "Fetched user: " + JSON.stringify(user)
+                      : "User not found, creating anonymous user");
+          onUserLogin(user);
+        })
+        .catch((error) => {
+          logger("Error fetching user:", error);
+          removeAccessTokenFromLocalStorage();
+          createAnonymousUser();
+        });
       return;
     }
 
-    createAnonymsUser();
-  }, [
-    accessTokenFromQuery,
-    createAnonymsUser,
-    fetchUser,
-    hasMounted,
-    init,
-    pathname,
-    requireEmail,
-    router,
-    user,
+    createAnonymousUser();
+  },
+  [onUserLogin, accessTokenFromQuery, createAnonymousUser,
+   hasMounted, init, pathname, router, user
   ]);
 
   const logOut = React.useCallback(() => {
     setUser(null);
-    localStorage.removeItem(USER_LS_KEY);
+    removeAccessTokenFromLocalStorage();
   }, []);
 
   const context = React.useMemo(
-    () => ({ user, onUserLogin, retrievingUser, logOut, showLogin }),
-    [user, onUserLogin, retrievingUser, logOut, showLogin]
+    () => ({ user, logOut, userGroup, setUserGroup }),
+    [user, logOut, userGroup, setUserGroup]
   );
 
   return (

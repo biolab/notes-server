@@ -148,7 +148,7 @@ export const QuizContextProvider = ({
   bookId: number;
   answers: AnswerWithQuestionId[] | null;
 }) => {
-    const { user } = React.useContext(UserContext);
+  const { user, userGroup } = React.useContext(UserContext);
 
   const [quizState, quizReducer]: [QuizStateI, React.Dispatch<ActionType>] =
     React.useReducer(
@@ -159,8 +159,14 @@ export const QuizContextProvider = ({
   const answerQuestion = React.useCallback(
     async (value: AnswerWithQuestionId): Promise<boolean> => {
       const {questionId, answer, points, isCorrect} = value;
+      if (!user) {
+        quizReducer({type: "ERROR", value: {questionId}});
+        return false;
+      }
       try {
-        await postAnswer({user, questionId, bookId, answer, isCorrect, points});
+        await postAnswer({
+          accessToken: user.accessToken, group: userGroup,
+          questionId, bookId, answer, isCorrect, points});
       } catch (error: any) {
         quizReducer({ type: "ERROR", value: {questionId}});
         return false;

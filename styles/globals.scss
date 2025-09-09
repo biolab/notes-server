@@ -469,3 +469,60 @@ img.expanding-side-img.retina {
     opacity: 1;
   }
 }
+
+table.quiz-results {
+  th.rotated, td.rotated {
+    width: 40px;
+    padding: 10px 8px 8px 8px;
+    font-weight: normal;
+    vertical-align: bottom;
+    user-select: none;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    div.rotated {
+      max-height: 200px;
+      white-space: nowrap;
+      transform: rotate(180deg);
+      writing-mode: vertical-rl;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  td {
+    text-align: center;
+  }
+
+  th.total {
+    text-align: center;
+  }
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 28px;
+  width: 300px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  text-align: left;
+  user-select: none;
+  pointer-events: none;
+
+  // Tailwind equivalents:
+  background-color: darkblue;
+  color: white;
+  font-size: 0.75rem; // text-xs
+  border-radius: 0.25rem; // rounded
+  padding: 0.25rem 0.5rem; // px-2 py-1
+  z-index: 50;
+
+  // For group-hover
+  .group:hover & {
+    display: block;
+  }
+}

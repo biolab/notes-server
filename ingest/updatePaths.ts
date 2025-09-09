@@ -32,6 +32,13 @@ const checkBooks = async (
     );
 
   for (const book of books) {
+    if (book.frontmatter.groups && book.frontmatter.tokens) {
+      logError(
+        book.slug,
+        "A book may define 'groups' or 'tokens', not both."
+      );
+    }
+
     // Check that book content can be serialized
     await catchErrors(book.slug, async () =>
       await serializedContent(book.mdxContent, book.frontmatter.language, book.slug)
@@ -190,17 +197,19 @@ const insertChapters = async (
         )
       ).id;
 
+      let position = 0;
       for (const {questionId, question, type, options, answer} of questions) {
         await db.run(
           `
-              INSERT INTO questions (chapterId, questionId, question, options, answer, questionType, lastBuildId)
-              VALUES (?, ?, ?, ?, ?, ?, ?)
-              ON CONFLICT DO UPDATE SET question    = excluded.question,
+              INSERT INTO questions (chapterId, position, questionId, question, options, answer, questionType, lastBuildId)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT DO UPDATE SET position    = excluded.position,
+                                        question    = excluded.question,
                                         options     = excluded.options,
                                         answer      = excluded.answer,
                                         questionType = excluded.questionType,
                                         lastBuildId = excluded.lastBuildId`,
-          [chapterId, questionId, question, JSON.stringify(options),
+          [chapterId, position++, questionId, question, JSON.stringify(options),
            answer, type, buildId]
         );
       }
@@ -213,11 +222,19 @@ const insertBooks = async (
   db: Database,
   buildId: number
 ) => {
+  const allGroups = Object.fromEntries(
+    ((await db.all(`SELECT * FROM groups`)) as {name: string, id: number}[])
+      .map(({name, id}) => [name, id]));
+  const allTokens = Object.fromEntries(
+    ((await db.all(`SELECT * FROM tokens`)) as {token: string, id: number}[])
+      .map(({token, id}) => [token, id]));
+
   for (const {
     mdxContent, chapters, slug,
     frontmatter: {
       title, subTitle, public: isPublic, language, tocInHeader,
-      coverImg, requireLogin, quizThreshold, loginSubtitle, email },
+      coverImg, requireLogin, quizThreshold, loginSubtitle, email,
+      groups, tokens},
   } of books) {
     const content = await serializedContent(mdxContent, language, slug);
     // Do not change this to "DELETE + INSERT" because it will delete rows that use this book's id as foreign key.
@@ -254,6 +271,30 @@ const insertBooks = async (
         content
       ]
     );
+
+    await db.run(`DELETE FROM books_groups WHERE bookId = ?`, [bookId]);
+    const groups_tokens =
+      groups ? (Array.isArray(groups) ? groups : Object.entries(groups))
+      : tokens ? tokens.map((t: string) => [null, t])
+      : [];
+    for(const group_token of groups_tokens) {
+      const [group, token] = typeof(group_token) === "string" ? [group_token] : group_token;
+      if (group && allGroups[group] === undefined) {
+        allGroups[group] = (await db.get(`
+          INSERT INTO groups (name) VALUES (?) RETURNING id`,
+          [group])).id;
+      }
+      if (token && allTokens[token] === undefined) {
+        allTokens[token] = (await db.get(`
+          INSERT INTO tokens (token) VALUES (?) RETURNING id`,
+          [token])).id;
+      }
+      await db.run(`
+        INSERT INTO books_groups (bookId, groupId, tokenId)
+        VALUES (?, ?, ?)
+        ON CONFLICT DO NOTHING`,
+        [bookId, group && allGroups[group], token && allTokens[token]]);
+    }
 
     await db.run(`DELETE FROM books_chapters WHERE bookId = ?`, [bookId]);
     await Promise.all(
