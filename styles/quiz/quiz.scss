@@ -192,22 +192,25 @@
 .quiz-progress-indicator-wrapper {
   position: relative;
   margin-top: 32px;
-  margin-right: 24px;
-  height: 14px;
+  margin-right: 20px;
+  height: 10px;
   border: 1px solid black;
   border-radius: 6px;
   overflow: hidden;
 
-  .quiz-progress-indicator-bar-threshold-line {
+  .quiz-progress-indicator-bar {
     position: absolute;
-    height: 12px;
-    width: 1px;
-    background: black;
+    height: 100%;
+    top: 0;
+    left: 0;
   }
 
-  .quiz-progress-indicator-bar {
+  .quiz-progress-indicator-bar-threshold-line {
+    position: absolute;
+    top: 0;
     height: 100%;
-    opacity: 0.8;
+    width: 1px;
+    background: black;
   }
 }
 

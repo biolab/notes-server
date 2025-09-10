@@ -110,29 +110,26 @@ const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
 export const QuizContext = React.createContext<{
   quizState: QuizStateI | null;
   noOfQuestions: number;
-  availablePoints: number;
   achievedPoints: number;
   correctlyAnsweredQuestions: number;
-  answeredMandatoryQuestions: number;
+  answeredQuestions: number;
   isQuizComplete: boolean;
   allCompletedChapters: number[];
-  chaptersWithMandatoryQuestions: number[];
   answerQuestion: (value: AnswerWithQuestionId) => Promise<boolean>;
   getAnswers: (questionId: string) => Answer[];
   submissionErrored: (questionId: string) => boolean;
-}>({
+  chapterStats: (chapterIndex: number) => { noOfQuestions: number; answeredQuestions: number; correctlyAnsweredQuestions: number; achievedPoints: number}}>({
   quizState: null,
   noOfQuestions: 0,
-  availablePoints: 0,
   achievedPoints: 0,
   correctlyAnsweredQuestions: 0,
-  answeredMandatoryQuestions: 0,
+  answeredQuestions: 0,
   isQuizComplete: false,
   allCompletedChapters: [],
-  chaptersWithMandatoryQuestions: [],
   answerQuestion: async () => false,
   getAnswers: () => [],
-  submissionErrored: () => false
+  submissionErrored: () => false,
+  chapterStats: () => ({ noOfQuestions: 0, answeredQuestions: 0, correctlyAnsweredQuestions: 0, achievedPoints: 0})
 });
 
 export const QuizContextProvider = ({
@@ -179,43 +176,51 @@ export const QuizContextProvider = ({
 
   const {
     noOfQuestions,
-    availablePoints,
     achievedPoints,
     correctlyAnsweredQuestions,
-    answeredMandatoryQuestions,
+    answeredQuestions,
     allCompletedChapters,
-    chaptersWithMandatoryQuestions,
+    chapterStats,
   } = React.useMemo(
     () => ({
-      chaptersWithMandatoryQuestions: quizState.chaptersWithQuiz.filter(
-        (chapterIndex) =>
-          Object.values(quizState.questions)
-            .filter((q) => q.chapterIndex === chapterIndex)
-            .some((q) => q.maxPoints)
-      ),
-
       allCompletedChapters: quizState.chaptersWithQuiz.filter((chapterIndex) =>
         Object.values(quizState.questions).every((q) =>
           q.chapterIndex !== chapterIndex
           || q.maxPoints
           || q.answers.length > 0)),
 
-      noOfQuestions: Object.values(quizState.questions)
-        .filter((q) => q.maxPoints)
-        .length,
+      noOfQuestions: Object.values(quizState.questions).length,
 
-      availablePoints: Object.values(quizState.questions)
-        .reduce((acc, q) => acc + q.maxPoints, 0),
+      chapterStats: (chapterIndex: number) => {
+        const questionsInChapter = Object.values(quizState.questions)
+          .filter((q) => q.chapterIndex === chapterIndex);
+        const answeredInChapter = questionsInChapter
+          .filter((q) => q.answers.length > 0).length;
+        const correctInChapter = questionsInChapter
+          .filter((q) =>
+            q.answers.length > 0
+            && q.answers[q.answers.length - 1].isCorrect !== false).length;
+        const pointsInChapter = questionsInChapter.reduce(
+          (acc, {answers}) =>
+            acc + (answers.length && answers[answers.length - 1].points),
+          0);
+        return {
+          noOfQuestions: questionsInChapter.length,
+          answeredQuestions: answeredInChapter,
+          correctlyAnsweredQuestions: correctInChapter,
+          achievedPoints: pointsInChapter,
+        }
+      },
 
       correctlyAnsweredQuestions: Object.values(quizState.questions)
         .filter((q) =>
             !q.maxPoints
             && q.answers.length > 0
-            && q.answers[q.answers.length - 1].isCorrect)
+            && q.answers[q.answers.length - 1].isCorrect !== false)
         .length,
 
-      answeredMandatoryQuestions: Object.values(quizState.questions)
-        .filter((q) => q.maxPoints && q.answers.length)
+      answeredQuestions: Object.values(quizState.questions)
+        .filter((q) => q.answers.length)
         .length,
 
       achievedPoints: Object.values(quizState.questions).reduce(
@@ -227,22 +232,21 @@ export const QuizContextProvider = ({
   );
 
   const isQuizComplete = React.useMemo(
-    () => noOfQuestions > 0 && answeredMandatoryQuestions === noOfQuestions,
-    [answeredMandatoryQuestions, noOfQuestions]
+    () => noOfQuestions > 0 && answeredQuestions === noOfQuestions,
+    [answeredQuestions, noOfQuestions]
   );
 
   const contextValue = React.useMemo(
     () => ({
       quizState,
       noOfQuestions,
-      availablePoints,
       achievedPoints,
       correctlyAnsweredQuestions,
-      answeredMandatoryQuestions,
+      answeredQuestions,
       isQuizComplete,
       allCompletedChapters,
-      chaptersWithMandatoryQuestions,
       answerQuestion,
+      chapterStats,
       getAnswers: (questionId: string) => quizState.questions[questionId]?.answers ?? [],
       submissionErrored: (questionId: string) => !!quizState.questions[questionId]?.submissionErrored
     }),
@@ -250,13 +254,12 @@ export const QuizContextProvider = ({
       quizState,
       answerQuestion,
       noOfQuestions,
-      availablePoints,
       achievedPoints,
       correctlyAnsweredQuestions,
-      answeredMandatoryQuestions,
+      answeredQuestions,
       isQuizComplete,
       allCompletedChapters,
-      chaptersWithMandatoryQuestions,
+      chapterStats
     ]
   );
 
