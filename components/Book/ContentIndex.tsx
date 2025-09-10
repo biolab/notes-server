@@ -80,7 +80,7 @@ export const ContentIndexControl = ({
         chapters={chapters}
         isChapterIndexVisible={isChapterIndexVisible}
       />
-      <QuizProgressBar />
+      { !small && <QuizProgressBar /> }
     </div>
   );
 };
