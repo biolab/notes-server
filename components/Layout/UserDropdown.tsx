@@ -25,10 +25,11 @@ function useOutsideClick(ref: any, onClick: any) {
   }, [onClick, ref]);
 }
 
-const UserDropdown = ({showLinkToResults=false, returnLink}: {
-  showLinkToResults?: boolean
-  returnLink?: string,
+const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}: {
+  showLinkToResults?: boolean;
+  returnLink?: string;
   isAdmin?: boolean
+  onChangeShowAnswers?: (show: boolean) => void;
 }) => {
   const { user, logOut } = React.useContext(UserContext);
 
@@ -36,6 +37,7 @@ const UserDropdown = ({showLinkToResults=false, returnLink}: {
   useOutsideClick(wrapperRef, () => setShow(false));
 
   const [show, setShow] = React.useState(false);
+  const [showUsersAnswers, setShowUsersAnswers] = React.useState(false);
 
   const [showModal, setShowModal] = React.useState(false);
   const [confirmLoading, setConfirmLoading] = React.useState(false);
@@ -71,6 +73,10 @@ const UserDropdown = ({showLinkToResults=false, returnLink}: {
     { window.location.assign("/login"); }
   const toLogout = () =>
     { logOut(); window.location.reload(); }
+  const changeShowUsersAnswers = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setShowUsersAnswers(e.target.checked);
+    onChangeShowAnswers?.(e.target.checked);
+  }
 
   return <>
     <div ref={wrapperRef} className="user-dropdown">
@@ -80,16 +86,28 @@ const UserDropdown = ({showLinkToResults=false, returnLink}: {
             { user.email ?
               <>
                 <li className="dropdown-content-data">{user.email}</li>
-                {showLinkToResults && <li onClick={toResults}>Show Quiz Results</li> }
-                { returnLink && <li onClick={toPage}>Back to {returnLink}</li> }
+                {showLinkToResults && <li onClick={toResults}>Show Quiz Results</li>}
+                {returnLink && <li onClick={toPage}>Back to {returnLink}</li>}
+                {onChangeShowAnswers &&
+                  <li style={{textWrap: "nowrap"}}>
+                    <input
+                      type="checkbox" id="showAnwers"
+                      checked={showUsersAnswers}
+                      onChange={changeShowUsersAnswers}
+                    />
+                    <label htmlFor="showAnwers">
+                      &nbsp;Show Users&apos; Answers
+                    </label>
+                  </li>
+                }
                 <li onClick={toLogout}>Log out</li>
                 <li onClick={handleShowModal}
                     title="Delete your account and all related data"
-                    className="danger" >
+                    className="danger">
                   Delete account
                 </li>
               </>
-            : <>
+             : <>
                 <li className="dropdown-content-data">Anonymous user</li>
                 <li onClick={toLogin}>Log in</li>
                 <li onClick={toLogout}

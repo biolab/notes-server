@@ -116,7 +116,7 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
       }
       setMessage(["SENT"]);
     },
-    [email, name, surname, bookId, group, groups, token, user, askGroup, askToken]
+    [email, name, surname, bookId, group, groups, token, user, askGroup, askToken, redirect]
   );
 
   if (!hasMounted || !user) {

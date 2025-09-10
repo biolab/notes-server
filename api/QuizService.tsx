@@ -103,9 +103,10 @@ export const getAnswersInBook = async (bookId: number, accessToken: string): Pro
              a.answer,
              a.isCorrect,
              a.points,
-             a.questionId
+             q.questionId
       FROM answers a
       JOIN users u ON a.userId = u.id
+      JOIN questions q ON a.questionId = q.id
       WHERE a.bookId = ?
       ORDER BY a.userId, a.groupId, a.createdAt`,
       [bookId]

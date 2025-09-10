@@ -9,7 +9,7 @@ import { ContentIndexControl } from "./ContentIndex";
 import { IntlContextProvider, useIntl } from "@/i18n";
 import { AnswerWithQuestionId, QuizContextProvider } from "@/context/QuizContextProvider";
 import { UserContext } from "@/context/UserContextProvider";
-import { getAnswers } from "@/api/QuizService";
+import { AnswersInBook, getAnswers, getAnswersInBook } from "@/api/QuizService";
 import BookLogin from "./BookLogin";
 import { logger } from "@/utils/logger";
 import Layout from "../Layout/Layout";
@@ -40,6 +40,8 @@ export const Book = ({
 
   const { t } = useIntl();
 
+  const [allAnswers, setAllAnswers] = useState<AnswersInBook | false>(false);
+
   const loading = React.useMemo(() =>
     !user || groupRequired === null || answers === "pending",
   [user, groupRequired, answers]);
@@ -60,14 +62,18 @@ export const Book = ({
         setAnswers(null);
       });
 
-      if (user.admin) {
-        setIsAdmin(true);
-      }
-      else {
-        isAdminFor({accessToken: user.accessToken, bookId}).then(setIsAdmin);
-        isAdminFor({accessToken: user.accessToken, bookId}).then(console.log);
-      }
+    if (user.admin) {
+      setIsAdmin(true);
+    }
+    else {
+      isAdminFor({accessToken: user.accessToken, bookId}).then(setIsAdmin);
+      isAdminFor({accessToken: user.accessToken, bookId}).then(console.log);
+    }
+
+    getAnswersInBook(bookId, user.accessToken).then(setAllAnswers);
   }, [user, user?.accessToken, slug, bookId]);
+
+  const [showAnswers, setShowAnswers] = useState(false);
 
   const chapterNumbers = React.useMemo(
     () =>
@@ -94,7 +100,6 @@ export const Book = ({
 
       // Has the user read this book before and has a proper token?
       const storedGroup = user.groups[bookId];
-      console.log("Stored group:", storedGroup);
       if (storedGroup) {
         if (frontmatter.groups.some(([group, token]) =>
           group === storedGroup
@@ -184,7 +189,7 @@ export const Book = ({
             frontmatter.tocInHeader ? isChapterIndexVisible : []
           }
           showLinkToResults={isAdmin && hasQuestions}
-        >
+          onChangeShowAnswers={(isAdmin && hasQuestions) ? setShowAnswers : undefined}>
           <div className="prose mx-auto book">
             {frontmatter.coverImg && (
               <div className="book-cover-img">
@@ -219,6 +224,7 @@ export const Book = ({
                 index={index}
                 setIsChapterIndexVisible={setIsChapterIndexVisible}
                 chapterNumber={chapterNumbers[index]}
+                allAnswers={showAnswers && allAnswers || undefined}
               />
             ))}
           </div>

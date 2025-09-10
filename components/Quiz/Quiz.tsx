@@ -3,6 +3,8 @@ import { useIntl } from "@/i18n";
 import { useLastAnswer } from "@/context/QuizContextProvider";
 import { QuestionTypes } from "@/types/types";
 import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine } from "react-icons/ri";
+import { UserDesc } from "@/api/QuizService";
+import { corrColor, corrSym } from "@/utils/questions";
 
 export interface QuizPropsBase {
   question: string;
@@ -18,6 +20,15 @@ export interface IQuestion extends QuizPropsBase {
   bookId: number;
   maxPoints: number;
   maxTrials: number;
+  usersAnswers?: (
+    UserDesc &
+    { answers: {
+        answer: string;
+        isCorrect?: boolean;
+        points?: number;
+      }[]
+    }
+  )[];
 }
 
 export default function Question({
@@ -30,6 +41,7 @@ export default function Question({
   maxPoints = 0,
   maxTrials = 1,
   children,
+  usersAnswers,
 }: IQuestion) {
   const [answer, setAnswer] = React.useState<null | string>(null);
   const [submitted, setSubmitted] = React.useState(false);
@@ -143,76 +155,93 @@ export default function Question({
 
   return <>
     <a id={`question-${id}`} />
-    <div className={`quiz ${correctnessClass}`}>
-      <div className="quiz-question">
-        <h3>
-          {question} {!!maxPoints && <span>({maxPoints}pt.)</span>}
-        </h3>
-        {icon}
-      </div>
+      <div className={`quiz ${usersAnswers ? "" : correctnessClass}`}>
+        <div className="quiz-question">
+          <h3>
+            {question} {!!maxPoints && <span>({maxPoints}pt.)</span>}
+          </h3>
+          {icon}
+        </div>
 
-      <form>
-        <fieldset disabled={!!submitDisabled}>
-          {type.includes("text") && (
-            <>
-              {type === "long-text" ? (
-                <textarea
-                  value={answer || ""}
-                  onChange={(e) => {
-                    setSubmitted(false);
-                    setAnswer(e.target.value);
-                    setFormatError(null);
-                  }}
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={answer || ""}
-                  onChange={(e) => {
-                    setAnswer(e.target.value);
-                    setFormatError(null);
-                  }}
-                />
-              )}
+        <form>
+          <fieldset disabled={!!submitDisabled}>
+            {type.includes("text") && (
+              <>
+                {type === "long-text" ? (
+                  <textarea
+                    value={answer || ""}
+                    onChange={(e) => {
+                      setSubmitted(false);
+                      setAnswer(e.target.value);
+                      setFormatError(null);
+                    }}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={answer || ""}
+                    onChange={(e) => {
+                      setAnswer(e.target.value);
+                      setFormatError(null);
+                    }}
+                  />
+                )}
 
-              {(submissionErrored || !isCorrect) && (
-                <button
-                  disabled={!answer}
-                  onClick={(e) => onSubmit(e, answer as string)}
-                >
-                  {t("quiz.submit-button")}
-                </button>
-              )}
-            </>
-          )}
+                {(submissionErrored || !isCorrect) && (
+                  <button
+                    disabled={!answer}
+                    onClick={(e) => onSubmit(e, answer as string)}
+                  >
+                    {t("quiz.submit-button")}
+                  </button>
+                )}
+              </>
+            )}
 
-          {!!options?.length && (
-            <div className="buttons-wrapper">
-              {options.map((option) => (
-                <button
-                  className={normalizedAnswer === option.toLowerCase() ? "selected ": ""}
-                  onClick={(e) => onSubmit(e, option)}
-                  key={option}
-                >
-                  {option}
-                </button>
-              ))}
+            {!!options?.length && (
+              <div className="buttons-wrapper">
+                {options.map((option) => (
+                  <button
+                    className={!usersAnswers && normalizedAnswer === option.toLowerCase() ? "selected ": ""}
+                    onClick={(e) => onSubmit(e, option)}
+                    key={option}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
+          </fieldset>
+
+          {!usersAnswers && message && <p className="quiz-message">{message}</p>}
+          {submissionErrored &&
+            <div
+              className="bg-red-100 order-red-500 text-red-700 mt-2 p-1 pl-4 rounded"
+              role="alert"
+            >
+              <p>{t("quiz.submission-error")}</p>
             </div>
-          )}
-        </fieldset>
-
-        {message && <p className="quiz-message">{message}</p>}
-        {submissionErrored &&
-          <div
-            className="bg-red-100 order-red-500 text-red-700 mt-2 p-1 pl-4 rounded"
-            role="alert"
-          >
-            <p>{t("quiz.submission-error")}</p>
+          }
+          {formatError && <p className="error">{formatError}</p>}
+          {!usersAnswers && childrenWithProps}
+        </form>
+        {usersAnswers && usersAnswers.length > 0 && (
+          <div className="users-answers">
+            {usersAnswers.map(({ name, surname, answers }, ui) => (
+              <p key={ui}>
+                {name} {surname}:&nbsp;
+                {answers?.map(({answer, isCorrect}, i) => (
+                  <React.Fragment key={i}>
+                    { i > 0 && ", " }
+                    <span style={{color: corrColor(isCorrect)}} key={i}>
+                      {answer} {corrSym(isCorrect)}
+                    </span>
+                  </React.Fragment>
+                ))}
+              </p>
+            ))}
           </div>
-        }
-        {formatError && <p className="error">{formatError}</p>}
-        {childrenWithProps}
-      </form>
-    </div>
+        )}
+      </div>
   </>;
 }

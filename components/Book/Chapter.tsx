@@ -7,6 +7,7 @@ import { MdxContent } from "../MdxContent";
 import { useOnScreen } from "@/hooks/useOnScreen";
 import { useIntl } from "@/i18n";
 import { ChapterDef } from "@/types/types";
+import { AnswersInBook } from "@/api/QuizService";
 
 export const Chapter = ({
   frontmatter,
@@ -15,7 +16,8 @@ export const Chapter = ({
   setIsChapterIndexVisible,
   chapterNumber,
   bookId,
-  chapterId
+  chapterId,
+  allAnswers,
 }: ChapterDef & {
   index: number;
   setIsChapterIndexVisible: React.Dispatch<
@@ -23,6 +25,7 @@ export const Chapter = ({
   >;
   chapterNumber: number;
   bookId: number;
+  allAnswers?: AnswersInBook;
 }) => {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const isVisible = useOnScreen(ref);
@@ -39,9 +42,10 @@ export const Chapter = ({
         bookId={bookId}
         chapterId={chapterId}
         t = {t}
+        allAnswers={allAnswers}
       />
     );
-  }, [t, bookId, chapterId, content]);
+  }, [t, bookId, chapterId, content, allAnswers]);
 
   return (
     <div ref={ref} className="flex-container">
