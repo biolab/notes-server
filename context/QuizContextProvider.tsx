@@ -111,25 +111,25 @@ export const QuizContext = React.createContext<{
   quizState: QuizStateI | null;
   noOfQuestions: number;
   achievedPoints: number;
-  correctlyAnsweredQuestions: number;
+  correctAnswers: number;
   answeredQuestions: number;
   isQuizComplete: boolean;
   allCompletedChapters: number[];
   answerQuestion: (value: AnswerWithQuestionId) => Promise<boolean>;
   getAnswers: (questionId: string) => Answer[];
   submissionErrored: (questionId: string) => boolean;
-  chapterStats: (chapterIndex: number) => { noOfQuestions: number; answeredQuestions: number; correctlyAnsweredQuestions: number; achievedPoints: number}}>({
+  chapterStats: (chapterIndex: number) => { noOfQuestions: number; answeredQuestions: number; correctAnswers: number; achievedPoints: number}}>({
   quizState: null,
   noOfQuestions: 0,
   achievedPoints: 0,
-  correctlyAnsweredQuestions: 0,
+  correctAnswers: 0,
   answeredQuestions: 0,
   isQuizComplete: false,
   allCompletedChapters: [],
   answerQuestion: async () => false,
   getAnswers: () => [],
   submissionErrored: () => false,
-  chapterStats: () => ({ noOfQuestions: 0, answeredQuestions: 0, correctlyAnsweredQuestions: 0, achievedPoints: 0})
+  chapterStats: () => ({ noOfQuestions: 0, answeredQuestions: 0, correctAnswers: 0, achievedPoints: 0})
 });
 
 export const QuizContextProvider = ({
@@ -177,7 +177,7 @@ export const QuizContextProvider = ({
   const {
     noOfQuestions,
     achievedPoints,
-    correctlyAnsweredQuestions,
+    correctAnswers,
     answeredQuestions,
     allCompletedChapters,
     chapterStats,
@@ -207,12 +207,12 @@ export const QuizContextProvider = ({
         return {
           noOfQuestions: questionsInChapter.length,
           answeredQuestions: answeredInChapter,
-          correctlyAnsweredQuestions: correctInChapter,
+          correctAnswers: correctInChapter,
           achievedPoints: pointsInChapter,
         }
       },
 
-      correctlyAnsweredQuestions: Object.values(quizState.questions)
+      correctAnswers: Object.values(quizState.questions)
         .filter((q) =>
             !q.maxPoints
             && q.answers.length > 0
@@ -241,7 +241,7 @@ export const QuizContextProvider = ({
       quizState,
       noOfQuestions,
       achievedPoints,
-      correctlyAnsweredQuestions,
+      correctAnswers,
       answeredQuestions,
       isQuizComplete,
       allCompletedChapters,
@@ -255,7 +255,7 @@ export const QuizContextProvider = ({
       answerQuestion,
       noOfQuestions,
       achievedPoints,
-      correctlyAnsweredQuestions,
+      correctAnswers,
       answeredQuestions,
       isQuizComplete,
       allCompletedChapters,

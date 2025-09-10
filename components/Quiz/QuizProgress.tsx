@@ -1,24 +1,23 @@
 import React from "react";
 import { QuizContext } from "@/context/QuizContextProvider";
-import { QuestionDef } from "@/types/types";
 
 export const QuizProgressBar = () => {
-  const { achievedPoints, answeredQuestions, noOfQuestions, quizState } =
+  const { correctAnswers, answeredQuestions, noOfQuestions, quizState } =
     React.useContext(QuizContext);
 
   const corrWidth = React.useMemo(() =>
-    (achievedPoints / noOfQuestions) * 100,
-  [achievedPoints, noOfQuestions]);
+    (correctAnswers / noOfQuestions) * 100,
+  [correctAnswers, noOfQuestions]);
 
   const wrongWidth = React.useMemo(() =>
-    ((answeredQuestions - achievedPoints) / noOfQuestions) * 100,
-    [achievedPoints, answeredQuestions, noOfQuestions]);
+    ((answeredQuestions - correctAnswers) / noOfQuestions) * 100,
+    [correctAnswers, answeredQuestions, noOfQuestions]);
 
   const borderColor = React.useMemo(() =>
-    achievedPoints / noOfQuestions >= (quizState?.quizThreshold || 2)
+      correctAnswers / noOfQuestions >= (quizState?.quizThreshold || 2)
       ? "green"
       : "black",
-    [achievedPoints, noOfQuestions, quizState?.quizThreshold]);
+    [correctAnswers, noOfQuestions, quizState?.quizThreshold]);
 
   if (!quizState) {
     return null;
@@ -30,7 +29,7 @@ export const QuizProgressBar = () => {
         className="quiz-progress-indicator-wrapper"
         style={{borderColor}}
         title={`Answered: ${answeredQuestions} / ${noOfQuestions}\n
-Points: ${achievedPoints} (${Math.round((achievedPoints / noOfQuestions) * 100)} %)\n
+Correct: ${correctAnswers} (${Math.round((correctAnswers / noOfQuestions) * 100)} %)\n
 Required: ${Math.round(noOfQuestions * quizState.quizThreshold)}`}
       >
         { wrongWidth &&
@@ -82,7 +81,7 @@ function sectorPathD(p: number, radius = 1) {
 
 export const QuizProgressCircle = ( { chapterIndex }: {chapterIndex: number }) => {
   const { chapterStats } = React.useContext(QuizContext);
-  const { noOfQuestions, answeredQuestions, correctlyAnsweredQuestions } =
+  const { noOfQuestions, answeredQuestions, correctAnswers } =
     chapterStats(chapterIndex) || { noOfQuestions: 0, answeredQuestions: 0 };
   if (noOfQuestions === 0) {
     return null;
@@ -90,7 +89,7 @@ export const QuizProgressCircle = ( { chapterIndex }: {chapterIndex: number }) =
   const p = answeredQuestions / noOfQuestions;
   let title;
   if (noOfQuestions === 1) {
-    if (correctlyAnsweredQuestions) {
+    if (correctAnswers) {
       title = "Your answer was correct.";
     }
     else if (answeredQuestions) {
@@ -101,11 +100,11 @@ export const QuizProgressCircle = ( { chapterIndex }: {chapterIndex: number }) =
     }
   }
   else {
-    if (correctlyAnsweredQuestions && correctlyAnsweredQuestions != answeredQuestions) {
-      title = `${correctlyAnsweredQuestions} correct and ${answeredQuestions - correctlyAnsweredQuestions} wrong answer(s).`;
+    if (correctAnswers && correctAnswers != answeredQuestions) {
+      title = `${correctAnswers} correct and ${answeredQuestions - correctAnswers} wrong answer(s).`;
     }
-    else if (correctlyAnsweredQuestions) {
-      title = `${correctlyAnsweredQuestions} correct answer(s).`;
+    else if (correctAnswers) {
+      title = `${correctAnswers} correct answer(s).`;
     }
     else if (answeredQuestions) {
       title = `${answeredQuestions} wrong answer(s).`;
