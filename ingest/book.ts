@@ -42,7 +42,7 @@ export const bookMatter = (indexMd: string, slug: string | null = null) =>
         : typeof(value) === "object"
           ? (Object.values(value).some((token) => typeof(token) !== "string")
             && "All groups and tokens must be strings")
-        : "'groups' must be an list of strings, or string pairs without dashes",
+        : "'groups' must be a list of strings, or string pairs without dashes",
 
       tokens: (value) =>
         (!Array.isArray(value) || value.some((x) => typeof(x) !== "string"))
@@ -53,7 +53,7 @@ export const bookMatter = (indexMd: string, slug: string | null = null) =>
 const chapterMatter = (chapterMd: string, slug: string | null = null) =>
   checkedMatter(chapterMd, chapterFrontmatterDefaults, {}, slug);
 
-interface RawChapterDef extends ChapterDefBase {
+export interface RawChapterDef extends ChapterDefBase {
   mdxContent: string;
 }
 

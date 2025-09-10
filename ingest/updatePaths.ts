@@ -1,7 +1,7 @@
 import { serializedContent } from "./md-helpers";
 import { Database } from "sqlite";
 import { parseCollection, RawCollectionDef } from "@/ingest/collection";
-import { parseBook, RawBookDef } from "@/ingest/book";
+import { parseBook, RawBookDef, RawChapterDef } from "@/ingest/book";
 import { QuestionDef } from "@/types/types";
 import { catchErrors, hasError, logError } from "@/ingest/errors";
 import { elide } from "@/utils/string";
@@ -169,52 +169,155 @@ const checkCollections = async (
   }
 };
 
+const insertChapter = async (
+  chapter: RawChapterDef,
+  language: string,
+  db: Database,
+  buildId: number // use -1 to force
+) => {
+  const { chapterDir, mdxContent, questions,
+          frontmatter: {title, omitAsChapter} } = chapter;
+  if (await db.get(
+      `SELECT 1 FROM chapters WHERE path = ? AND lastBuildId = ?`,
+      [chapterDir, buildId])) {
+    return;
+  }
+  const content = await serializedContent(mdxContent, language, chapterDir);
+  const chapterId = (
+    await db.get(
+      `
+          INSERT INTO chapters (lastBuildId, path, title, omitAsChapter, content)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(path) DO UPDATE SET title         = excluded.title,
+                                          lastBuildId   = excluded.lastBuildId,
+                                          content       = excluded.content,
+                                          omitAsChapter = excluded.omitAsChapter
+          RETURNING id`,
+      [buildId, chapterDir, title, omitAsChapter, content]
+    )
+  ).id;
+
+  let position = 0;
+  for (const {questionId, question, type, options, answer} of questions) {
+    await db.run(
+      `
+          INSERT INTO questions (chapterId, position, questionId, question, options, answer, questionType, lastBuildId)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT DO UPDATE SET position    = excluded.position,
+                                    question    = excluded.question,
+                                    options     = excluded.options,
+                                    answer      = excluded.answer,
+                                    questionType = excluded.questionType,
+                                    lastBuildId = excluded.lastBuildId`,
+      [chapterId, position++, questionId, question, JSON.stringify(options),
+       answer, type, buildId]
+    );
+  }
+};
+
 const insertChapters = async (
   books: RawBookDef[],
   db: Database,
   buildId: number
 ) => {
   for (const { chapters, frontmatter: {language}} of books) {
-    for (const { chapterDir, mdxContent, questions,
-                 frontmatter: {title, omitAsChapter} } of chapters) {
-      if (await db.get(
-          `SELECT 1 FROM chapters WHERE path = ? AND lastBuildId = ?`,
-          [chapterDir, buildId])) {
-        continue;
-      }
-      const content = await serializedContent(mdxContent, language, chapterDir);
-      const chapterId = (
-        await db.get(
-          `
-              INSERT INTO chapters (lastBuildId, path, title, omitAsChapter, content)
-              VALUES (?, ?, ?, ?, ?)
-              ON CONFLICT(path) DO UPDATE SET title         = excluded.title,
-                                              lastBuildId   = excluded.lastBuildId,
-                                              content       = excluded.content,
-                                              omitAsChapter = excluded.omitAsChapter
-              RETURNING id`,
-          [buildId, chapterDir, title, omitAsChapter, content]
-        )
-      ).id;
-
-      let position = 0;
-      for (const {questionId, question, type, options, answer} of questions) {
-        await db.run(
-          `
-              INSERT INTO questions (chapterId, position, questionId, question, options, answer, questionType, lastBuildId)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-              ON CONFLICT DO UPDATE SET position    = excluded.position,
-                                        question    = excluded.question,
-                                        options     = excluded.options,
-                                        answer      = excluded.answer,
-                                        questionType = excluded.questionType,
-                                        lastBuildId = excluded.lastBuildId`,
-          [chapterId, position++, questionId, question, JSON.stringify(options),
-           answer, type, buildId]
-        );
-      }
+    for (const chapter of chapters) {
+      await insertChapter(chapter, language, db, buildId);
     }
   }
+};
+
+const insertBook = async (
+  book: RawBookDef,
+  allGroups: Record<string, number>,
+  allTokens: Record<string, number>,
+  db: Database,
+  buildId: number
+) => {
+  const {
+    mdxContent, chapters, slug,
+    frontmatter: {
+      title, subTitle, public: isPublic, language, tocInHeader,
+      coverImg, requireLogin, quizThreshold, loginSubtitle, email,
+      groups, tokens
+    }
+  } = book;
+  const content = await serializedContent(mdxContent, language, slug);
+  // Do not change this to "DELETE + INSERT" because it will delete rows that use this book's id as foreign key.
+  const {id: bookId} = await db.get(
+    `
+        INSERT INTO books (lastBuildId,
+                           path, title, subtitle,
+                           public, language, tocInHeader,
+                           coverImg, requireLogin, quizThreshold, loginSubtitle,
+                           email_subject, email_body,
+                           content)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT DO UPDATE SET lastBuildId          = excluded.lastBuildId,
+                                  title                = excluded.title,
+                                  subtitle             = excluded.subtitle,
+                                  public               = excluded.public,
+                                  language             = excluded.language,
+                                  tocInHeader          = excluded.tocInHeader,
+                                  coverImg             = excluded.coverImg,
+                                  requireLogin         = excluded.requireLogin,
+                                  quizThreshold        = excluded.quizThreshold,
+                                  loginSubtitle        = excluded.loginSubtitle,
+                                  email_subject        = excluded.email_subject,
+                                  email_body           = excluded.email_body,
+                                  content              = excluded.content
+        RETURNING id
+    `,
+    [
+      buildId,
+      slug, title, subTitle,
+      isPublic, language, tocInHeader,
+      coverImg, requireLogin, quizThreshold, loginSubtitle,
+      email?.subject, email?.body,
+      content
+    ]
+  );
+
+  await db.run(`DELETE FROM books_groups WHERE bookId = ?`, [bookId]);
+  const groups_tokens =
+    groups ? (Array.isArray(groups) ? groups : Object.entries(groups))
+    : tokens ? tokens.map((t: string) => [null, t])
+    : [];
+  for(const group_token of groups_tokens) {
+    const [group, token] = typeof(group_token) === "string" ? [group_token] : group_token;
+    if (group && allGroups[group] === undefined) {
+      allGroups[group] = (await db.get(`
+        INSERT INTO groups (name) VALUES (?) RETURNING id`,
+        [group])).id;
+    }
+    if (token && allTokens[token] === undefined) {
+      allTokens[token] = (await db.get(`
+        INSERT INTO tokens (token) VALUES (?) RETURNING id`,
+        [token])).id;
+    }
+    await db.run(`
+      INSERT INTO books_groups (bookId, groupId, tokenId)
+      VALUES (?, ?, ?)
+      ON CONFLICT DO NOTHING`,
+      [bookId, group && allGroups[group], token && allTokens[token]]);
+  }
+
+  await db.run(`DELETE FROM books_chapters WHERE bookId = ?`, [bookId]);
+  await Promise.all(
+    chapters.map(({ chapterDir }, position) =>
+      db.run(
+        `
+            INSERT INTO books_chapters (bookId, chapterId, position, lastBuildId)
+            SELECT ?, id, ?, ?
+            FROM chapters
+            WHERE path = ?
+            ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId,
+                                      position = excluded.position
+        `,
+        [bookId, position, buildId, chapterDir]
+      )
+    )
+  );
 };
 
 const insertBooks = async (
@@ -229,89 +332,8 @@ const insertBooks = async (
     ((await db.all(`SELECT * FROM tokens`)) as {token: string, id: number}[])
       .map(({token, id}) => [token, id]));
 
-  for (const {
-    mdxContent, chapters, slug,
-    frontmatter: {
-      title, subTitle, public: isPublic, language, tocInHeader,
-      coverImg, requireLogin, quizThreshold, loginSubtitle, email,
-      groups, tokens},
-  } of books) {
-    const content = await serializedContent(mdxContent, language, slug);
-    // Do not change this to "DELETE + INSERT" because it will delete rows that use this book's id as foreign key.
-    const {id: bookId} = await db.get(
-      `
-          INSERT INTO books (lastBuildId,
-                             path, title, subtitle,
-                             public, language, tocInHeader,
-                             coverImg, requireLogin, quizThreshold, loginSubtitle,
-                             email_subject, email_body,
-                             content)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT DO UPDATE SET lastBuildId          = excluded.lastBuildId,
-                                    title                = excluded.title,
-                                    subtitle             = excluded.subtitle,
-                                    public               = excluded.public,
-                                    language             = excluded.language,
-                                    tocInHeader          = excluded.tocInHeader,
-                                    coverImg             = excluded.coverImg,
-                                    requireLogin         = excluded.requireLogin,
-                                    quizThreshold        = excluded.quizThreshold,
-                                    loginSubtitle        = excluded.loginSubtitle,
-                                    email_subject        = excluded.email_subject,
-                                    email_body           = excluded.email_body,
-                                    content              = excluded.content
-          RETURNING id
-      `,
-      [
-        buildId,
-        slug, title, subTitle,
-        isPublic, language, tocInHeader,
-        coverImg, requireLogin, quizThreshold, loginSubtitle,
-        email?.subject, email?.body,
-        content
-      ]
-    );
-
-    await db.run(`DELETE FROM books_groups WHERE bookId = ?`, [bookId]);
-    const groups_tokens =
-      groups ? (Array.isArray(groups) ? groups : Object.entries(groups))
-      : tokens ? tokens.map((t: string) => [null, t])
-      : [];
-    for(const group_token of groups_tokens) {
-      const [group, token] = typeof(group_token) === "string" ? [group_token] : group_token;
-      if (group && allGroups[group] === undefined) {
-        allGroups[group] = (await db.get(`
-          INSERT INTO groups (name) VALUES (?) RETURNING id`,
-          [group])).id;
-      }
-      if (token && allTokens[token] === undefined) {
-        allTokens[token] = (await db.get(`
-          INSERT INTO tokens (token) VALUES (?) RETURNING id`,
-          [token])).id;
-      }
-      await db.run(`
-        INSERT INTO books_groups (bookId, groupId, tokenId)
-        VALUES (?, ?, ?)
-        ON CONFLICT DO NOTHING`,
-        [bookId, group && allGroups[group], token && allTokens[token]]);
-    }
-
-    await db.run(`DELETE FROM books_chapters WHERE bookId = ?`, [bookId]);
-    await Promise.all(
-      chapters.map(({ chapterDir }, position) =>
-        db.run(
-          `
-              INSERT INTO books_chapters (bookId, chapterId, position, lastBuildId)
-              SELECT ?, id, ?, ?
-              FROM chapters
-              WHERE path = ?
-              ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId,
-                                        position = excluded.position
-          `,
-          [bookId, position, buildId, chapterDir]
-        )
-      )
-    )
+  for (const book of books) {
+    await insertBook(book, allGroups, allTokens, db, buildId);
   }
 };
 
