@@ -7,6 +7,7 @@ import slugify from "slugify";
 
 import { useIntl } from "@/i18n";
 import { ChapterDef } from "@/types/types";
+import { QuizProgressCircle, QuizProgressBar } from "@/components/Quiz/QuizProgress";
 
 interface ContentIndexProps {
   contentTitle?: string;
@@ -44,8 +45,10 @@ export const ContentIndex = ({
               <Link
                 href={"#" + slugify(frontmatter.title)}
                 className={highestVisibleIndex === index ? "active" : ""}
+                style={{ display: "flex", alignItems: "center", width: "100%", gap: "12px" }}
               >
                 {frontmatter.title}
+                <QuizProgressCircle chapterIndex={index} />
               </Link>
             </li>
           ))}
@@ -77,6 +80,7 @@ export const ContentIndexControl = ({
         chapters={chapters}
         isChapterIndexVisible={isChapterIndexVisible}
       />
+      <QuizProgressBar />
     </div>
   );
 };

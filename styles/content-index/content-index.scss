@@ -165,19 +165,13 @@
 
 .content-index-chapter {
   display: flex;
-  gap: 12px;
   align-items: center;
 
-  a {
-    margin-right: 36px;
-  }
-
   svg {
-    width: 24px;
-    height: 24px;
-    margin-left: auto;
-    color: $green;
-    
+    margin-left: auto; // pushes svg to right edge
+    width: 15px;
+    height: 15px;
+
     &.inactive {
       color: $gray;
       opacity: 0.6;
