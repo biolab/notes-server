@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { bookMatter } from "@/ingest/book";
-import { checkedMatter, getMdFile, parseMd } from "./md-helpers";
+import { checkedMatter, getMdFile, isListOfStrings, parseMd } from "./md-helpers";
 import { isDirectory, readPublicDir } from "@/ingest/paths";
 import { RawBookFrontmatter, CollectionFrontmatter,
          defaultCollectionFrontmatter, extraCollectionMatter
@@ -18,7 +18,9 @@ export type RawCollectionDef = {
 
 const collectionMatter = (indexMd: string, slug: string | null = null) =>
   checkedMatter(
-    indexMd, defaultCollectionFrontmatter, extraCollectionMatter, slug);
+    indexMd, defaultCollectionFrontmatter, extraCollectionMatter, slug,
+    { admins: isListOfStrings }
+  );
 
 export const parseCollection = async (pathParts: string[]): Promise<RawCollectionDef> => {
   const fullPath = pathParts.join("/");

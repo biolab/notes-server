@@ -318,6 +318,18 @@ const insertBook = async (
       )
     )
   );
+
+  await db.run(`DELETE FROM book_admins WHERE bookId = ?`, [bookId]);
+  for (const adminEmail of book.frontmatter.admins || []) {
+    await db.run(
+      `
+          INSERT INTO book_admins (bookId, email)
+          VALUES (?, ?)
+          ON CONFLICT DO NOTHING
+      `,
+      [bookId, adminEmail]
+    );
+  }
 };
 
 const insertBooks = async (
@@ -411,6 +423,19 @@ const insertCollections = async (
       `,
       [collectionId, position, explicitCollections, buildId, slug])})
     );
+
+    await db.run(`DELETE FROM collection_admins WHERE collectionId = ?`, [collectionId]);
+    for (const adminEmail of frontmatter.admins || []) {
+      await db.run(
+        `
+          INSERT INTO collection_admins (collectionId, email)
+          VALUES (?, ?)
+          ON CONFLICT DO NOTHING
+      `,
+        [collectionId, adminEmail]
+      );
+    }
+
   }
 };
 

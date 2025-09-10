@@ -10,6 +10,8 @@ import Image from "../Image";
 
 import { CollectionProps, ItemDesc } from "@/api/BookService";
 import { getCollectionHasQuestions } from "@/api/QuizService";
+import { isAdminFor } from "@/api/UserService";
+import { UserContext } from "@/context/UserContextProvider";
 
 const List = ({items, title}: { title: string; items: ItemDesc[] }) => {
   const { t } = useIntl();
@@ -44,10 +46,26 @@ export const Collection = ({
   },
   [collectionId]);
 
+  const { user } = React.useContext(UserContext);
+  const [ isAdmin, setIsAdmin ] = React.useState<boolean>(false);
+  React.useEffect(() => {
+    if (!user) {
+      return;
+    }
+    if (user.admin) {
+      setIsAdmin(true);
+    }
+    else {
+      isAdminFor({accessToken: user.accessToken, collectionId}).then(setIsAdmin);
+    }
+  },
+  [user, collectionId]);
+
   return <IntlContextProvider lang={frontmatter.language}>
     <Layout
       title={frontmatter.title}
       showLinkToResults={!!hasQuestions}
+      isAdmin={isAdmin}
     >
       <div className="collection mx-auto">
         {frontmatter.coverImg && (

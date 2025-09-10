@@ -3,7 +3,7 @@ import path from "path";
 
 import { RawBookFrontmatter, ChapterDefBase, ChapterFrontmatter } from "@/types/types";
 import { pathExists } from "@/ingest/paths";
-import { checkedMatter, getMdFile, parseMd, readPublicDirMd } from "./md-helpers";
+import { checkedMatter, getMdFile, isListOfStrings, parseMd, readPublicDirMd } from "./md-helpers";
 import { catchErrors, logError } from "@/ingest/errors";
 import { extractQuizzes } from "@/ingest/questions";
 
@@ -28,6 +28,7 @@ const bookFrontmatterDefaults: RawBookFrontmatter = {
 const extraBookMatter = {
   groups: [],
   tokens: [],
+  admins: [],
   chapters: [] as string[],
 } satisfies Record<string, unknown>;
 
@@ -43,10 +44,8 @@ export const bookMatter = (indexMd: string, slug: string | null = null) =>
           ? (Object.values(value).some((token) => typeof(token) !== "string")
             && "All groups and tokens must be strings")
         : "'groups' must be a list of strings, or string pairs without dashes",
-
-      tokens: (value) =>
-        (!Array.isArray(value) || value.some((x) => typeof(x) !== "string"))
-        && "'tokens' must be a list of strings (don't forget the leading dashes)",
+      tokens: isListOfStrings,
+      admins: isListOfStrings,
     }
   );
 

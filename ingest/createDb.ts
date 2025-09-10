@@ -255,6 +255,26 @@ export const rebuildDatabase = async () => {
             ${LAST_BUILD_ID}
         )
     `)
+
+    await handle("book_admins");
+    await run(`
+        CREATE TABLE book_admins
+        (
+            email       TEXT NOT NULL,
+            bookId     INTEGER NOT NULL REFERENCES books (id) ON DELETE CASCADE,
+            UNIQUE (email, bookId)
+        );
+    `);
+
+    await handle("collection_admins");
+    await run(`
+        CREATE TABLE collection_admins
+        (
+            email         TEXT NOT NULL,
+            collectionId  INTEGER NOT NULL REFERENCES collections (id) ON DELETE CASCADE,
+            UNIQUE (email, collectionId)
+        );
+    `);
   }
   finally {
     conn.close();

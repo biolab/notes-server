@@ -2,7 +2,7 @@
 
 import db from "@/utils/db";
 import { getUserId } from "@/utils/user";
-import { isAdmin } from "@/api/UserService";
+import { isAdminFor } from "@/api/UserService";
 
 // Functions get user's accessToken rather than id because id's can be faked.
 
@@ -87,7 +87,7 @@ type AnswerRow = UserDesc & { answers: UsersAnswers };
 export type AnswersInBook = AnswerRow[];
 
 export const getAnswersInBook = async (bookId: number, accessToken: string): Promise<AnswersInBook | false> => {
-  if (!await isAdmin(accessToken)) {
+  if (!await isAdminFor({accessToken, bookId})) {
     return false;
   }
   const resultTable: AnswersInBook = [];
@@ -158,7 +158,7 @@ type PointsRow = UserDesc & { points: UsersPoints };
 export type PointsInCollection = PointsRow[];
 
 export const getCollectionResults = async (collectionId: number, accessToken: string): Promise<PointsInCollection | false> => {
-  if (!await isAdmin(accessToken)) {
+  if (!await isAdminFor({accessToken, collectionId})) {
     return false;
   }
 

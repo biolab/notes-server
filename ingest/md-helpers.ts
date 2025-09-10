@@ -96,6 +96,10 @@ export function checkedMatter<T>(
   };
 }
 
+export const isListOfStrings = (value: unknown) =>
+  (!Array.isArray(value) || value.some((x) => typeof(x) !== "string"))
+  && "'tokens' must be a list of strings (don't forget the leading dashes)"
+
 export const serializedContent = async (
   source: string, language: string, relativePath: string
 ) => {

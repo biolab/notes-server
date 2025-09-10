@@ -21,6 +21,7 @@ export const HomeIcon = () => {
 
 export default function Layout({
   title = null,
+  isAdmin = false,
   showHome = false,
   chapters = [],
   isChapterIndexVisible = {},
@@ -30,6 +31,7 @@ export default function Layout({
 }: {
   title: string | null;
   showHome?: boolean;
+  isAdmin?: boolean;
   chapters?: ChapterDef[];
   isChapterIndexVisible?: { [key: number]: boolean };
   showLinkToResults?: boolean;
@@ -61,6 +63,7 @@ export default function Layout({
           <UserDropdown
             showLinkToResults={showLinkToResults}
             returnLink={returnLink}
+            isAdmin={isAdmin}
           />
         </div>
       </header>

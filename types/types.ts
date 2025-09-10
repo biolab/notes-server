@@ -51,6 +51,7 @@ export interface BookFrontmatterBase {
 export interface RawBookFrontmatter extends BookFrontmatterBase {
   groups?: string[] | {[token: string]: string};
   tokens?: string[];
+  admins?: string[];
 }
 
 export interface BookFrontmatter extends BookFrontmatterBase {
@@ -68,6 +69,7 @@ export interface CollectionFrontmatter {
   recursiveContent: boolean;
   books?: string[];
   collections?: string[];
+  admins?: string[];
 }
 
 export const defaultCollectionFrontmatter: CollectionFrontmatter = {
@@ -82,5 +84,6 @@ export const defaultCollectionFrontmatter: CollectionFrontmatter = {
 export const extraCollectionMatter = {
   books: [] as string[],
   collections: [] as string[],
+  admins: [] as string[],
 } satisfies Record<string, unknown>;
 

@@ -16,6 +16,7 @@ import Layout from "../Layout/Layout";
 import { toast } from "react-toastify";
 
 import { BookProps } from "@/api/BookService";
+import { isAdminFor } from "@/api/UserService";
 
 export const Book = ({
   frontmatter,
@@ -27,6 +28,7 @@ export const Book = ({
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
   const { user, setUserGroup } = useContext(UserContext);
+  const [ isAdmin, setIsAdmin ] = useState<boolean>(false);
   const [answers, setAnswers] = useState<"pending" | null | AnswerWithQuestionId[]>(
     "pending"
   );
@@ -57,6 +59,14 @@ export const Book = ({
         toast.error(error.message || "Failed to fetch quiz answers");
         setAnswers(null);
       });
+
+      if (user.admin) {
+        setIsAdmin(true);
+      }
+      else {
+        isAdminFor({accessToken: user.accessToken, bookId}).then(setIsAdmin);
+        isAdminFor({accessToken: user.accessToken, bookId}).then(console.log);
+      }
   }, [user, user?.accessToken, slug, bookId]);
 
   const chapterNumbers = React.useMemo(
@@ -167,6 +177,7 @@ export const Book = ({
       >
         <Layout
           title={frontmatter.title}
+          isAdmin={isAdmin}
           showHome={!frontmatter.tocInHeader}
           chapters={frontmatter.tocInHeader ? chapters : []}
           isChapterIndexVisible={

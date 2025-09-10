@@ -53,11 +53,30 @@ export const getUser = async (accessToken: string) => {
   return user;
 };
 
-export const isAdmin = async (accessToken: string): Promise<boolean> =>
-  !!(await db.get(
-    `SELECT 1 FROM users WHERE accessToken = ? AND admin = 1`,
-    [accessToken]
-  ));
+export const isAdminFor = async ({accessToken, bookId, collectionId}:
+  { accessToken: string;
+    bookId?: number;
+    collectionId?: number }
+): Promise<boolean> => {
+  const user = await db.get(`
+      SELECT admin, email FROM users WHERE accessToken = ?`,
+      [accessToken]);
+  return user && !!(
+    user.admin
+    || bookId && await db.get(
+      `SELECT 1 FROM book_admins WHERE bookId = ? AND email == ?`,
+      [bookId, user.email])
+    || bookId && await db.get(
+      `SELECT 1 FROM collections_books cb
+       JOIN collection_admins ca ON cb.collectionId = ca.collectionId
+       WHERE cb.bookId = ? AND ca.email == ?`,
+      [bookId, user.email]
+    )
+    || collectionId && await db.get(
+      `SELECT 1 FROM collection_admins WHERE collectionId = ? AND email == ?`,
+      [collectionId, user.email])
+  );
+}
 
 export const checkMailExists = async (email: string) =>
   !!(await db.get(
