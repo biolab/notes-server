@@ -64,7 +64,7 @@ export const Collection = ({
   return <IntlContextProvider lang={frontmatter.language}>
     <Layout
       title={frontmatter.title}
-      showLinkToResults={!!hasQuestions}
+      showLinkToResults={isAdmin && !!hasQuestions}
       isAdmin={isAdmin}
     >
       <div className="collection mx-auto">

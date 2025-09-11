@@ -183,7 +183,7 @@ export const Book = ({
           isChapterIndexVisible={
             frontmatter.tocInHeader ? isChapterIndexVisible : []
           }
-          showLinkToResults={hasQuestions}
+          showLinkToResults={isAdmin && hasQuestions}
         >
           <div className="prose mx-auto book">
             {frontmatter.coverImg && (

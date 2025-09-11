@@ -25,7 +25,7 @@ function useOutsideClick(ref: any, onClick: any) {
   }, [onClick, ref]);
 }
 
-const UserDropdown = ({showLinkToResults=false, returnLink, isAdmin}: {
+const UserDropdown = ({showLinkToResults=false, returnLink}: {
   showLinkToResults?: boolean
   returnLink?: string,
   isAdmin?: boolean
@@ -62,59 +62,60 @@ const UserDropdown = ({showLinkToResults=false, returnLink, isAdmin}: {
   if (!user) {
     return null;
   }
-  return (
-    <>
-      <div ref={wrapperRef} className="user-dropdown">
-        <BiUserCircle onClick={() => setShow((show) => !show)} />
-        {show && (
+
+  const toResults = () =>
+    { window.location.assign("?results"); }
+  const toPage = () =>
+    { window.location.assign(window.location.origin + window.location.pathname); }
+  const toLogin = () =>
+    { window.location.assign("/login"); }
+  const toLogout = () =>
+    { logOut(); window.location.reload(); }
+
+  return <>
+    <div ref={wrapperRef} className="user-dropdown">
+      <BiUserCircle onClick={() => setShow((show) => !show)} />
+        { show &&
           <ul className="dropdown-content">
-            <li className="dropdown-content-data">
-              {user.email || "Anonymous user"}
-            </li>
-            <li className="danger" onClick={handleShowModal}>
-              Delete user data
-            </li>
-            { showLinkToResults && isAdmin &&
-              <li onClick={() => { window.location.assign("?results"); }}>
-                Show Quiz Results
-              </li>
+            { user.email ?
+              <>
+                <li className="dropdown-content-data">{user.email}</li>
+                {showLinkToResults && <li onClick={toResults}>Show Quiz Results</li> }
+                { returnLink && <li onClick={toPage}>Back to {returnLink}</li> }
+                <li onClick={toLogout}>Log out</li>
+                <li onClick={handleShowModal}
+                    title="Delete your account and all related data"
+                    className="danger" >
+                  Delete account
+                </li>
+              </>
+            : <>
+                <li className="dropdown-content-data">Anonymous user</li>
+                <li onClick={toLogin}>Log in</li>
+                <li onClick={toLogout}
+                    title={"Remove question answers, group memberships and tokens."}>
+                  Reset page
+                </li>
+              </>
             }
-            { returnLink &&
-              <li onClick={() => {
-                const url = window.location.origin + window.location.pathname;
-                window.location.assign(url);
-              }}>
-                Back to {returnLink}
-              </li>
-
-            }
-            <li
-              onClick={() => {
-                logOut();
-                window.location.reload();
-              }}
-            >
-              Log out
-            </li>
           </ul>
-        )}
-      </div>
+        }
+    </div>
 
-      <Modal
-        title="Delete user data"
-        open={showModal}
-        onOk={handleClose}
-        confirmLoading={confirmLoading}
-        onCancel={() => setShowModal(false)}
-      >
-        <p>
-          This action is irreversible. Once confirmed, all account data will be
-          permanently erased from our system. There is no way to recover this
-          data after deletion. Please proceed only if you are certain.
-        </p>
-      </Modal>
-    </>
-  );
+    <Modal
+      title="Delete user data"
+      open={showModal}
+      onOk={handleClose}
+      confirmLoading={confirmLoading}
+      onCancel={() => setShowModal(false)}
+    >
+      <p>
+        This action is irreversible. Once confirmed, all account data will be
+        permanently erased from our system. There is no way to recover this
+        data after deletion. Please proceed only if you are certain.
+      </p>
+    </Modal>
+  </>
 };
 
 export default UserDropdown;
