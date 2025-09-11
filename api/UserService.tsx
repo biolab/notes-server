@@ -96,6 +96,9 @@ export const createUser = async (): Promise<User> => {
 }
 
 export const applyTemporaryToken = async (token: string): Promise<User> => {
+  await db.run(`
+    DELETE FROM temporary_tokens WHERE expires < datetime('now')`);
+
   const tempData = await db.get(
     `SELECT * FROM temporary_tokens WHERE emailToken = ?`,
     [token]

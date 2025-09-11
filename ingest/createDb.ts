@@ -204,7 +204,7 @@ export const rebuildDatabase = async () => {
             name          TEXT DEFAULT NULL,
             surname       TEXT DEFAULT NULL,
             email         TEXT UNIQUE DEFAULT NULL,
-            expires       TIMESTAMP NOT NULL DEFAULT (DATETIME('now', '+4 hours'))
+            expires       TIMESTAMP NOT NULL DEFAULT (DATETIME('now', '+30 minutes'))
         ); 
     `);
 
