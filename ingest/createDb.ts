@@ -70,9 +70,6 @@ export const rebuildDatabase = async () => {
             coverImg             TEXT,
             requireLogin         BOOLEAN NOT NULL DEFAULT 0,
             quizThreshold        INTEGER          DEFAULT NULL,
-            loginSubtitle        TEXT,
-            email_subject        TEXT,
-            email_body           TEXT,
             content              TEXT    NOT NULL,
             ${LAST_BUILD_ID}
         );
