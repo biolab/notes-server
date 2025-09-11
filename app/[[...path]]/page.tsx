@@ -14,7 +14,7 @@ export const generateMetadata = async ({params, searchParams}:
   { params: Promise<PathList>,
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>}
 ) =>
-  await Object.keys(searchParams).length ? null : getMetadata(((await params).path ?? []).join("/"));
+  Object.keys(await searchParams).length ? null : await getMetadata(((await params).path ?? []).join("/"));
 
 export default async function CollectionOrBookPage(
   {params, searchParams}:
