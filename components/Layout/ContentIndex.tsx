@@ -7,9 +7,7 @@ import slugify from "slugify";
 
 import { useIntl } from "@/i18n";
 import { ChapterDef } from "@/types";
-
-import { QuizProgressCircle, QuizProgressBar } from "./QuizProgress";
-
+import { QuizProgressIndicator, QuizProgressBar } from "./QuizProgress";
 
 interface ContentIndexProps {
   contentTitle?: string;
@@ -50,8 +48,8 @@ export const ContentIndex = ({
                 style={{ display: "flex", alignItems: "center", width: "100%", gap: "12px" }}
               >
                 {frontmatter.title}
-                <QuizProgressCircle chapterIndex={index} />
               </Link>
+              <QuizProgressIndicator chapterIndex={index} />
             </li>
           ))}
         </ul>

@@ -120,7 +120,15 @@ export const QuizContext = React.createContext<{
   answerQuestion: (value: AnswerWithQuestionId) => Promise<boolean>;
   getAnswers: (questionId: string) => Answer[];
   submissionErrored: (questionId: string) => boolean;
-  chapterStats: (chapterIndex: number) => { noOfQuestions: number; answeredQuestions: number; correctAnswers: number; achievedPoints: number}}>({
+  chapterStats: (chapterIndex: number) => {
+    noOfQuestions: number;
+    answeredQuestions: number;
+    correctAnswers: number;
+    achievedPoints: number,
+    correctness: (boolean | null | undefined)[]
+    questionIds: string[]
+  }
+}>({
   quizState: null,
   noOfQuestions: 0,
   achievedPoints: 0,
@@ -131,7 +139,8 @@ export const QuizContext = React.createContext<{
   answerQuestion: async () => false,
   getAnswers: () => [],
   submissionErrored: () => false,
-  chapterStats: () => ({ noOfQuestions: 0, answeredQuestions: 0, correctAnswers: 0, achievedPoints: 0})
+  chapterStats: () => ({ noOfQuestions: 0, answeredQuestions: 0, correctAnswers: 0, achievedPoints: 0,
+                         correctness: [], questionIds: []})
 });
 
 export const QuizContextProvider = ({
@@ -173,7 +182,7 @@ export const QuizContextProvider = ({
       quizReducer({ type: "ANSWER", value });
       return true;
     },
-    [user, bookId, quizReducer]
+    [user, bookId, quizReducer, userGroup]
   );
 
   const {
@@ -196,21 +205,28 @@ export const QuizContextProvider = ({
       chapterStats: (chapterIndex: number) => {
         const questionsInChapter = Object.values(quizState.questions)
           .filter((q) => q.chapterIndex === chapterIndex);
-        const answeredInChapter = questionsInChapter
+        const answeredQuestions = questionsInChapter
           .filter((q) => q.answers.length > 0).length;
-        const correctInChapter = questionsInChapter
+        const correctAnswers = questionsInChapter
           .filter((q) =>
             q.answers.length > 0
             && q.answers[q.answers.length - 1].isCorrect !== false).length;
-        const pointsInChapter = questionsInChapter.reduce(
+        const achievedPoints = questionsInChapter.reduce(
           (acc, {answers}) =>
             acc + (answers.length && answers[answers.length - 1].points),
           0);
+        const correctness = questionsInChapter.map((q) =>
+          q.answers.length === 0
+            ? null
+            : q.answers[q.answers.length - 1].isCorrect);
+        const questionIds = questionsInChapter.map((q) => q.questionId);
         return {
           noOfQuestions: questionsInChapter.length,
-          answeredQuestions: answeredInChapter,
-          correctAnswers: correctInChapter,
-          achievedPoints: pointsInChapter,
+          answeredQuestions,
+          correctAnswers,
+          achievedPoints,
+          correctness,
+          questionIds
         }
       },
 

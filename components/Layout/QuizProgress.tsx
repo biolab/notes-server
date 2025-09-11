@@ -61,34 +61,51 @@ Required: ${Math.round(noOfQuestions * quizState.quizThreshold)}`}
 };
 
 
-function sectorPathD(p: number, radius = 1) {
-  if (p > 1-1e-4) {
-    return `
-      M 0 0
-      m 0 ${-radius}
-      a ${radius} ${radius} 0 1 1 0 ${2 * radius}
-      a ${radius} ${radius} 0 1 1 0 ${-2 * radius}
-      Z
-    `.replace(/\s+/g, " ");
-  }
+const EW = 0.06
+const NW = 5 * EW;
 
-  const angle = p  * Math.PI * 2;
-  const x1 = 0, y1 = -radius;
-  const x2 = Math.sin(angle) * radius;
-  const y2 = -Math.cos(angle) * radius;
-  const large = angle > Math.PI ? 1 : 0;
-  const sweep = 1;
-  return `M 0 0 L ${x1} ${y1} A ${radius} ${radius} 0 ${large} ${sweep} ${x2} ${y2} Z`;
+const indicator = (correctness: (boolean | undefined | null)[],
+                   questionLinks: string[] | undefined) => {
+  const n = correctness.length;
+  if (n === 0) {
+    return null;
+  }
+  return <>
+    {correctness.map((c, i) => {
+      const angle = (i / n) * Math.PI * 2;
+      const x = Math.sin(angle);
+      const y = -Math.cos(angle);
+      return <g key={i}>
+        {questionLinks &&
+          <>
+            <a href={`#question-${questionLinks[i]}`} className="snowflake-link">
+              <path d={`M0 0L${1.5 * x} ${1.5 * y}`} strokeWidth={4 * NW} />
+            </a>
+            <path d={`M0 0L${x} ${y}`} strokeWidth={1.5 * NW} className="snowflake-link-indicator"
+                  pointerEvents={"none"}/>
+          </>
+        }
+        {c === null ?
+         <path key={i} d={`M0 0L${x} ${y}`} stroke="#000" strokeWidth={EW} style={{pointerEvents: "none"}}/>
+                    : <path d={`M0 0L${x * 0.7} ${y * 0.7}`} stroke={c === undefined ? "#000" : c ? "green" : "red"}
+             strokeWidth={NW} strokeLinecap="round" style={{pointerEvents: "none"}}/>
+        }
+      </g>
+    })}
+  <circle cx={0} cy={0} r={0.2} fill="#000" stroke="#fff" strokeWidth={EW / 2}/>
+    </>
 }
 
-export const QuizProgressCircle = ( { chapterIndex }: {chapterIndex: number }) => {
-  const { chapterStats } = React.useContext(QuizContext);
-  const { noOfQuestions, answeredQuestions, correctAnswers } =
-    chapterStats(chapterIndex) || { noOfQuestions: 0, answeredQuestions: 0 };
+export const QuizProgressIndicator = ({chapterIndex}: {
+  chapterIndex: number;
+  questionLink?: string
+}) => {
+  const {chapterStats} = React.useContext(QuizContext);
+  const { noOfQuestions, answeredQuestions, correctAnswers, correctness, questionIds } =
+    chapterStats(chapterIndex) || { noOfQuestions: 0, answeredQuestions: 0, correctness: [], correctAnswers: 0 };
   if (noOfQuestions === 0) {
     return null;
   }
-  const p = answeredQuestions / noOfQuestions;
   let title;
   if (noOfQuestions === 1) {
     if (correctAnswers) {
@@ -121,9 +138,7 @@ export const QuizProgressCircle = ( { chapterIndex }: {chapterIndex: number }) =
   return (
     <svg viewBox="-1 -1 2 2" role="img">
       <title>{title}</title>
-      <circle cx="0" cy="0" r="1" fill="#eee" stroke="#000" strokeWidth={0.03} style={{position: "absolute", right: "4px"}}/>
-      {p > 0 && <path d={sectorPathD(p, 1)} fill="black
-      " />}
+      {indicator(correctness, questionIds)}
 </svg>
 )
 }

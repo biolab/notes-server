@@ -112,7 +112,6 @@
 
   li {
     padding: 0;
-    padding-right: 24px;
   }
 
   &:hover {
@@ -167,14 +166,26 @@
   display: flex;
   align-items: center;
 
-  svg {
-    margin-left: auto; // pushes svg to right edge
-    width: 15px;
-    height: 15px;
+  a {
+    flex: 1;
+    padding-right: 24px;
+  }
 
-    &.inactive {
+  svg {
+    width: 20px;
+    height: 20px;
+
+    &.inactive a {
       color: $gray;
       opacity: 0.6;
+    }
+
+    .snowflake-link, .snowflake-link-indicator {
+      stroke: transparent;
+    }
+
+    .snowflake-link:hover + .snowflake-link-indicator {
+      stroke: grey;
     }
   }
 }

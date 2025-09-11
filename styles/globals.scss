@@ -567,8 +567,13 @@ table.quiz-results {
   margin: 16px 0 0 0;
   color: white;
   border-radius: 0.25rem;
+
   p {
     margin: 0;
     padding: 0;
   }
+}
+
+[id] {
+  scroll-margin-top: 48px;
 }
