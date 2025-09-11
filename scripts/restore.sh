@@ -1,0 +1,81 @@
+cd ../db
+
+if [ -z "$1" ]; then
+  echo "Usage: $0 <backup-timestamp>"
+  echo "Example: $0 20240401_153000"
+  exit 1
+fi
+
+STEM=backups/$1
+
+sqlite3 notes.sqlite <<EOF
+.mode csv
+
+DROP TABLE IF EXISTS users_restore_staging;
+
+CREATE TABLE users_restore_staging (
+    accessToken TEXT,
+    name        TEXT,
+    surname     TEXT,
+    email       TEXT,
+    admin       TEXT,
+    createdAt   TEXT,
+    lastUseAt   TEXT
+);
+.import --skip 1 $STEM-users.csv users_restore_staging
+
+INSERT INTO users (accessToken, name, surname, email, admin, createdAt, lastUseAt)
+SELECT
+    s.accessToken,
+    s.name,
+    s.surname,
+    s.email,
+    s.admin,
+    s.createdAt,
+    s.lastUseAt
+FROM users_restore_staging s
+WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.email = s.email)
+ON CONFLICT DO NOTHING;
+
+DROP TABLE users_restore_staging;
+
+CREATE TABLE answers_restore_staging (
+                                         userEmail        TEXT,
+                                         bookPath         TEXT,
+                                         groupName        TEXT,
+                                         questionId       TEXT,
+                                         answer           TEXT,
+                                         createdAt        TEXT,
+                                         isCorrect        TEXT,
+                                         points           TEXT
+);
+.import --skip 1 $STEM-answers.csv answers_restore_staging
+
+INSERT INTO answers (userId, bookId, groupId, questionId, answer, createdAt, isCorrect, points)
+SELECT
+    u.id,
+    b.id,
+    g.id,
+    q.id,
+    s.answer,
+    s.createdAt,
+    s.isCorrect,
+    s.points
+FROM answers_restore_staging s
+         JOIN users     u ON u.email     = s.userEmail
+         JOIN books     b ON b.path      = s.bookPath
+         LEFT JOIN groups g ON g.name    = s.groupName
+         JOIN questions q ON q.questionId = s.questionId
+WHERE NOT EXISTS (
+    SELECT 1 FROM answers a
+    WHERE a.userId = u.id
+      AND a.bookId = b.id
+      AND ( (a.groupId IS NULL AND s.groupName IS NULL)
+        OR (a.groupId = g.id) )
+      AND a.questionId = q.id
+);
+
+DROP TABLE answers_restore_staging;
+EOF
+
+cd - > /dev/null
