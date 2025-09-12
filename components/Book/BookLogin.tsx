@@ -6,11 +6,12 @@ import { checkMailExists, setTemporaryData, setUserGroupAndToken } from "@/api/U
 import { sendEmail } from "@/api/EmailService";
 
 function BookLogin({
-  title, bookId, requireEmail, groups
+  title, bookId, requireEmail, redirect, groups
 }: {
-  title: string;
-  bookId: number;
+  title?: string;
+  bookId?: number;
   requireEmail: boolean;
+  redirect?: string;
   groups?: [string, string][];
 }) {
   const hasMounted = useHasMounted();
@@ -60,7 +61,7 @@ function BookLogin({
         setMessage(["INVALID_TOKEN"]);
         return;
       }
-      if (group || token) {
+      if (bookId && (group || token)) {
         await setUserGroupAndToken(user.accessToken, bookId, group, token);
       }
       if (!email) {
@@ -73,7 +74,7 @@ function BookLogin({
       const emailToken = await setTemporaryData({
         userId: user.id, email, name, surname});
       const { origin, pathname, hash } = window.location;
-      const url = `${origin}${pathname}?token=${emailToken}${hash}`;
+      const url = `${origin}${redirect || pathname}?token=${emailToken}${hash}`;
 
       // In development, we just show the link
       if (process.env.NODE_ENV === "development") {
@@ -126,12 +127,12 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
     <div className="prose mx-auto">
       <div className="p-6 rounded mt-10">
         <h2 className="">
-          {title}
+          {title || "Login to Notes"}
         </h2>
         <form>
           { askEmail && (<>
               <div className="mb-4">
-                This book contains quizzes.
+                { title && "This book contains quizzes."}
                 Existing users can get a login link by email.
                 New users must identify with an email and name.
               </div>

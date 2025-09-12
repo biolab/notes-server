@@ -2,6 +2,8 @@ import { ToastContainer } from "react-toastify";
 import "../styles/globals.scss";
 
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { UserContextProvider } from "@/context/UserContextProvider";
 
 export const metadata: Metadata = {
   title: "Notes",
@@ -18,8 +20,12 @@ export default function RootLayout({
   return (
     <html>
       <body>
-        {children}
-        <ToastContainer />
+        <Suspense>
+          <UserContextProvider>
+            {children}
+            <ToastContainer />
+          </UserContextProvider>
+        </Suspense>
       </body>
     </html>
   );

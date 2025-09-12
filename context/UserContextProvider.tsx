@@ -1,8 +1,7 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { useHasMounted } from "../hooks/useHasMounted";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { createUser, applyTemporaryToken, getUser, User } from "@/api/UserService";
 import { logger } from "@/utils/logger";
 
@@ -33,7 +32,6 @@ export const removeAccessTokenFromLocalStorage = () => {
 
 export const UserContextProvider = ({ children }: {
   children: ReactNode;
-  requireEmail?: boolean;
 }) => {
   const [user, setUser] = React.useState<User | null>(null);
   const [userGroup, setUserGroup] = React.useState<string | null>(null);
@@ -60,13 +58,12 @@ export const UserContextProvider = ({ children }: {
   }, [onUserLogin]);
 
   const [init, setInit] = React.useState(false);
-  const hasMounted = useHasMounted();
   const searchParams = useSearchParams();
   const accessTokenFromQuery = searchParams.get("token");
-  const router = useRouter();
   const pathname = usePathname();
+
   React.useEffect(() => {
-    if (!hasMounted || !!user || init) {
+    if (init) {
       return;
     }
     setInit(true);
@@ -101,14 +98,13 @@ export const UserContextProvider = ({ children }: {
 
     createAnonymousUser();
   },
-  [onUserLogin, accessTokenFromQuery, createAnonymousUser,
-   hasMounted, init, pathname, router, user
-  ]);
+  [onUserLogin, accessTokenFromQuery, createAnonymousUser, init, pathname]);
 
   const logOut = React.useCallback(() => {
     setUser(null);
     removeAccessTokenFromLocalStorage();
-  }, []);
+    createAnonymousUser();
+  }, [createAnonymousUser]);
 
   const context = React.useMemo(
     () => ({ user, logOut, userGroup, setUserGroup }),
