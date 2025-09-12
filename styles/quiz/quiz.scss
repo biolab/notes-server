@@ -1,6 +1,6 @@
 @use "../colors" as *;
 
-.quiz {
+.quiz:not(.quiz-section .quiz), .quiz-section {
   position: relative;
   margin: 24px 0;
   border-left: 5px solid rgb(144, 144, 144);
@@ -10,7 +10,9 @@
   border-radius: 6px;
   overflow: hidden;
   box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+}
 
+.quiz {
   &.correct {
     border-color: $green;
     background: $greenTransparent;
@@ -98,6 +100,20 @@
   }
 }
 
+.quiz-section {
+   h2 {
+     margin: 0 0 36px 0;
+   }
+
+  .quiz:not(:last-child) {
+    padding-bottom: 36px;
+  }
+
+  .quiz:last-child {
+    margin-bottom: 12px;
+  }
+}
+
 .submit-quiz-popup,
 .quiz {
   button {
@@ -150,45 +166,6 @@
   margin: 64px 0;
 }
 
-.prose .activate-quiz-warning {
-  display: flex;
-  gap: 12px;
-  margin-top: 48px;
-  border: 1px solid $gray;
-  padding: 12px;
-  border-radius: 6px;
-
-  svg {
-    color: $gray;
-    width: 24px;
-    height: 24px;
-  }
-
-  p {
-    margin: 0;
-    font-weight: 400;
-  }
-}
-
-.activate-quiz-button {
-  margin-top: 48px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  border: 1px solid $gray;
-  padding: 12px;
-  border-radius: 6px;
-  svg {
-    color: $green;
-    width: 24px;
-    height: 24px;
-  }
-}
-
-.hidden-quiz-section {
-  display: none;
-}
-
 .quiz-progress-indicator-wrapper {
   position: relative;
   margin-top: 32px;
@@ -220,41 +197,4 @@
   margin-bottom: 12px;
   transform: translateX(-100%);
   font-size: 14px;
-}
-
-.submit-quiz-popup {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  gap: 18px;
-  align-items: center;
-  justify-content: center;
-  min-height: 64px;
-  padding: 20px 32px;
-  z-index: 100;
-  background: #f4f9f6;
-  border-top: 2px solid $green;
-  font-size: 20px;
-  min-height: 60vh;
-
-  &.minimized {
-    min-height: unset;
-  }
-
-  button {
-    padding: 18px;
-  }
-
-  .minimize-button {
-    position: absolute;
-    right: 30px;
-    top: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    border: none;
-    font-size: 18px;
-  }
 }

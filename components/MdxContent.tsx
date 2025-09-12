@@ -1,4 +1,4 @@
-import React from "react";
+import React, { JSX } from "react";
 import * as runtime from 'react/jsx-runtime';
 import { MDXProvider } from '@mdx-js/react';
 
@@ -139,7 +139,14 @@ export const MdxContent = ({
 
     CcByNcNd,
 
-    QuizSection: (props: IExplanation) => <div className="quiz-section" {...props} />,
+    QuizSection: ({title, children}: {
+      title: string;
+      children?: JSX.Element | JSX.Element[];
+    }) =>
+      <div className="quiz-section">
+        {title && <h2>{title}</h2> }
+        {children}
+      </div>
   }
 
   const fn = new Function('mdx', content);
