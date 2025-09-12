@@ -17,6 +17,7 @@ import {
 } from "@/api/BookService";
 import { UserContext } from "@/context/UserContextProvider";
 import Layout from "@/components/Layout/Layout";
+import { corrColor, corrSym } from "@/utils/questions";
 
 function GroupsCombo({groups, value, onChange}: {
   groups: GroupList;
@@ -99,16 +100,6 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
     return <p>Loading results...</p>
   }
 
-  const corrSym = (isCorrect: boolean | undefined) =>
-    isCorrect === undefined ? "⨀"
-    : isCorrect ? "✓"
-    : "✕";
-
-  const corrColor = (isCorrect: boolean | undefined) =>
-    isCorrect === undefined ? "white"
-    : isCorrect ? "lawngreen"
-    : "pink";
-
   return (
     <Layout title={frontmatter.title} returnLink="Book" >
       <div className="prose mx-auto admin-page">
@@ -151,8 +142,8 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
                   {name ? `${name} ${surname}` : `User #${userId}`}
                 </TooltipWrapper>
               </th>
-              {questions.map(({id, questionId, question}) => {
-                const attempts = answers[id!];
+              {questions.map(({questionId, question}) => {
+                const attempts = answers[questionId!];
                 if (!attempts || attempts.length === 0) {
                   return <td key={userId + questionId} />;
                 }

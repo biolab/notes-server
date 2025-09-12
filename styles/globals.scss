@@ -522,13 +522,25 @@ table.quiz-results {
   // Tailwind equivalents:
   background-color: darkblue;
   color: white;
-  font-size: 0.75rem; // text-xs
-  border-radius: 0.25rem; // rounded
-  padding: 0.25rem 0.5rem; // px-2 py-1
+  font-size: 0.75rem;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
   z-index: 50;
 
   // For group-hover
   .group:hover & {
     display: block;
+  }
+}
+
+.users-answers {
+  background: darkblue;
+  padding: 8px 16px;
+  margin: 16px 0 0 0;
+  color: white;
+  border-radius: 0.25rem;
+  p {
+    margin: 0;
+    padding: 0;
   }
 }

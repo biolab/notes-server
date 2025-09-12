@@ -26,6 +26,7 @@ export default function Layout({
   chapters = [],
   isChapterIndexVisible = {},
   showLinkToResults = false,
+  onChangeShowAnswers,
   returnLink,
   children,
 }: {
@@ -35,6 +36,7 @@ export default function Layout({
   chapters?: ChapterDef[];
   isChapterIndexVisible?: { [key: number]: boolean };
   showLinkToResults?: boolean;
+  onChangeShowAnswers?: (show: boolean) => void;
   returnLink?: string;
   children: React.ReactNode;
 }) {
@@ -64,6 +66,7 @@ export default function Layout({
             showLinkToResults={showLinkToResults}
             returnLink={returnLink}
             isAdmin={isAdmin}
+            onChangeShowAnswers={onChangeShowAnswers}
           />
         </div>
       </header>

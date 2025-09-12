@@ -8,6 +8,7 @@ import Question, { QuizPropsBase } from "./Quiz/Quiz";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
 import { determineQuestionType } from "@/utils/questions";
+import { AnswersInBook } from "@/api/QuizService";
 
 
 export interface QuestionProps extends QuizPropsBase {
@@ -26,12 +27,14 @@ export const MdxContent = ({
   content,
   chapterId,
   bookId,
-  t
+  t,
+  allAnswers
 }: {
   content: string;
   bookId?: number;
   chapterId?: number;
   t: (key: string) => string;
+  allAnswers?: AnswersInBook;
 }) => {
   if  (!content) {
     return;
@@ -66,6 +69,11 @@ export const MdxContent = ({
         ? () => undefined
         : (x: string) => x === actAnswer);
 
+      const usersAnswers = allAnswers
+        ?.map(({answers, ...rest}) => (
+          {...rest, answers: answers[id || question]}))
+        .filter(({answers}) => answers && answers.length > 0);
+
       return (
         <Question
           {...restProps}
@@ -77,6 +85,7 @@ export const MdxContent = ({
           options={actOptions}
           maxPoints={ungraded ? 0 : (points ?? 1)}
           maxTrials={trials || 1}
+          usersAnswers={usersAnswers}
         />
       );
     },
