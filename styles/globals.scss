@@ -122,6 +122,12 @@ img.expanding-side-img.retina {
   color: #000;
   margin-bottom: 120px;
 
+  :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *))::before,
+  :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *))::after
+  {
+      content: "";
+  }
+
   strong {
     font-weight: 400 !important;
   }
