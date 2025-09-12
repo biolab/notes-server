@@ -3,7 +3,6 @@ import * as runtime from 'react/jsx-runtime';
 import { MDXProvider } from '@mdx-js/react';
 
 import Image from "./Image";
-import CcByNcNd from "./CcByNcNd";
 import Question, { QuizPropsBase } from "./Quiz/Quiz";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
@@ -146,7 +145,8 @@ export const MdxContent = ({
         [embedId]
       ),
 
-    CcByNcNd,
+    CcByNcNd: () =>
+      <img src="/icons/cc-by-nc-nd.png" alt="CC BY-NC-ND" /> /* eslint-disable-line @next/next/no-img-element */,
 
     QuizSection: ({title, children}: {
       title: string;
