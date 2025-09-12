@@ -238,8 +238,7 @@ const insertBook = async (
     mdxContent, chapters, slug,
     frontmatter: {
       title, subTitle, public: isPublic, language, tocInHeader,
-      coverImg, requireLogin, quizThreshold, loginSubtitle, email,
-      groups, tokens
+      coverImg, requireLogin, quizThreshold, groups, tokens
     }
   } = book;
   const content = await serializedContent(mdxContent, language, slug);
@@ -249,10 +248,9 @@ const insertBook = async (
         INSERT INTO books (lastBuildId,
                            path, title, subtitle,
                            public, language, tocInHeader,
-                           coverImg, requireLogin, quizThreshold, loginSubtitle,
-                           email_subject, email_body,
+                           coverImg, requireLogin, quizThreshold,
                            content)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT DO UPDATE SET lastBuildId          = excluded.lastBuildId,
                                   title                = excluded.title,
                                   subtitle             = excluded.subtitle,
@@ -262,9 +260,6 @@ const insertBook = async (
                                   coverImg             = excluded.coverImg,
                                   requireLogin         = excluded.requireLogin,
                                   quizThreshold        = excluded.quizThreshold,
-                                  loginSubtitle        = excluded.loginSubtitle,
-                                  email_subject        = excluded.email_subject,
-                                  email_body           = excluded.email_body,
                                   content              = excluded.content
         RETURNING id
     `,
@@ -272,8 +267,7 @@ const insertBook = async (
       buildId,
       slug, title, subTitle,
       isPublic, language, tocInHeader,
-      coverImg, requireLogin, quizThreshold, loginSubtitle,
-      email?.subject, email?.body,
+      coverImg, requireLogin, quizThreshold,
       content
     ]
   );

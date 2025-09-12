@@ -21,8 +21,6 @@ const bookFrontmatterDefaults: RawBookFrontmatter = {
   coverImg: "",
   requireLogin: false,
   quizThreshold: 0,
-  loginSubtitle: "",
-  email: { subject: "", body: ""},
 } satisfies RawBookFrontmatter & Record<string, unknown>;
 
 const extraBookMatter = {

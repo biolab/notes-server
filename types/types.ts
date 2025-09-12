@@ -44,8 +44,6 @@ export interface BookFrontmatterBase {
   requireLogin: boolean;
   quizThreshold?: number;
   chapters?: string[];
-  loginSubtitle?: string;
-  email?: { subject: string; body: string };
 }
 
 export interface RawBookFrontmatter extends BookFrontmatterBase {
