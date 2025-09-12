@@ -120,7 +120,7 @@ img.expanding-side-img.retina {
 .prose {
   max-width: 882px;
   color: #000;
-  margin-bottom: 120px;
+  margin-bottom: 30px;
 
   :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *))::before,
   :where(code):not(:where([class~="not-prose"],[class~="not-prose"] *))::after
@@ -250,6 +250,11 @@ img.expanding-side-img.retina {
   }
 }
 
+h2 {
+  font-weight: 400;
+  font-size: 18px;
+}
+
 /////////////////////////
 // Home page, Collection page
 /////////////////////////
@@ -261,6 +266,7 @@ img.expanding-side-img.retina {
 
   h2 {
     font-weight: 500;
+    font-size: 24px;
   }
 
   .book {
@@ -379,10 +385,11 @@ img.expanding-side-img.retina {
 .chapter {
   h2.chapter-title {
     color: rgb(52 211 153);
-    padding-top: 80px;
+    padding-top: 36px;
     margin-top: 0px;
     margin-bottom: 36px;
     font-weight: 400;
+    font-size: 24px;
   }
 }
 
