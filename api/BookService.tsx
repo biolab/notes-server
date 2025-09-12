@@ -110,7 +110,6 @@ export const getBook = async (id: number): Promise<BookProps> => {
       public: book.public === 1, coverImg: book.coverImg,
       groups,
       tocInHeader: book.tocInHeader === 1, language: book.language,
-      email: { subject: book.email_subject, body: book.email_body },
     },
     chapters,
     content: book.content
