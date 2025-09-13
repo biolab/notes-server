@@ -95,16 +95,22 @@ export const MdxContent = ({
       <div className="float-aside">{children}</div>
     ),
 
-    ExpandingSideImg: (
-      {src, alt, retina}: { src: string; alt?: string; retina?: boolean;
+    ExpandingSideImg: ({src, alt, retina, caption, children}: {
+      src: string;
+      caption?: string;
+      children?: React.ReactNode;
+      alt?: string;
+      retina?: boolean;
     }) => (
-      <Image
-        src={src}
-        layout="fill"
-        style={{ objectFit: "contain" }}
-        alt={alt || "image"}
-        className={"expanding-side-img" + (retina ? " retina" : "")}
-      />
+      <div className="expanding-side-img">
+        <Image
+          src={src}
+          alt={alt || caption || "image"}
+          className={retina ? " retina" : ""}
+        />
+        {caption && <div className="caption">{caption}</div>}
+        {children && <div className="children">{children}</div>}
+      </div>
     ),
 
     ReplayImg: ({ src, alt }: { src: string; alt?: string }) => {
