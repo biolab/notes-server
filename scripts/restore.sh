@@ -1,12 +1,20 @@
 cd ../db
 
-if [ -z "$1" ]; then
-  echo "Usage: $0 <backup-timestamp>"
-  echo "Example: $0 20240401_153000"
-  exit 1
+if [ -z "${1:-}" ]; then
+  # pick latest timestamp from backups
+  latest=$(ls -1 backups/*-users.csv 2>/dev/null | sort -r | head -n1)
+  if [ -z "$latest" ]; then
+    echo "No backups found!"
+    exit 1
+  fi
+  timestamp=$(basename "$latest" | cut -d- -f1)
+  echo "No timestamp provided, using latest: $timestamp"
+else
+  timestamp="$1"
 fi
 
-STEM=backups/$1
+
+STEM=backups/$timestamp
 
 sqlite3 notes.sqlite <<EOF
 .mode csv
