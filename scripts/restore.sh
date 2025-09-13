@@ -1,4 +1,4 @@
-cd ../db
+cd db
 
 if [ -z "${1:-}" ]; then
   # pick latest timestamp from backups

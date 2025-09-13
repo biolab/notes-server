@@ -1,4 +1,4 @@
-cd ../db
+cd db
 if [ ! -d backups ]; then
   mkdir backups
 fi
