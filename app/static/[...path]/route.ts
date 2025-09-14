@@ -1,8 +1,11 @@
 import fs from "fs/promises";
 import path from "path";
 import mime from 'mime';
+
 import { NextRequest, NextResponse } from "next/server";
+
 import { getNotesPath } from "@/ingest/paths";
+
 
 const publicDir = path.join(process.cwd(), "public");
 

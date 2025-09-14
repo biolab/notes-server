@@ -1,6 +1,8 @@
 import {visit} from "unist-util-visit";
-import dictJson from "../i18n/dict.json";
 import type { Root } from "hast";
+
+import dictJson from "@/i18n/dict.json";
+
 
 const dict: Record<string, any> = dictJson;
 

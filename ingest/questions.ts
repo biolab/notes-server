@@ -1,13 +1,13 @@
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-
 import { compile } from "@mdx-js/mdx";
 import * as babelParser from "@babel/parser";
 import * as t from "@babel/types";
 import traverse, { NodePath } from "@babel/traverse";
-import { getImageSize } from "@/ingest/getImageSize";
-import { QuestionDef } from "@/types/types";
-import { logError } from "@/ingest/errors";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+
+import { getImageSize } from "./getImageSize";
+import { QuestionDef } from "@/types";
+import { logError } from "./errors";
 
 
 import { determineQuestionType } from "@/utils/questions";

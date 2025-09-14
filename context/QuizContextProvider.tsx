@@ -1,8 +1,10 @@
-import { ChapterDef } from "@/types/types";
 import React from "react";
+
+import { postAnswer } from "@/api/quiz";
+import { ChapterDef } from "@/types";
 import { logger } from "@/utils/logger";
-import { postAnswer } from "@/api/QuizService";
 import { UserContext } from "@/context/UserContextProvider";
+
 
 export type Answer = {
   answer: string;

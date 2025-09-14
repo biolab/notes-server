@@ -2,11 +2,13 @@
 
 import React from "react";
 import { BiUserCircle } from "react-icons/bi";
-import { Modal } from "antd";
-import { UserContext } from "@/context/UserContextProvider";
-import { deleteUser } from "@/api/UserService";
-import { logger } from "@/utils/logger";
 import { toast } from "react-toastify";
+import { Modal } from "antd";
+
+import { deleteUser } from "@/api/user";
+import { logger } from "@/utils/logger";
+import { UserContext } from "@/context/UserContextProvider";
+
 
 function useOutsideClick(ref: any, onClick: any) {
   React.useEffect(() => {

@@ -1,10 +1,13 @@
-import { serializedContent } from "./md-helpers";
 import { Database } from "sqlite";
-import { parseCollection, RawCollectionDef } from "@/ingest/collection";
-import { parseBook, RawBookDef, RawChapterDef } from "@/ingest/book";
-import { QuestionDef } from "@/types/types";
-import { catchErrors, hasError, logError } from "@/ingest/errors";
+
+import { QuestionDef } from "@/types";
 import { elide } from "@/utils/string";
+
+import { serializedContent } from "./md-helpers";
+import { parseCollection, RawCollectionDef } from "./collection";
+import { parseBook, RawBookDef, RawChapterDef } from "./book";
+import { catchErrors, hasError, logError } from "./errors";
+
 
 const checkBooks = async (
   books: RawBookDef[],

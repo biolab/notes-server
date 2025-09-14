@@ -3,7 +3,9 @@ import "../styles/globals.scss";
 
 import type { Metadata } from "next";
 import { Suspense } from "react";
+
 import { UserContextProvider } from "@/context/UserContextProvider";
+
 
 export const metadata: Metadata = {
   title: "Notes",
@@ -12,9 +14,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
+export default function RootLayout({ children }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (

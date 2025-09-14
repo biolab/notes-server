@@ -3,35 +3,32 @@
 import React, { useContext, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "../Image";
-import { MdxContent } from "../MdxContent";
-import { Chapter } from "./Chapter";
-import { ContentIndexControl } from "./ContentIndex";
-import { IntlContextProvider, useIntl } from "@/i18n";
-import { AnswerWithQuestionId, QuizContextProvider } from "@/context/QuizContextProvider";
-import { UserContext } from "@/context/UserContextProvider";
-import { AnswersInBook, getAnswers, getAnswersInBook } from "@/api/QuizService";
-import BookLogin from "./BookLogin";
-import { logger } from "@/utils/logger";
-import Layout from "../Layout/Layout";
 import { toast } from "react-toastify";
 
-import { BookProps } from "@/api/BookService";
-import { isAdminFor } from "@/api/UserService";
+import { AnswersInBook, getAnswers, getAnswersInBook } from "@/api/quiz";
+import { BookProps } from "@/api/book";
+import { isAdminFor } from "@/api/user";
 
-export const Book = ({
-  frontmatter,
-  content,
-  chapters,
-  slug,
-  bookId,
-}: BookProps) => {
+import { logger } from "@/utils/logger";
+import { IntlContextProvider, useIntl } from "@/i18n";
+import { UserContext } from "@/context/UserContextProvider";
+import { AnswerWithQuestionId, QuizContextProvider } from "@/context/QuizContextProvider";
+import Layout from "../Layout/Layout";
+
+import Login from "../Login";
+import { MdxContent } from "../MdxContent";
+import { ContentIndexControl } from "../Layout/ContentIndex";
+import { Chapter } from "./Chapter";
+
+
+export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
+) => {
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
   const { user, setUserGroup } = useContext(UserContext);
   const [ isAdmin, setIsAdmin ] = useState<boolean>(false);
-  const [answers, setAnswers] = useState<"pending" | null | AnswerWithQuestionId[]>(
-    "pending"
-  );
+  const [answers, setAnswers] =
+    useState<"pending" | null | AnswerWithQuestionId[]>("pending");
   const [groupRequired, setGroupRequired] = useState<boolean | null>(null);
   const hasQuestions = useMemo(
     () => chapters.some((chapter) => chapter.questions.length > 0),
@@ -163,7 +160,7 @@ export const Book = ({
 
   if (frontmatter.requireLogin && !user!.email || groupRequired) {
     return (
-      <BookLogin
+      <Login
         title={frontmatter.title}
         bookId={bookId}
         requireEmail={frontmatter.requireLogin}

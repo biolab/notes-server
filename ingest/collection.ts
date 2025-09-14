@@ -1,12 +1,14 @@
 import fs from "fs";
 import path from "path";
 
-import { bookMatter } from "@/ingest/book";
-import { checkedMatter, getMdFile, isListOfStrings, parseMd } from "./md-helpers";
-import { isDirectory, readPublicDir } from "@/ingest/paths";
 import { RawBookFrontmatter, CollectionFrontmatter,
-         defaultCollectionFrontmatter, extraCollectionMatter
-} from "@/types/types";
+  defaultCollectionFrontmatter, extraCollectionMatter
+} from "@/types";
+
+import { bookMatter } from "./book";
+import { checkedMatter, getMdFile, isListOfStrings, parseMd } from "./md-helpers";
+import { isDirectory, readPublicDir } from "./paths";
+
 
 export type RawCollectionDef = {
   slug: string;

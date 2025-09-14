@@ -1,4 +1,5 @@
-import { getNotesPath, isDirectory, joinedPath, pathExists, readPublicDir } from "@/ingest/paths";
+import { getNotesPath, isDirectory, joinedPath, pathExists, readPublicDir } from "./paths";
+
 
 export const getFaviconPaths = (prefix: string): string[] => [
     ...pathExists(prefix, "favicon.png")

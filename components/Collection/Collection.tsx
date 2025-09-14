@@ -1,17 +1,17 @@
 "use client";
 
 import React from "react";
-import { MdxContent } from "@/components/MdxContent";
 import Link from "next/link";
-import { getT, IntlContextProvider, useIntl } from "../../i18n";
 import Layout from "../Layout/Layout";
 import Image from "../Image";
 
-
-import { CollectionProps, ItemDesc } from "@/api/BookService";
-import { getCollectionHasQuestions } from "@/api/QuizService";
-import { isAdminFor } from "@/api/UserService";
+import { CollectionProps, ItemDesc } from "@/api/book";
+import { getCollectionHasQuestions } from "@/api/quiz";
+import { isAdminFor } from "@/api/user";
+import { getT, IntlContextProvider, useIntl } from "@/i18n";
 import { UserContext } from "@/context/UserContextProvider";
+import { MdxContent } from "@/components/MdxContent";
+
 
 const List = ({items, title}: { title: string; items: ItemDesc[] }) => {
   const { t } = useIntl();

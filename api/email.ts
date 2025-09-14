@@ -2,6 +2,7 @@
 
 import nodemailer from "nodemailer";
 
+
 const SMTP_SERVER_HOST = process.env.SMTP_SERVER_HOST;
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || "25");
 const EMAIL_FROM = process.env.EMAIL_FROM;

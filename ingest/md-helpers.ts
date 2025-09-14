@@ -1,12 +1,15 @@
 import fs from "fs";
 import path from "path";
+
 import matter from "gray-matter";
 import { compile } from "@mdx-js/mdx";
 import remarkMath from "remark-math";
-import { addRelativePath, replacer } from "@/ingest/plugins";
 import rehypeKatex from "rehype-katex";
-import { getImageSize } from "@/ingest/getImageSize";
-import { isDirectory, joinedPath, readPublicDir } from "@/ingest/paths";
+
+import { addRelativePath, replacer } from "./plugins";
+import { getImageSize } from "./getImageSize";
+import { isDirectory, joinedPath, readPublicDir } from "./paths";
+
 
 export const getMdFile = (spath: string | string[], base = "index") => {
   const bpath = joinedPath(spath);

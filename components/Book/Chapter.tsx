@@ -2,12 +2,14 @@
 
 import React from "react";
 import slugify from "slugify";
-import { MdxContent } from "../MdxContent";
 
+import { AnswersInBook } from "@/api/quiz";
+import { ChapterDef } from "@/types";
 import { useOnScreen } from "@/hooks/useOnScreen";
 import { useIntl } from "@/i18n";
-import { ChapterDef } from "@/types/types";
-import { AnswersInBook } from "@/api/QuizService";
+
+import { MdxContent } from "../MdxContent";
+
 
 export const Chapter = ({
   frontmatter,
