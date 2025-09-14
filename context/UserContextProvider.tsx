@@ -39,9 +39,7 @@ export const UserContextProvider = ({ children }: {
   const onUserLogin = React.useCallback(
     (user: User) => {
       setUser(user);
-      if (!user.admin) {
-        storeAccessTokenInLocalStorage(user.accessToken);
-      }
+      storeAccessTokenInLocalStorage(user.accessToken);
     },
     []);
 
