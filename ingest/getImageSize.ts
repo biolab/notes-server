@@ -2,7 +2,9 @@ import { visit } from "unist-util-visit";
 import probe, { ProbeResult } from "probe-image-size";
 import { readFileSync } from "fs";
 import type { Root } from "hast";
-import { getNotesPath } from "@/ingest/paths";
+
+import { getNotesPath } from "./paths";
+
 
 export const getImageSize = () => (tree: Root) => {
   visit(tree, "element", (node: any) => {

@@ -1,7 +1,8 @@
 "use server";
 
 import db from "@/utils/db";
-import { BookFrontmatter, ChapterDef, CollectionFrontmatter } from "@/types/types";
+import { BookFrontmatter, ChapterDef, CollectionFrontmatter } from "@/types";
+
 
 const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
 
@@ -34,6 +35,7 @@ export type ItemDef = {
   id: number;
   title: string;
 }
+
 export const getItem = async (path: string): Promise<ItemDef | undefined> =>
   await db.get(`SELECT 'book' as type, id, title FROM books WHERE path = ?`, [path])
   || await db.get(`SELECT 'collection' as type, id, title FROM collections WHERE path = ?`, [path]);

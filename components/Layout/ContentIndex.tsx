@@ -6,8 +6,10 @@ import Link from "next/link";
 import slugify from "slugify";
 
 import { useIntl } from "@/i18n";
-import { ChapterDef } from "@/types/types";
-import { QuizProgressCircle, QuizProgressBar } from "@/components/Quiz/QuizProgress";
+import { ChapterDef } from "@/types";
+
+import { QuizProgressCircle, QuizProgressBar } from "./QuizProgress";
+
 
 interface ContentIndexProps {
   contentTitle?: string;
@@ -58,10 +60,7 @@ export const ContentIndex = ({
   );
 };
 
-export const ContentIndexControl = ({
-  chapters,
-  isChapterIndexVisible
-}: {
+export const ContentIndexControl = ({chapters, isChapterIndexVisible}: {
   chapters: ChapterDef[];
   isChapterIndexVisible: { [index: number]: boolean };
 }) => {

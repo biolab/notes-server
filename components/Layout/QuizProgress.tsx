@@ -1,5 +1,7 @@
 import React from "react";
+
 import { QuizContext } from "@/context/QuizContextProvider";
+
 
 export const QuizProgressBar = () => {
   const { correctAnswers, answeredQuestions, noOfQuestions, quizState } =

@@ -2,12 +2,12 @@ import React, { JSX } from "react";
 import * as runtime from 'react/jsx-runtime';
 import { MDXProvider } from '@mdx-js/react';
 
-import Image from "./Image";
-import Question, { QuizPropsBase } from "./Quiz/Quiz";
+import { AnswersInBook } from "@/api/quiz";
+import { determineQuestionType } from "@/utils/questions";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
-import { determineQuestionType } from "@/utils/questions";
-import { AnswersInBook } from "@/api/QuizService";
+import Question, { QuizPropsBase } from "./Quiz/Quiz";
+import Image from "./Image";
 
 
 export interface QuestionProps extends QuizPropsBase {
@@ -22,13 +22,7 @@ export interface QuestionProps extends QuizPropsBase {
 
 const CorrectAnswerPrefix = "*";
 
-export const MdxContent = ({
-  content,
-  chapterId,
-  bookId,
-  t,
-  allAnswers
-}: {
+export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
   content: string;
   bookId?: number;
   chapterId?: number;

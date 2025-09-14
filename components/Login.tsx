@@ -1,13 +1,12 @@
 import React, { useMemo } from "react";
 
-import { useHasMounted } from "../../hooks/useHasMounted";
+import { checkMailExists, setTemporaryData, setUserGroupAndToken } from "@/api/user";
+import { sendEmail } from "@/api/email";
 import { UserContext } from "@/context/UserContextProvider";
-import { checkMailExists, setTemporaryData, setUserGroupAndToken } from "@/api/UserService";
-import { sendEmail } from "@/api/EmailService";
+import { useHasMounted } from "@/hooks/useHasMounted";
 
-function BookLogin({
-  title, bookId, requireEmail, redirect, groups
-}: {
+
+function Login({title, bookId, requireEmail, redirect, groups}: {
   title?: string;
   bookId?: number;
   requireEmail: boolean;
@@ -285,4 +284,4 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
   );
 }
 
-export default BookLogin;
+export default Login;

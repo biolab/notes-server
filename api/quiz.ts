@@ -2,7 +2,8 @@
 
 import db from "@/utils/db";
 import { getUserId } from "@/utils/user";
-import { isAdminFor } from "@/api/UserService";
+import { isAdminFor } from "@/api/user";
+
 
 // Functions get user's accessToken rather than id because id's can be faked.
 
@@ -62,14 +63,6 @@ export type AnswerRecord = {
   points?: number;
 };
 
-export type QuestionRecord = {
-  dbId: number;
-  questionId: string;
-  question: string;
-  chapterTitle: string;
-  bookTitle: string;
-}
-
 export type UsersAnswers = {
     [questionId: string]:
       AnswerRecord[]
@@ -127,29 +120,6 @@ export const getAnswersInBook = async (bookId: number, accessToken: string): Pro
   });
   return resultTable;
 }
-
-export const getQuestionsInBook = async (bookId: number): Promise<QuestionRecord[]> =>
-  (await db.all(
-    `SELECT q.id as dbId, q.questionId, q.question, c.title as chapterTitle, b.title as bookTitle 
-     FROM books b
-     JOIN books_chapters bc ON b.id = bc.bookId
-     JOIN chapters c ON bc.chapterId = c.id
-     JOIN questions q ON bc.chapterId = q.chapterId
-     WHERE b.id = ?
-     ORDER BY bc.position, q.position`,
-    [bookId]
-  )) as QuestionRecord[];
-
-export const getBookHasQuestions = async (bookId: number): Promise<boolean> =>
-  !!(await db.get(
-    `SELECT DISTINCT 1 
-     FROM books b
-     JOIN books_chapters bc ON b.id = bc.bookId
-     JOIN chapters c ON bc.chapterId = c.id
-     JOIN questions q ON bc.chapterId = q.chapterId
-     WHERE b.id = ?`,
-    [bookId]
-  ));
 
 export type UsersPoints = {
   [bookId: number]: number

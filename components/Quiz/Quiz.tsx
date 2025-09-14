@@ -1,10 +1,12 @@
 import React, { JSXElementConstructor } from "react";
+import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine } from "react-icons/ri";
+
+import { UserDesc } from "@/api/quiz";
+import { QuestionTypes } from "@/types";
+import { corrColor, corrSym } from "@/utils/questions";
 import { useIntl } from "@/i18n";
 import { useLastAnswer } from "@/context/QuizContextProvider";
-import { QuestionTypes } from "@/types/types";
-import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine } from "react-icons/ri";
-import { UserDesc } from "@/api/QuizService";
-import { corrColor, corrSym } from "@/utils/questions";
+
 
 export interface QuizPropsBase {
   question: string;

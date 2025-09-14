@@ -1,7 +1,9 @@
 import sqlite3 from "sqlite3";
 import fs from "fs";
 import path from "path";
+
 import { promisify } from "util";
+
 
 const DB_PATH = path.join(process.cwd(), "db");
 const DB_FILE = path.join(DB_PATH, "notes.sqlite");

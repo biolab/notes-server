@@ -2,9 +2,10 @@ import path from "path";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 
-import { getPaths } from "@/ingest/md-helpers";
-import { updatePaths } from "@/ingest/updatePaths";
-import { getFaviconPaths } from "@/ingest/favicons";
+import { getPaths } from "./md-helpers";
+import { updatePaths } from "./updatePaths";
+import { getFaviconPaths } from "./favicons";
+
 
 export const DB_PATH = path.join(process.cwd(), "db");
 export const DB_FILE = path.join(DB_PATH, "notes.sqlite");

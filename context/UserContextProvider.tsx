@@ -2,8 +2,10 @@
 
 import React, { ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { createUser, applyTemporaryToken, getUser, User } from "@/api/UserService";
+
+import { createUser, applyTemporaryToken, getUser, User } from "@/api/user";
 import { logger } from "@/utils/logger";
+
 
 export const UserContext = React.createContext<{
   user: User | null;

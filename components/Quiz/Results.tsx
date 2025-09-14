@@ -1,23 +1,16 @@
 'use client';
 
-import {
-  AnswersInBook,
-  PointsInCollection,
-  getAnswersInBook,
-  getCollectionResults,
-  UserDesc,
-} from "@/api/QuizService";
 import React from "react";
-import {
-  BookProps,
-  CollectionProps,
-  getBookGroups,
-  getCollectionGroups,
-  GroupList
-} from "@/api/BookService";
+
+import { AnswersInBook, PointsInCollection, getAnswersInBook,
+         getCollectionResults, UserDesc,} from "@/api/quiz";
+import { BookProps, CollectionProps, getBookGroups, getCollectionGroups,
+         GroupList } from "@/api/book";
 import { UserContext } from "@/context/UserContextProvider";
-import Layout from "@/components/Layout/Layout";
 import { corrColor, corrSym } from "@/utils/questions";
+
+import Layout from "../Layout/Layout";
+
 
 function GroupsCombo({groups, value, onChange}: {
   groups: GroupList;
@@ -52,17 +45,7 @@ function filterResults<T extends UserDesc>(results: T[] | false | null, group: n
          ? results.filter(({groupId}) => groupId === group)
          : results;
 }
-/*
-function AnswerBreakdown({results, question, questionId}: {
-    results: AnswersInBook,
-    questionId: string,
-    question: string}) {
-  return
-    <table className="tableAuto w-auto quiz-results">
-      <thead>
-      <tr>
 
-    }*/
 export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
   const { user } = React.useContext(UserContext);
   const [results, setResults] = React.useState<AnswersInBook | false | null>(null);

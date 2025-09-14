@@ -1,11 +1,13 @@
 import fs from "fs";
 import path from "path";
 
-import { RawBookFrontmatter, ChapterDefBase, ChapterFrontmatter } from "@/types/types";
-import { pathExists } from "@/ingest/paths";
+import { RawBookFrontmatter, ChapterDefBase, ChapterFrontmatter } from "@/types";
+
+import { pathExists } from "./paths";
 import { checkedMatter, getMdFile, isListOfStrings, parseMd, readPublicDirMd } from "./md-helpers";
-import { catchErrors, logError } from "@/ingest/errors";
-import { extractQuizzes } from "@/ingest/questions";
+import { catchErrors, logError } from "./errors";
+import { extractQuizzes } from "./questions";
+
 
 const chapterFrontmatterDefaults: ChapterFrontmatter = {
   title: "",

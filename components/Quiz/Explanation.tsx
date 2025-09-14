@@ -1,5 +1,6 @@
 import React, { JSX } from "react";
-import { useIntl } from "../../i18n";
+import { useIntl } from "@/i18n";
+
 
 export interface IExplanation {
   after?: "attempt" | "correct" | "correctOrMaxTrials" | null;
