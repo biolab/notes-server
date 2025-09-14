@@ -79,7 +79,8 @@ export const getBook = async (id: number): Promise<BookProps> => {
     const questions = await db.all(
       `SELECT *
        FROM questions
-       WHERE chapterId = ?`,
+       WHERE chapterId = ?
+       ORDER BY position`,
       [chapter.id]
     );
 

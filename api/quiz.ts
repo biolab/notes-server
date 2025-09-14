@@ -49,7 +49,7 @@ export const getAnswers = async ({ accessToken, bookId }: {
     FROM answers
     JOIN questions q ON answers.questionId = q.id
     WHERE userId = ? AND bookId = ?
-    ORDER BY answers.createdAt`,
+    ORDER BY q.position, answers.createdAt`,
     [await getUserId(accessToken), bookId]
   )).map(({isCorrect, ...rest}) => ({
     // DB stores 0 and 1 even if the column is declared as BOOLEAN
