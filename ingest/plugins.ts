@@ -40,7 +40,8 @@ export const addRelativePath = ({relativePath}: {relativePath: string}) => () =>
       }
       if (node.type === "mdxJsxFlowElement") {
         node.attributes.forEach((attr: {name: string, value: string}) => {
-          if (attr.name === "src") {
+          if (attr.name === "src"
+              && !/https?:\/\//.test(attr.value)) {
             attr.value = `/${relativePath}/${attr.value}`;
           }
         });
