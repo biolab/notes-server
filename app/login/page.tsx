@@ -5,25 +5,24 @@ import React, { useContext } from "react";
 import { UserContext } from "@/context/UserContextProvider";
 import Login from "@/components/Login";
 import Layout from "@/components/Layout/Layout";
+import { useIntlFromBrowser } from "@/i18n";
 
 
 export default function LoginPage() {
   const { user, logOut } = useContext(UserContext);
+  const { t } = useIntlFromBrowser();
 
   return (
-    <Layout title="Login">
-      {user === null ? "Loading..."
+    <Layout title={t("login")}>
+      {user === null ? t("loading")
       : user.email ? (
         <div className="prose mx-auto">
           <div className="p-6 rounded mt-10">
-            <h2>You are already in.</h2>
-            <p>To log in with a different account,
-              please <a href="#" onClick={() => logOut()}>log out</a> first.
-            </p>
+            { t("login.already-logged-in")(logOut) }
           </div>
         </div>
       ) : (
-            <Login requireEmail={true} redirect="/" />
+            <Login requireEmail={true} redirect="/" t={t}/>
           )}
     </Layout>
   );

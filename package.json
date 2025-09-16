@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "ingest": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/ingest.ts"
+    "ingest": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/ingest.ts",
+    "check-translations": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json --compiler-options '{\"jsx\":\"react-jsx\"}' scripts/check-translations.ts"
   },
   "dependencies": {
     "@babel/parser": "^7.27.5",

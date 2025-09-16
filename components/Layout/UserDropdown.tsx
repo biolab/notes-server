@@ -8,6 +8,7 @@ import { Modal } from "antd";
 import { deleteUser } from "@/api/user";
 import { logger } from "@/utils/logger";
 import { UserContext } from "@/context/UserContextProvider";
+import { useIntl } from "@/i18n";
 
 
 function useOutsideClick(ref: any, onClick: any) {
@@ -34,6 +35,7 @@ const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}
   onChangeShowAnswers?: (show: boolean) => void;
 }) => {
   const { user, logOut } = React.useContext(UserContext);
+  const { t } = useIntl();
 
   const wrapperRef = React.useRef(null);
   useOutsideClick(wrapperRef, () => setShow(false));
@@ -52,11 +54,11 @@ const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}
       window.location.reload();
     } catch (error) {
       logger("Error deleting user data:", error);
-      toast.error("Something went wrong. User data was not deleted.");
+      toast.error(t("user.remove-data-fail"));
     }
 
     setConfirmLoading(false);
-  }, [logOut, user]);
+  }, [t, logOut, user]);
 
   const handleShowModal = React.useCallback(() => {
     setShowModal(true);
@@ -88,33 +90,44 @@ const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}
             { user.email ?
               <>
                 <li className="dropdown-content-data">{user.email}</li>
-                {showLinkToResults && <li onClick={toResults}>Show Quiz Results</li>}
-                {returnLink && <li onClick={toPage}>Back to {returnLink}</li>}
+                {showLinkToResults && <li onClick={toResults}>
+                  { t("user.show-quiz-results") }
+                </li>}
+                {returnLink &&
+                  <li onClick={toPage}>
+                    {t("user.back-to")} {returnLink}
+                  </li>}
                 {onChangeShowAnswers &&
                   <li style={{textWrap: "nowrap"}}>
                     <input
-                      type="checkbox" id="showAnwers"
+                      type="checkbox" id="showAnswers"
                       checked={showUsersAnswers}
                       onChange={changeShowUsersAnswers}
                     />
-                    <label htmlFor="showAnwers">
-                      &nbsp;Show Users&apos; Answers
+                    <label htmlFor="showAnswers">
+                      &nbsp;{ t("user.show-answers") }
                     </label>
                   </li>
                 }
-                <li onClick={toLogout}>Log out</li>
+                <li onClick={toLogout}>
+                  { t("user.log-out") }
+                </li>
                 <li onClick={handleShowModal}
-                    title="Delete your account and all related data"
+                    title={t("user.delete-account-tooltip")}
                     className="danger">
-                  Delete account
+                  { t("user.delete-account") }
                 </li>
               </>
              : <>
-                <li className="dropdown-content-data">Anonymous user</li>
-                <li onClick={toLogin}>Log in</li>
+                <li className="dropdown-content-data">
+                  { t("user.anonymous-user") }
+                </li>
+                <li onClick={toLogin}>
+                  { t("login") }
+                </li>
                 <li onClick={toLogout}
-                    title={"Remove question answers, group memberships and tokens."}>
-                  Reset page
+                    title={t("user.reset-page-tooltip")}>
+                  { t("user.reset-page") }
                 </li>
               </>
             }
@@ -123,16 +136,14 @@ const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}
     </div>
 
     <Modal
-      title="Delete user data"
+      title={t("user.delete-account-confirm-title")}
       open={showModal}
       onOk={handleClose}
       confirmLoading={confirmLoading}
       onCancel={() => setShowModal(false)}
     >
       <p>
-        This action is irreversible. Once confirmed, all account data will be
-        permanently erased from our system. There is no way to recover this
-        data after deletion. Please proceed only if you are certain.
+        { t("user.delete-account-confirm-text") }
       </p>
     </Modal>
   </>
