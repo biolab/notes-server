@@ -1,9 +1,11 @@
 import React from "react";
 
 import { QuizContext } from "@/context/QuizContextProvider";
+import { useIntl } from "@/i18n";
 
 
 export const QuizProgressBar = () => {
+  const { t } = useIntl();
   const { correctAnswers, answeredQuestions, noOfQuestions, quizState } =
     React.useContext(QuizContext);
 
@@ -30,9 +32,9 @@ export const QuizProgressBar = () => {
       <div
         className="quiz-progress-indicator-wrapper"
         style={{borderColor}}
-        title={`Answered: ${answeredQuestions} / ${noOfQuestions}\n
-Correct: ${correctAnswers} (${Math.round((correctAnswers / noOfQuestions) * 100)} %)\n
-Required: ${Math.round(noOfQuestions * quizState.quizThreshold)}`}
+        title={`${t("quiz-progress.answered")}: ${answeredQuestions} / ${noOfQuestions}\n
+${t("quiz-progress.correct")}: ${correctAnswers} (${Math.round((correctAnswers / noOfQuestions) * 100)} %)\n
+${t("quiz-progress.required")}: ${Math.round(noOfQuestions * quizState.quizThreshold)}`}
       >
         { wrongWidth &&
           <div
@@ -100,6 +102,7 @@ export const QuizProgressIndicator = ({chapterIndex}: {
   chapterIndex: number;
   questionLink?: string
 }) => {
+  const { t } = useIntl();
   const {chapterStats} = React.useContext(QuizContext);
   const { noOfQuestions, answeredQuestions, correctAnswers, correctness, questionIds } =
     chapterStats(chapterIndex) || { noOfQuestions: 0, answeredQuestions: 0, correctness: [], correctAnswers: 0 };
@@ -109,30 +112,30 @@ export const QuizProgressIndicator = ({chapterIndex}: {
   let title;
   if (noOfQuestions === 1) {
     if (correctAnswers) {
-      title = "Your answer was correct.";
+      title = t("quiz-progress.correct-single");
     }
     else if (answeredQuestions) {
-      title = "Your answer was incorrect.";
+      title = t("quiz-progress.wrong-single");
     }
     else {
-      title = "You have not answered this question yet.";
+      title = t("quiz-progress.no-answer-single") ;
     }
   }
   else {
     if (correctAnswers && correctAnswers != answeredQuestions) {
-      title = `${correctAnswers} correct and ${answeredQuestions - correctAnswers} wrong answer(s).`;
+      title = t("quiz-progress.correct-wrong")(correctAnswers, answeredQuestions - correctAnswers);
     }
     else if (correctAnswers) {
-      title = `${correctAnswers} correct answer(s).`;
+      title = t("quiz-progress.correct-all")(correctAnswers);
     }
     else if (answeredQuestions) {
-      title = `${answeredQuestions} wrong answer(s).`;
+      title = t("quiz-progress.wrong-all")(answeredQuestions);
     }
     else {
-      title = "You have not answered any questions yet.";
+      title = t("quiz-progress.no-answers");
     }
     if (answeredQuestions != noOfQuestions) {
-      title += `\n${noOfQuestions - answeredQuestions} question(s) remaining.`;
+      title += t("quiz-progress.remaining")(noOfQuestions - answeredQuestions);
     }
   }
   return (

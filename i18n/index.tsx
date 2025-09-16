@@ -1,14 +1,12 @@
 'use client';
 
 import React from "react";
-import dictJson from "./dict.json";
-
-const dict: {[key: string]: any} = dictJson;
+import dict from "./dict";
 
 export const getT = (lang: string) => (key: string) => dict[lang || "en"]?.[key] || key;
 
 const IntlContext = React.createContext<{
-  t: (key: string) => string;
+  t: (key: string) => any;
 }>({
   t: (key: string) => dict["en"]?.[key] || key,
 });
@@ -30,4 +28,22 @@ export const IntlContextProvider = ({
   return <IntlContext.Provider value={contextValue}>{children}</IntlContext.Provider>;
 };
 
-export const useIntl = () => React.useContext(IntlContext);
+export const useIntl = () => {
+  const ctx = React.useContext(IntlContext);
+  if (!ctx) {
+    return {t: getT("en") }
+  }
+  return ctx;
+}
+
+export const useIntlFromBrowser = () => {
+  const [intl, setIntl] = React.useState<{t: (key: string) => any}>({t: getT("en")});
+
+  React.useEffect(() => {
+      if (typeof window !== "undefined") {
+        setIntl({t: getT(navigator.language.split("-")[0])});
+      }
+  }, []);
+
+  return intl;
+}

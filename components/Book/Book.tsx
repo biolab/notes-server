@@ -57,7 +57,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
         setAnswers(_answers);
       })
       .catch((error) => {
-        toast.error(error.message || "Failed to fetch quiz answers");
+        toast.error(error.message || t("quiz.fetch-answers-error"));
         setAnswers(null);
       });
 
@@ -70,7 +70,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     }
 
     getAnswersInBook(bookId, user.accessToken).then(setAllAnswers);
-  }, [user, user?.accessToken, slug, bookId]);
+  }, [t, user, user?.accessToken, slug, bookId]);
 
   const [showAnswers, setShowAnswers] = useState(false);
 
@@ -183,6 +183,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
         bookId={bookId}
         requireEmail={frontmatter.requireLogin}
         groups={groupRequired ? frontmatter.groups : undefined}
+        t={t}
       />
     );
   }

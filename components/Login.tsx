@@ -6,12 +6,13 @@ import { UserContext } from "@/context/UserContextProvider";
 import { useHasMounted } from "@/hooks/useHasMounted";
 
 
-function Login({title, bookId, requireEmail, redirect, groups}: {
+function Login({title, bookId, requireEmail, redirect, groups, t}: {
   title?: string;
   bookId?: number;
   requireEmail: boolean;
   redirect?: string;
   groups?: [string, string][];
+  t: (key: string) => any;
 }) {
   const hasMounted = useHasMounted();
   const { user } = React.useContext(UserContext);
@@ -82,34 +83,16 @@ function Login({title, bookId, requireEmail, redirect, groups}: {
       }
 
       try {
-        const text = `Hello,
-
-Use the link below to sign in to Notes:
-
-${url}
-
-This link will expire in 30 minutes. If you didn’t request this email, you can safely ignore it.
-
-– The Notes Team`;
-        const html = `
-          <p>Hello,</p>
-          <p>Use the button below to sign in to <strong>Notes</strong>:</p>
-          <p><a href="${url}" style="
-            display:inline-block;
-            padding:10px 20px;
-            background-color:#2563eb;
-            color:#ffffff;
-            text-decoration:none;
-            border-radius:6px;
-          ">Sign in</a></p>
-          <p>This link will expire in 30 minutes. If you didn’t request this email, you can safely ignore it.</p>
-          <p>– The Notes Team</p>`;
-
-        await sendEmail({sendTo: email, subject: "Sign in to Notes", text, html});
+        await sendEmail({
+          sendTo: email,
+          subject: t("login.email-subject"),
+          text: t("login.email-plain")(url),
+          html: t("login.email-html")(url)
+        })
       } catch (error: any) {
         setMessage([
           "SEND_ERROR",
-          error?.message || "An error occurred while sending the message."
+          error?.message || t("login.send-email-fail")
         ]);
         return;
       }
@@ -119,26 +102,27 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
   );
 
   if (!hasMounted || !user) {
-    return <p>Loading...</p>;
+    return <p>
+      {t("loading")}
+    </p>;
   }
 
   return (
     <div className="prose mx-auto">
       <div className="p-6 rounded mt-10">
         <h2 className="">
-          {title || "Login to Notes"}
+          {title || t("login.page-title")}
         </h2>
         <form>
           { askEmail && (<>
               <div className="mb-4">
-                { title && "This book contains quizzes."}
-                Existing users can get a login link by email.
-                New users must identify with an email and name.
+                { title && t("login.contains-questions")}
+                { t("login.instructions") }
               </div>
               <div className="flex items-end gap-4">
                 <div className="flex-1">
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
+                    { t("login.your-email-address") }
                   </label>
                   <input
                     type="email" name="email" id="email"
@@ -155,18 +139,18 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
                     disabled={!isValidEmail || !!state}
                     onClick={(e) => { onSubmit(e, true); }}
                     className="
-                border-1 rounded h-10 w-50 px-4 flex items-center justify-center
+                border-1 rounded h-10 px-4 flex items-center justify-center
                 hover:border-2
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
                   >
-                    Login as existing user
+                    { t("login.existing-user-login") }
                   </button>
                 </div>
               </div>
               { state === "UNKNOWN_MAIL" &&
                 <div>
                   <p className="text-red-500">
-                    Unknown email address. Check your email or login as a new user.
+                    { t("login.unknown-email") }
                   </p>
                 </div>
               }
@@ -174,7 +158,7 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
               <div className="grid grid-cols-2 gap-4 mt-8">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name
+                    { t("login.first-name") }
                   </label>
                   <input
                     type="text" id="firstName" name="firstName"
@@ -185,7 +169,7 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
                 </div>
                 <div>
                   <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name
+                    { t("login.last-name") }
                   </label>
                   <input
                     type="text" id="lastName" name="lastName"
@@ -200,15 +184,15 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
           {(askGroup || askToken) && (<>
             {!askEmail &&
               <div className="mb-8">
-                {askGroup ? <>This book is restricted to certain groups.</>
-                          : <>This book requires a token.</>}
+                {askGroup ? t("login.requires-group")
+                          : t("login.requires-token")}
               </div>
             }
             <div className="grid grid-cols-2 gap-4 mt-4">
               {askGroup &&
                 <div>
                   <label htmlFor="group" className="block text-sm font-medium text-gray-700 mb-1">
-                    Your Group
+                    { t("login.your-group") }
                   </label>
                   <select
                     id="group" name="group"
@@ -231,7 +215,7 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
               {askToken &&
                 <div>
                   <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
-                    {askGroup ? "Group" : "Book"} Token
+                    { t(askGroup ? "login.group-token" : "login.book-token") }
                   </label>
                   <input
                     type="text" id="token" name="token"
@@ -244,7 +228,7 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
                   />
                   { state === "INVALID_TOKEN" &&
                     <p className="text-red-500" style={{margin: "8px"}}>
-                      Invalid token for {askGroup ? "the selected group and" : ""} this book.
+                      { t("login.invalid-token")(askGroup) }
                     </p>
                   }
                 </div>
@@ -262,18 +246,18 @@ This link will expire in 30 minutes. If you didn’t request this email, you can
               }
               onClick={(e) => { onSubmit(e, false); }}
               className="
-              border-1 rounded h-10 w-50 px-4 flex items-center justify-center
+              border-1 rounded h-10 px-4 flex items-center justify-center
               hover:border-2
               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
             >
-              {askEmail ? "Login as a new user" : "Start Reading"}
+              { t(askEmail ? "login.register-user" : "login.proceed") }
             </button>
           </div>
         </form>
 
         {state === "SENT" &&
           <p className="text-green-500">
-            Email has been sent. Please check your inbox.
+            { t("login.email-sent") }
           </p>
         }
         {state === "SEND_ERROR" &&
