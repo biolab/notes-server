@@ -98,7 +98,7 @@ function Login({title, bookId, requireEmail, redirect, groups, t}: {
       }
       setMessage(["SENT"]);
     },
-    [email, name, surname, bookId, group, groups, token, user, askGroup, askToken, redirect]
+    [t, email, name, surname, bookId, group, groups, token, user, askGroup, askToken, redirect]
   );
 
   if (!hasMounted || !user) {

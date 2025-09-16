@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 
-const maybeNotesPath = process.env.NEXT_NOTES_PATH;
+const maybeNotesPath = !process.env.CI ? process.env.NEXT_NOTES_PATH : "/tmp/notes";
 if (!maybeNotesPath) {
   throw new Error("Set NEXT_NOTES_PATH (e.g. /Users/janez/notes) in .env")
 }
