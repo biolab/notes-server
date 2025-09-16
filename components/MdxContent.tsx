@@ -1,4 +1,4 @@
-import React, { JSX, useContext } from "react";
+import React, { JSX } from "react";
 import * as runtime from 'react/jsx-runtime';
 import { MDXProvider } from '@mdx-js/react';
 
@@ -8,7 +8,7 @@ import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
 import Question, { QuizPropsBase } from "./Quiz/Quiz";
 import Image from "./Image";
-import { ExpandingSideImg, Sidenote, SidenoteContext } from "@/components/Book/Sidenote";
+import { ExpandingSideImg, Sidenote } from "@/components/Book/Sidenote";
 
 
 export interface QuestionProps extends QuizPropsBase {

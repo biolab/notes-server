@@ -19,7 +19,7 @@ import Login from "../Login";
 import { MdxContent } from "../MdxContent";
 import { ContentIndexControl } from "../Layout/ContentIndex";
 import { Chapter } from "./Chapter";
-import { SidenoteContext, SidenoteProvider } from "@/components/Book/Sidenote";
+import { SidenoteContext } from "@/components/Book/Sidenote";
 import { useHasMounted } from "@/hooks/useHasMounted";
 
 

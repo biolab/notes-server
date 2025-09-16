@@ -81,12 +81,14 @@ const useSidenoteRegistration = () => {
   const {register, unregister} = React.useContext(SidenoteContext);
 
   React.useEffect(() => {
+    let current: HTMLDivElement | null = null;
     if (ref.current) {
+      current = ref.current;
       register(ref.current);
     }
     return () => {
-      if (ref.current) {
-        unregister(ref.current);
+      if (current) {
+        unregister(current);
       }
     }
   }, [register, unregister]);

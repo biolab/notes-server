@@ -9,7 +9,6 @@ import { useOnScreen } from "@/hooks/useOnScreen";
 import { useIntl } from "@/i18n";
 
 import { MdxContent } from "../MdxContent";
-import { SidenoteProvider } from "@/components/Book/Sidenote";
 
 
 export const Chapter = ({
