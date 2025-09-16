@@ -19,6 +19,8 @@ import Login from "../Login";
 import { MdxContent } from "../MdxContent";
 import { ContentIndexControl } from "../Layout/ContentIndex";
 import { Chapter } from "./Chapter";
+import { SidenoteContext, SidenoteProvider } from "@/components/Book/Sidenote";
+import { useHasMounted } from "@/hooks/useHasMounted";
 
 
 export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
@@ -149,6 +151,22 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
 
     return () => clearTimeout(timeout);
   }, [pathname]);
+
+  const { layout } = useContext(SidenoteContext);
+  const hasMounted = useHasMounted();
+  React.useEffect(() => {
+    if (hasMounted && layout) {
+      layout();
+    }
+  }, [hasMounted, layout]);
+
+  React.useEffect(() => {
+    if (layout) {
+      window.addEventListener("resize", layout);
+      return () => window.removeEventListener("resize", layout);
+    }
+  }, [layout]);
+
 
   if (loading) {
     return (

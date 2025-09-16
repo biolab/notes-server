@@ -9,6 +9,7 @@ import { useOnScreen } from "@/hooks/useOnScreen";
 import { useIntl } from "@/i18n";
 
 import { MdxContent } from "../MdxContent";
+import { SidenoteProvider } from "@/components/Book/Sidenote";
 
 
 export const Chapter = ({
@@ -57,8 +58,7 @@ export const Chapter = ({
             {chapterNumber && `${t("book.chapter")} ${chapterNumber}: `}
             {frontmatter.title}
           </h2>
-
-          {mdxContent}
+            {mdxContent}
         </div>
       </div>
     </div>

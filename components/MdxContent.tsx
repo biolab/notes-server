@@ -1,4 +1,4 @@
-import React, { JSX } from "react";
+import React, { JSX, useContext } from "react";
 import * as runtime from 'react/jsx-runtime';
 import { MDXProvider } from '@mdx-js/react';
 
@@ -8,6 +8,7 @@ import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
 import Question, { QuizPropsBase } from "./Quiz/Quiz";
 import Image from "./Image";
+import { ExpandingSideImg, Sidenote, SidenoteContext } from "@/components/Book/Sidenote";
 
 
 export interface QuestionProps extends QuizPropsBase {
@@ -85,27 +86,9 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
 
     Explanation: (props: IExplanation) => <Explanation {...props} />,
 
-    Sidenote: ({ children }: { children: React.ReactNode }) => (
-      <div className="float-aside">{children}</div>
-    ),
-
-    ExpandingSideImg: ({src, alt, retina, caption, children}: {
-      src: string;
-      caption?: string;
-      children?: React.ReactNode;
-      alt?: string;
-      retina?: boolean;
-    }) => (
-      <div className="expanding-side-img">
-        <Image
-          src={src}
-          alt={alt || caption || "image"}
-          className={retina ? " retina" : ""}
-        />
-        {caption && <div className="caption">{caption}</div>}
-        {children && <div className="children">{children}</div>}
-      </div>
-    ),
+    Sidenote,
+    SideNote: Sidenote,
+    ExpandingSideImg,
 
     ReplayImg: ({ src, alt }: { src: string; alt?: string }) => {
       const [_src, setSrc] = React.useState(src ? src + "?" : null);
