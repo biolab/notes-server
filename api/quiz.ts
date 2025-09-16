@@ -79,7 +79,11 @@ export type UserDesc = {
 type AnswerRow = UserDesc & { answers: UsersAnswers };
 export type AnswersInBook = AnswerRow[];
 
-export const getAnswersInBook = async (bookId: number, accessToken: string): Promise<AnswersInBook | false> => {
+export const getAnswersInBook = async (
+  bookId: number,
+  accessToken: string,
+  groupId: number | null = null
+): Promise<AnswersInBook | false> => {
   if (!await isAdminFor({accessToken, bookId})) {
     return false;
   }
@@ -100,9 +104,9 @@ export const getAnswersInBook = async (bookId: number, accessToken: string): Pro
       FROM answers a
       JOIN users u ON a.userId = u.id
       JOIN questions q ON a.questionId = q.id
-      WHERE a.bookId = ?
+      WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
       ORDER BY a.userId, a.groupId, a.createdAt`,
-      [bookId]
+      [bookId, ...(groupId ? [groupId] : [])]
     )) as (AnswerRecord & UserDesc & {
       bookId: number, questionId: string})[]
   )

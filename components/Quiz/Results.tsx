@@ -107,7 +107,7 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
               </th>
               ))}
             <th>
-            Points
+              Points
             </th>
           </tr>
           </thead>
@@ -190,6 +190,11 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
         </tbody>
       </table>
     </div>
+    <p>
+      <a href={`/quiz-results?bookId=${bookId}&accessToken=${user?.accessToken}${group ? `&groupId=${group}` : ""}`}>
+        Download all answers as Excel
+       </a>
+    </p>
     </Layout>
     )
       ;
