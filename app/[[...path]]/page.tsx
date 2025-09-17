@@ -1,7 +1,9 @@
 import React from "react";
 import { notFound } from "next/navigation";
 
-import { getBook, getCollection, getItem, getMetadata } from "@/api/book";
+import { getBook } from "@/api/book";
+import { getCollection } from "@/api/collection";
+import { getItem, getMetadata } from "@/api/content";
 import { Book } from "@/components/Book/Book";
 import { Collection } from "@/components/Collection/Collection";
 import { BookResults, CollectionResults } from "@/components/Quiz/Results";

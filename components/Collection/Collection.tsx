@@ -1,16 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Layout from "../Layout/Layout";
 import Image from "../Image";
 
-import { CollectionProps, ItemDesc } from "@/api/book";
+import { getPublicCollection, CollectionProps } from "@/api/collection";
+import { ItemDesc, LinkDesc } from "@/api/content";
 import { getCollectionHasQuestions } from "@/api/quiz";
 import { isAdminFor } from "@/api/user";
 import { getT, IntlContextProvider, useIntl } from "@/i18n";
 import { UserContext } from "@/context/UserContextProvider";
 import { MdxContent } from "@/components/MdxContent";
+import { usePublicProvider } from "@/hooks/usePublicProvider";
 
 
 const List = ({items, title}: { title: string; items: ItemDesc[] }) => {
@@ -61,11 +63,32 @@ export const Collection = ({
   },
   [user, collectionId]);
 
+  const provider = usePublicProvider(slug);
+  const [publicCollection, setPublicCollection] = useState<LinkDesc | null>(null);
+  React.useEffect(() => {
+    getPublicCollection(collectionId).then(setPublicCollection);
+  }, [collectionId]);
+
+  const loading = React.useMemo(() =>
+      publicCollection === null // prevent showing it later -- looks weird
+      || provider === null,
+    [publicCollection, provider]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="loader"></div>
+      </div>
+    );
+  }
+
   return <IntlContextProvider lang={frontmatter.language}>
     <Layout
       title={frontmatter.title}
       showLinkToResults={isAdmin && !!hasQuestions}
       isAdmin={isAdmin}
+      home={provider || false}
+      collection={publicCollection || false}
     >
       <div className="collection mx-auto">
         {frontmatter.coverImg && (

@@ -6,7 +6,8 @@ import Image from "../Image";
 import { toast } from "react-toastify";
 
 import { AnswersInBook, getAnswers, getAnswersInBook } from "@/api/quiz";
-import { BookProps } from "@/api/book";
+import { BookProps, getPublicCollection } from "@/api/book";
+import { LinkDesc } from "@/api/content";
 import { isAdminFor } from "@/api/user";
 
 import { logger } from "@/utils/logger";
@@ -21,6 +22,7 @@ import { ContentIndexControl } from "../Layout/ContentIndex";
 import { Chapter } from "./Chapter";
 import { SidenoteContext } from "@/components/Book/Sidenote";
 import { useHasMounted } from "@/hooks/useHasMounted";
+import { usePublicProvider } from "@/hooks/usePublicProvider";
 
 
 export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
@@ -40,10 +42,6 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
   const { t } = useIntl();
 
   const [allAnswers, setAllAnswers] = useState<AnswersInBook | false>(false);
-
-  const loading = React.useMemo(() =>
-    !user || groupRequired === null || answers === "pending",
-  [user, groupRequired, answers]);
 
   /* Restore previous answers */
   React.useEffect(() => {
@@ -66,7 +64,6 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     }
     else {
       isAdminFor({accessToken: user.accessToken, bookId}).then(setIsAdmin);
-      isAdminFor({accessToken: user.accessToken, bookId}).then(console.log);
     }
 
     getAnswersInBook(bookId, user.accessToken).then(setAllAnswers);
@@ -152,6 +149,13 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     return () => clearTimeout(timeout);
   }, [pathname]);
 
+  const [publicCollection, setPublicCollection] = useState<LinkDesc | null>(null);
+  React.useEffect(() => {
+    getPublicCollection(bookId).then(setPublicCollection);
+  }, [bookId]);
+
+  const provider = usePublicProvider(slug);
+
   const { layout } = useContext(SidenoteContext);
   const hasMounted = useHasMounted();
   React.useEffect(() => {
@@ -167,6 +171,13 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     }
   }, [layout]);
 
+  const loading = React.useMemo(() =>
+      !user
+      || groupRequired === null
+      || answers === "pending"
+      || publicCollection === null // prevent showing it later -- looks weird
+      || provider === null,
+    [user, groupRequired, answers, publicCollection, provider]);
 
   if (loading) {
     return (
@@ -199,7 +210,8 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
         <Layout
           title={frontmatter.title}
           isAdmin={isAdmin}
-          showHome={!frontmatter.tocInHeader}
+          home={provider || false}
+          collection={publicCollection || false}
           chapters={frontmatter.tocInHeader ? chapters : []}
           isChapterIndexVisible={
             frontmatter.tocInHeader ? isChapterIndexVisible : []

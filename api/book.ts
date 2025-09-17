@@ -1,10 +1,9 @@
 "use server";
 
 import db from "@/utils/db";
-import { BookFrontmatter, ChapterDef, CollectionFrontmatter } from "@/types";
+import { BookFrontmatter, ChapterDef } from "@/types";
+import { getPublicLink, GroupList, ItemDesc, LinkDesc } from "@/api/content";
 
-
-const showUnpublished = process && process.env.SHOW_UNPUBLISHED === "true";
 
 export type BookProps = {
   slug: string;
@@ -13,54 +12,6 @@ export type BookProps = {
   content: string;
   chapters: ChapterDef[];
 };
-
-export type ItemDesc = {
-  id: number;
-  slug: string;
-  title: string;
-  subtitle?: string;
-}
-
-export type CollectionProps = {
-  collectionId: number;
-  slug: string;
-  frontmatter: CollectionFrontmatter;
-  content: string;
-  books: ItemDesc[];
-  collections: ItemDesc[];
-}
-
-export type ItemDef = {
-  type: "book" | "collection";
-  id: number;
-  title: string;
-}
-
-export const getItem = async (path: string): Promise<ItemDef | undefined> =>
-  await db.get(`SELECT 'book' as type, id, title FROM books WHERE path = ?`, [path])
-  || await db.get(`SELECT 'collection' as type, id, title FROM collections WHERE path = ?`, [path]);
-
-export const getMetadata = async (path: string):
-  Promise<{title?: string, description?: string, icons?: {icon: string}} | undefined> => {
-  const item = await getItem(path);
-  if (!item) {
-    return;
-  }
-  const { title, description } = await db.get(`
-    SELECT title, subtitle as description
-    FROM ${item.type}s
-    WHERE id = ?`, [item.id]);
-  const iconPath = await db.get(`
-    SELECT path
-    FROM faviconpaths
-    WHERE ? LIKE path || '%'
-    ORDER BY LENGTH(path) DESC
-    LIMIT 1;`, [path])
-  return {
-    title, description,
-    ...iconPath ? {icons: {icon: `/${iconPath.path}/favicon.png`}} : {}
-  };
-}
 
 export const getBook = async (id: number): Promise<BookProps> => {
   const book = await db.get(`SELECT * FROM books WHERE id = ?`, [id]);
@@ -119,46 +70,8 @@ export const getBook = async (id: number): Promise<BookProps> => {
   };
 };
 
-export const getCollection = async (id: number): Promise<CollectionProps> => {
-  const collection = await db.get(`SELECT * FROM collections WHERE id = ?`, [id]);
-  const ifHidePrivate = (s: string) => showUnpublished ? "" : s;
 
-  const books = await db.all(
-    `SELECT books.id, books.path as slug, books.title, books.subtitle
-     FROM collections_books coll_books
-     LEFT JOIN books ON books.id = bookId
-     WHERE collectionId = ?
-     ${ifHidePrivate("AND (coll_books.explicit = 1 OR books.public = 1)")}
-     ORDER BY position`,
-    [id])
-
-  const collections = await db.all(
-    `SELECT coll.id, coll.path as slug, coll.title, coll.subtitle
-     FROM collections_collections coll_coll
-     LEFT JOIN collections coll ON coll.id = subCollectionId
-     WHERE collectionId = ?
-     ${ifHidePrivate("AND (coll_coll.explicit = 1 OR coll.public = 1)")}
-     ORDER BY position`,
-    [id]
-  )
-
-  return {
-    collectionId: collection.id,
-    slug: collection.path,
-    frontmatter: {
-      title: collection.title, subTitle: collection.subtitle,
-      coverImg: collection.coverImg, language: collection.language,
-      public: collection.public === 1, recursiveContent: collection.recursiveContent === 1,
-    },
-    content: collection.content,
-    books,
-    collections,
-  };
-}
-
-export type GroupList = {id: number, name: string}[];
-
-export const getBookGroups = async (bookId: number): Promise<GroupList> =>
+export const getGroups = async (bookId: number): Promise<GroupList> =>
   (await db.all(
     `SELECT g.id, g.name
      FROM books_groups bg
@@ -167,20 +80,15 @@ export const getBookGroups = async (bookId: number): Promise<GroupList> =>
     [bookId]
   )) as {id: number, name: string}[];
 
-export const getCollectionGroups = async (
-  collectionId: number, withQuestions=false
-): Promise<GroupList> =>
+export const getCollectionsWithBook = async (bookId: number): Promise<ItemDesc[]> =>
   (await db.all(
-    `SELECT DISTINCT g.id, g.name
-     FROM collections_books cb
-     JOIN books_groups bg ON cb.bookId = bg.bookId
-     JOIN groups g on g.id = bg.groupId
-     ${withQuestions 
-       ? ` JOIN books_chapters bc ON bg.bookId = bc.bookId
-          JOIN questions q ON bc.chapterId = q.chapterId`
-       : ""}
-     WHERE cb.collectionId = ?
-     ORDER BY g.name
+    `SELECT collections.id, collections.path as slug, collections.title
+     FROM collections
+     JOIN collections_books cb ON collections.id = cb.collectionId
+     WHERE cb.bookId = ? AND collections.public = 1
      `,
-    [collectionId]
-  )) as {id: number, name: string}[];
+    [bookId]
+  )) as ItemDesc[];
+
+export const getPublicCollection = async (bookId: number): Promise<LinkDesc> =>
+  getPublicLink(getCollectionsWithBook(bookId));
