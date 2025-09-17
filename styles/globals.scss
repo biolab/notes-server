@@ -38,12 +38,10 @@ $max-size: 140;
   }
 }
 
-[data-width-max] {
-  + * img {
-    width: calc(100% + $aside-width + $gap);
-    max-width: calc(100% + $aside-width + $gap);
-    margin-left: (-$aside-width - $gap) !important;
-  }
+[data-width-max] + * img, .full-width {
+  width: calc(100% + $aside-width + $gap);
+  max-width: calc(100% + $aside-width + $gap);
+  margin-left: (-$aside-width - $gap) !important;
 }
 
 [data-retina] + p img,
