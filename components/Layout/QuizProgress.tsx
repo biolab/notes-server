@@ -23,7 +23,7 @@ export const QuizProgressBar = () => {
       : "black",
     [correctAnswers, noOfQuestions, quizState?.quizThreshold]);
 
-  if (!quizState) {
+  if (!quizState || noOfQuestions === 0) {
     return null;
   }
 
