@@ -6,7 +6,7 @@ import Image from "../Image";
 import { toast } from "react-toastify";
 
 import { AnswersInBook, getAnswers, getAnswersInBook } from "@/api/quiz";
-import { BookProps } from "@/api/book";
+import { BookProps, getCollectionsWithBook, ItemDesc } from "@/api/book";
 import { isAdminFor } from "@/api/user";
 
 import { logger } from "@/utils/logger";
@@ -40,10 +40,6 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
   const { t } = useIntl();
 
   const [allAnswers, setAllAnswers] = useState<AnswersInBook | false>(false);
-
-  const loading = React.useMemo(() =>
-    !user || groupRequired === null || answers === "pending",
-  [user, groupRequired, answers]);
 
   /* Restore previous answers */
   React.useEffect(() => {
@@ -152,6 +148,21 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     return () => clearTimeout(timeout);
   }, [pathname]);
 
+  const [ inCollection, setInCollection ] = useState<ItemDesc | null | false>(null);
+  React.useEffect(() => {
+    getCollectionsWithBook(bookId).then((collections) => {
+      // We test that slug includes "/"; books that are in "publisher" collection
+      // are not really in collection
+      // TODO: or are they?
+      if (collections.length === 1 && collections[0].slug.includes("/")) {
+        setInCollection(collections[0]);
+      }
+      else {
+        setInCollection(false);
+      }
+    });
+  }, [bookId]);
+
   const { layout } = useContext(SidenoteContext);
   const hasMounted = useHasMounted();
   React.useEffect(() => {
@@ -167,6 +178,12 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     }
   }, [layout]);
 
+  const loading = React.useMemo(() =>
+      !user
+      || groupRequired === null
+      || answers === "pending"
+      || inCollection === null, // prevent showing it later -- looks weird
+    [user, groupRequired, answers]);
 
   if (loading) {
     return (
@@ -200,6 +217,9 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
           title={frontmatter.title}
           isAdmin={isAdmin}
           showHome={!frontmatter.tocInHeader}
+          collection={inCollection ? { title: inCollection.title,
+                                       href: `/${inCollection.slug}` }
+                                   : null}
           chapters={frontmatter.tocInHeader ? chapters : []}
           isChapterIndexVisible={
             frontmatter.tocInHeader ? isChapterIndexVisible : []

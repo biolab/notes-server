@@ -184,3 +184,13 @@ export const getCollectionGroups = async (
      `,
     [collectionId]
   )) as {id: number, name: string}[];
+
+export const getCollectionsWithBook = async (bookId: number): Promise<ItemDesc[]> =>
+  (await db.all(
+    `SELECT collections.id, collections.path as slug, collections.title
+     FROM collections
+     JOIN collections_books cb ON collections.id = cb.collectionId
+     WHERE cb.bookId = ? AND collections.public = 1
+     `,
+    [bookId]
+  )) as ItemDesc[];
