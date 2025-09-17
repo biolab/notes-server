@@ -90,6 +90,11 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
     SideNote: Sidenote,
     ExpandingSideImg,
 
+    FullWidth: ({ children }: { children: React.ReactNode }) =>
+      <div className="full-width">
+        {children}
+      </div>,
+
     ReplayImg: ({ src, alt }: { src: string; alt?: string }) => {
       const [_src, setSrc] = React.useState(src ? src + "?" : null);
       const replay = React.useCallback(() => {
