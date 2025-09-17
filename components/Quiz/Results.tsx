@@ -4,8 +4,9 @@ import React from "react";
 
 import { AnswersInBook, PointsInCollection, getAnswersInBook,
          getCollectionResults, UserDesc,} from "@/api/quiz";
-import { BookProps, CollectionProps, getBookGroups, getCollectionGroups,
-         GroupList } from "@/api/book";
+import { BookProps, getGroups as getBookGroups } from "@/api/book";
+import { CollectionProps, getGroups as getCollectionGroups } from "@/api/collection";
+import { GroupList } from "@/api/content";
 import { UserContext } from "@/context/UserContextProvider";
 import { corrColor, corrSym } from "@/utils/questions";
 
