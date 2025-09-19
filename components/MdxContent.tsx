@@ -78,7 +78,7 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
           scorer={actScorer}
           options={actOptions}
           maxPoints={ungraded ? 0 : (points ?? 1)}
-          maxTrials={trials || 1}
+          maxTrials={trials ?? 1}
           usersAnswers={usersAnswers}
         />
       );
