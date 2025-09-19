@@ -40,5 +40,8 @@ export async function GET(
   if (!mimeType) {
     return NextResponse.json({ error: "Unknown mime type" }, { status: 415 });
   }
-  return new NextResponse(content, { headers: { "Content-Type": mimeType } });
+  return new NextResponse(
+    new Blob([new Uint8Array(content)]),
+    { headers: { "Content-Type": mimeType } }
+  );
 }
