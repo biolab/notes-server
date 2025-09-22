@@ -6,6 +6,8 @@ import { ImHome, ImList2 } from "react-icons/im";
 import { ChapterDef } from "@/types";
 import { LinkDesc } from "@/api/content";
 
+import { QuizProgressBar } from "@/components/Layout/QuizProgress";
+import { QuizContext } from "@/context/QuizContextProvider";
 import { ContentIndex } from "./ContentIndex";
 import UserDropdown from "./UserDropdown";
 
@@ -56,6 +58,9 @@ export default function Layout({
     [title]
   );
 
+  const { correct, answered, wrong, nQuestions, threshold } =
+    React.useContext(QuizContext);
+
   return (
     <div className="flex flex-col min-h-screen mt-14">
       <header className="main-header">
@@ -71,6 +76,16 @@ export default function Layout({
                   chapters={chapters}
                   isChapterIndexVisible={isChapterIndexVisible}
                 />
+              </div>
+            }
+            { nQuestions > 0 &&
+              <div style={{width: "100px", display: "flex", flexDirection: "column", justifyContent: "center"}}>
+                <QuizProgressBar
+                  correct={correct}
+                  answered={answered}
+                  wrong={wrong}
+                  nQuestions={nQuestions}
+                  threshold={threshold}/>
               </div>
             }
           </div>

@@ -7,7 +7,7 @@ import slugify from "slugify";
 
 import { useIntl } from "@/i18n";
 import { ChapterDef } from "@/types";
-import { QuizProgressIndicator, QuizProgressBar } from "./QuizProgress";
+import { QuizProgressIndicator } from "./QuizProgress";
 
 interface ContentIndexProps {
   contentTitle?: string;
@@ -64,7 +64,6 @@ export const ContentIndexControl = ({chapters, isChapterIndexVisible}: {
 }) => {
   const [small, setSmall] = React.useState(false);
   const { t } = useIntl();
-
   return (
     <div className={small ? "small content-index" : "content-index"}>
       <div className="toolbar">
@@ -77,7 +76,6 @@ export const ContentIndexControl = ({chapters, isChapterIndexVisible}: {
         chapters={chapters}
         isChapterIndexVisible={isChapterIndexVisible}
       />
-      { !small && <QuizProgressBar /> }
     </div>
   );
 };

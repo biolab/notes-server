@@ -7,24 +7,36 @@ import Image from "../Image";
 
 import { getPublicCollection, CollectionProps } from "@/api/collection";
 import { ItemDesc, LinkDesc } from "@/api/content";
-import { getCollectionHasQuestions } from "@/api/quiz";
+import { CollectionStats, getCollectionHasQuestions, getUserCollectionStats } from "@/api/quiz";
 import { isAdminFor } from "@/api/user";
 import { getT, IntlContextProvider, useIntl } from "@/i18n";
 import { UserContext } from "@/context/UserContextProvider";
 import { MdxContent } from "@/components/MdxContent";
 import { usePublicProvider } from "@/hooks/usePublicProvider";
+import { QuizProgressBar } from "@/components/Layout/QuizProgress";
 
 
-const List = ({items, title}: { title: string; items: ItemDesc[] }) => {
+const List = ({items, title, quizStats}: {
+  title: string;
+  items: ItemDesc[];
+  quizStats?: Record<string, CollectionStats> | null;
+}) => {
   const { t } = useIntl();
   return (
     !!items.length && (
       <>
         {!!title && <h2 className="text-lg mt-8">{t(title)}</h2>}
-        {items.map(({ slug, title, subtitle }) => (
+        {items.map(({ slug, id, title, subtitle }) => (
           <div className="book" key={slug}>
             <Link href={`/${slug}`}>
-              <h2>{title}</h2>
+              <h2>
+                {!!quizStats && quizStats[id].nQuestions > 0 &&
+                  <div style={{float: "right", width: "100px"}}>
+                    <QuizProgressBar {...quizStats[id]} />
+                  </div>
+                }
+                {title}
+              </h2>
               {!!subtitle && <p>{subtitle}</p>}
             </Link>
           </div>
@@ -69,10 +81,19 @@ export const Collection = ({
     getPublicCollection(collectionId).then(setPublicCollection);
   }, [collectionId]);
 
+  const [collectionStats, setCollectionStats] = useState<Record<string, CollectionStats> | null | undefined>(undefined);
+  React.useEffect(() => {
+    if (!user) {
+      return;
+    }
+    getUserCollectionStats(user.accessToken, collectionId).then(setCollectionStats);
+  }, [user, collectionId]);
+
   const loading = React.useMemo(() =>
       publicCollection === null // prevent showing it later -- looks weird
-      || provider === null,
-    [publicCollection, provider]);
+      || provider === null
+      || collectionStats === null,
+    [collectionStats, publicCollection, provider]);
 
   if (loading) {
     return (
@@ -111,7 +132,7 @@ export const Collection = ({
         }
 
         <List items={collections} title={slug && "collections"}/>
-        <List items={books} title="books"/>
+        <List items={books} title="books" quizStats={collectionStats ?? null}/>
       </div>
     </Layout>
   </IntlContextProvider>;
