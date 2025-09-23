@@ -5,9 +5,11 @@ import { ImHome, ImList2 } from "react-icons/im";
 
 import { ChapterDef } from "@/types";
 import { LinkDesc } from "@/api/content";
+import { useIntl } from "@/i18n";
 
 import { QuizProgressBar } from "@/components/Layout/QuizProgress";
 import { QuizContext } from "@/context/QuizContextProvider";
+import { UserContext } from "@/context/UserContextProvider";
 import { ContentIndex } from "./ContentIndex";
 import UserDropdown from "./UserDropdown";
 
@@ -43,6 +45,9 @@ export default function Layout({
   returnLink?: string;
   children: React.ReactNode;
 }) {
+  const { t } = useIntl();
+  const { user } = React.useContext(UserContext);
+
   const titleLink = React.useMemo(() => title &&
     <a
       href="#"
@@ -110,13 +115,16 @@ export default function Layout({
                {titleLink}
             </div>
           }
-          <div className="flex">
-            <UserDropdown
-              showLinkToResults={showLinkToResults}
-              returnLink={returnLink}
-              isAdmin={isAdmin}
-              onChangeShowAnswers={onChangeShowAnswers}
-            />
+          <div className="flex flex-row gap-5">
+            { user?.email || t("user.anonymous-user") }
+            <div className="flex">
+              <UserDropdown
+                showLinkToResults={showLinkToResults}
+                returnLink={returnLink}
+                isAdmin={isAdmin}
+                onChangeShowAnswers={onChangeShowAnswers}
+              />
+            </div>
           </div>
         </div>
       </header>

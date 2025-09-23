@@ -89,10 +89,10 @@ const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}
           <ul className="dropdown-content">
             { user.email ?
               <>
-                <li className="dropdown-content-data">{user.email}</li>
-                {showLinkToResults && <li onClick={toResults}>
-                  { t("user.show-quiz-results") }
-                </li>}
+                {showLinkToResults &&
+                  <li onClick={toResults}>
+                    { t("user.show-quiz-results") }
+                  </li>}
                 {returnLink &&
                   <li onClick={toPage}>
                     {t("user.back-to")} {returnLink}
@@ -119,9 +119,6 @@ const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}
                 </li>
               </>
              : <>
-                <li className="dropdown-content-data">
-                  { t("user.anonymous-user") }
-                </li>
                 <li onClick={toLogin}>
                   { t("login") }
                 </li>
