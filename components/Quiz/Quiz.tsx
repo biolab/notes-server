@@ -59,9 +59,8 @@ export default function Question({
   const { t } = useIntl();
 
   const submitDisabled = React.useMemo(
-    () => maxTrials && trials >= maxTrials
-          || !submissionErrored && isCorrect,
-  [submissionErrored, isCorrect, maxTrials, trials]);
+    () => maxTrials && trials >= maxTrials,
+  [maxTrials, trials]);
 
   const onSubmit = React.useCallback(
     async (e: React.MouseEvent, option: string ) => {
@@ -188,15 +187,12 @@ export default function Question({
                     }}
                   />
                 )}
-
-                {(submissionErrored || !isCorrect) && (
-                  <button
-                    disabled={!answer}
-                    onClick={(e) => onSubmit(e, answer as string)}
-                  >
-                    {t("quiz.submit-button")}
-                  </button>
-                )}
+                <button
+                  disabled={!answer}
+                  onClick={(e) => onSubmit(e, answer as string)}
+                >
+                  {t("quiz.submit-button")}
+                </button>
               </>
             )}
 
