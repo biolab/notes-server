@@ -19,7 +19,7 @@ import { QuizProgressBar } from "@/components/Layout/QuizProgress";
 const List = ({items, title, quizStats}: {
   title: string;
   items: ItemDesc[];
-  quizStats?: Record<string, CollectionStats> | null;
+  quizStats?: Record<number, CollectionStats> | null;
 }) => {
   const { t } = useIntl();
   return (
@@ -30,7 +30,7 @@ const List = ({items, title, quizStats}: {
           <div className="book" key={slug}>
             <Link href={`/${slug}`}>
               <h2>
-                {!!quizStats && quizStats[id].nQuestions > 0 &&
+                {!!quizStats && (quizStats[id]?.nQuestions ?? 0) > 0 &&
                   <div style={{float: "right", width: "100px"}}>
                     <QuizProgressBar {...quizStats[id]} />
                   </div>
