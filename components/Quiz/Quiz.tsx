@@ -19,6 +19,7 @@ export interface IQuestion extends QuizPropsBase {
   id: string;
   type: QuestionTypes;
   scorer: (option: string) => (boolean | undefined)
+  correctAnswer?: string;
   bookId: number;
   maxPoints: number;
   maxTrials: number;
@@ -39,6 +40,7 @@ export default function Question({
   question,
   options = [],
   checker,
+  correctAnswer,
   scorer,
   maxPoints = 0,
   maxTrials = 1,
@@ -102,6 +104,11 @@ export default function Question({
         if (trials < maxTrials && maxTrials > 1) {
           msg += ` ${t("quiz.remaining")}: ${maxTrials - trials}`
         }
+        else {
+          if (maxTrials > 0 && correctAnswer) {
+            msg += ` ${t("quiz.correct-answer")} "${correctAnswer}"`;
+          }
+        }
         return msg;
       }
       case true: {
@@ -114,7 +121,7 @@ export default function Question({
       default:
         return null;
     }
-  }, [t, submissionErrored, isCorrect, trials, maxTrials, points]);
+  }, [t, submissionErrored, isCorrect, correctAnswer, trials, maxTrials, points]);
 
   const correctnessClass = React.useMemo(() => {
     if (submissionErrored) {
