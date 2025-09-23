@@ -43,14 +43,14 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
               longtext, points, trials, id, question,
               ...restProps } = props;
 
-      const actAnswer =
+      const correctAnswer =
         (answer
          || options
           ?.find((opt) => opt.startsWith(CorrectAnswerPrefix))
           ?.slice(CorrectAnswerPrefix.length)
          || undefined)
-         ?.trim()
-          .toLowerCase()
+          ?.trim();
+      const actAnswer = correctAnswer?.toLowerCase()
 
       const actOptions = options?.map(
         (opt) => opt.startsWith(CorrectAnswerPrefix)
@@ -76,6 +76,7 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
           bookId={bookId!}
           type={type}
           scorer={actScorer}
+          correctAnswer={correctAnswer}
           options={actOptions}
           maxPoints={ungraded ? 0 : (points ?? 1)}
           maxTrials={trials ?? 1}
