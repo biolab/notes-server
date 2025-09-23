@@ -183,3 +183,47 @@ export const getCollectionHasQuestions = async (collectionId: number): Promise<b
        WHERE collections.id = ?`,
     [collectionId]
   ));
+
+export type CollectionStats = {
+  answered: number;
+  correct: number;
+  wrong: number;
+  nQuestions: number;
+  threshold: number | null;
+}
+
+export const getUserCollectionStats =
+  async (accessToken: string, collectionId: number
+): Promise<Record<number, CollectionStats> | null>  => {
+  const userId = await getUserId(accessToken);
+  if (!userId) {
+    return null;
+  }
+  return Object.fromEntries(
+    (await db.all(
+      `SELECT
+         books.id as bookId,
+         SUM(CASE WHEN ans.id IS NOT NULL THEN 1 ELSE 0 END) AS answered,
+         COALESCE(SUM(ans.isCorrect),0) AS correct,
+         COALESCE(SUM(1 - ans.isCorrect),0) AS wrong,
+         books.quizThreshold AS threshold,
+         COUNT(q.id) AS nQuestions
+       FROM collections_books cb
+         JOIN books ON cb.bookId = books.id
+         JOIN books_chapters bc ON books.id = bc.bookId
+         JOIN questions q ON bc.chapterId = q.chapterId
+         LEFT JOIN (
+           SELECT a.*,
+                  ROW_NUMBER() OVER (
+                    PARTITION BY a.questionId
+                    ORDER BY a.createdAt DESC
+                  ) AS rn
+           FROM answers a
+           WHERE a.userId = ?
+       ) ans ON books.id = ans.bookId AND ans.questionId = q.id
+       WHERE COALESCE(rn,1) = 1 AND cb.collectionId = ?
+       GROUP BY books.id;
+    `, [userId, collectionId] as (CollectionStats & {bookId: number})[]))
+    .map(({bookId, ...rest}) => [bookId, rest] as [number, Omit<CollectionStats, "bookId">])
+  );
+}

@@ -2,28 +2,34 @@ import React from "react";
 
 import { QuizContext } from "@/context/QuizContextProvider";
 import { useIntl } from "@/i18n";
+import { CollectionStats } from "@/api/quiz";
 
 
-export const QuizProgressBar = () => {
+export const QuizProgressBar = ({answered, correct, wrong, nQuestions, threshold}: CollectionStats) => {
   const { t } = useIntl();
-  const { correctAnswers, answeredQuestions, noOfQuestions, quizState } =
-    React.useContext(QuizContext);
 
-  const corrWidth = React.useMemo(() =>
-    (correctAnswers / noOfQuestions) * 100,
-  [correctAnswers, noOfQuestions]);
+  const ungraded = React.useMemo(
+    () => answered - correct - wrong,
+    [answered, correct, wrong]
+  );
 
-  const wrongWidth = React.useMemo(() =>
-    ((answeredQuestions - correctAnswers) / noOfQuestions) * 100,
-    [correctAnswers, answeredQuestions, noOfQuestions]);
+  const correctP = React.useMemo(
+    () => Math.round((correct / nQuestions) * 100),
+    [correct, nQuestions]);
 
-  const borderColor = React.useMemo(() =>
-      correctAnswers / noOfQuestions >= (quizState?.quizThreshold || 2)
-      ? "green"
-      : "black",
-    [correctAnswers, noOfQuestions, quizState?.quizThreshold]);
+  const ungradedP = React.useMemo(
+    () => Math.round((ungraded / nQuestions) * 100),
+    [ungraded, nQuestions]);
 
-  if (!quizState || noOfQuestions === 0) {
+  const wrongP = React.useMemo(
+    () => Math.round((wrong / nQuestions) * 100),
+    [wrong, nQuestions]);
+
+  const borderColor = React.useMemo(
+    () => correct / nQuestions >= (threshold || 2) ? "green" : "black",
+    [correct, nQuestions, threshold]);
+
+  if (nQuestions === 0) {
     return null;
   }
 
@@ -32,29 +38,39 @@ export const QuizProgressBar = () => {
       <div
         className="quiz-progress-indicator-wrapper"
         style={{borderColor}}
-        title={`${t("quiz-progress.answered")}: ${answeredQuestions} / ${noOfQuestions}\n
-${t("quiz-progress.correct")}: ${correctAnswers} (${Math.round((correctAnswers / noOfQuestions) * 100)} %)\n
-${t("quiz-progress.required")}: ${Math.round(noOfQuestions * quizState.quizThreshold)}`}
+        title={`${t("quiz-progress.answered")}: ${answered} / ${nQuestions}
+${t("quiz-progress.correct")}: ${correct} (${correctP} %)
+${t("quiz-progress.wrong")}: ${wrong} (${wrongP} %)`
++ (ungraded > 0 ? `\n${t("quiz-progress.ungraded")}: ${ungraded} (${ungraded} %)` : "")
++ (threshold ? `\n${t("quiz-progress.required")}: ${Math.round(nQuestions * threshold)}` : "")}
       >
-        { wrongWidth &&
+        { !!wrong &&
           <div
             className="quiz-progress-indicator-bar"
             style={{
-              width: `${wrongWidth + corrWidth}%`,
+              width: `${wrongP + correctP + ungradedP}%`,
               backgroundColor: "red" }}
           ></div>
         }
-        { corrWidth &&
+        { !!ungraded &&
           <div
             className="quiz-progress-indicator-bar"
-            style={{ width: `${Math.round(corrWidth)}%`,
+            style={{
+              width: `${correctP + ungradedP}%`,
+              backgroundColor: "gray" }}
+          ></div>
+        }
+        { !!correctP &&
+          <div
+            className="quiz-progress-indicator-bar"
+            style={{ width: `${correctP}%`,
                      backgroundColor: "green" }}
           ></div>
         }
-        { quizState?.quizThreshold &&
+        { !!threshold &&
           <div
             className="quiz-progress-indicator-bar-threshold-line"
-            style={{ position: "relative", left: `${quizState.quizThreshold * 100}%` }}
+            style={{ position: "relative", left: `${threshold * 100}%` }}
           ></div>
         }
       </div>
@@ -104,17 +120,17 @@ export const QuizProgressIndicator = ({chapterIndex}: {
 }) => {
   const { t } = useIntl();
   const {chapterStats} = React.useContext(QuizContext);
-  const { noOfQuestions, answeredQuestions, correctAnswers, correctness, questionIds } =
-    chapterStats(chapterIndex) || { noOfQuestions: 0, answeredQuestions: 0, correctness: [], correctAnswers: 0 };
-  if (noOfQuestions === 0) {
+  const { nQuestions, answered, correct, correctness, questionIds } =
+    chapterStats(chapterIndex) || { nQuestions: 0, answered: 0, correctness: [], correct: 0 };
+  if (nQuestions === 0) {
     return null;
   }
   let title;
-  if (noOfQuestions === 1) {
-    if (correctAnswers) {
+  if (nQuestions === 1) {
+    if (correct) {
       title = t("quiz-progress.correct-single");
     }
-    else if (answeredQuestions) {
+    else if (answered) {
       title = t("quiz-progress.wrong-single");
     }
     else {
@@ -122,20 +138,20 @@ export const QuizProgressIndicator = ({chapterIndex}: {
     }
   }
   else {
-    if (correctAnswers && correctAnswers != answeredQuestions) {
-      title = t("quiz-progress.correct-wrong")(correctAnswers, answeredQuestions - correctAnswers);
+    if (correct && correct != answered) {
+      title = t("quiz-progress.correct-wrong")(correct, answered - correct);
     }
-    else if (correctAnswers) {
-      title = t("quiz-progress.correct-all")(correctAnswers);
+    else if (correct) {
+      title = t("quiz-progress.correct-all")(correct);
     }
-    else if (answeredQuestions) {
-      title = t("quiz-progress.wrong-all")(answeredQuestions);
+    else if (answered) {
+      title = t("quiz-progress.wrong-all")(answered);
     }
     else {
       title = t("quiz-progress.no-answers");
     }
-    if (answeredQuestions != noOfQuestions) {
-      title += t("quiz-progress.remaining")(noOfQuestions - answeredQuestions);
+    if (answered != nQuestions) {
+      title += t("quiz-progress.remaining")(nQuestions - answered);
     }
   }
   return (
