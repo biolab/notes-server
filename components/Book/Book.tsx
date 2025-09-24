@@ -205,7 +205,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
         bookId={bookId}
         chapters={chapters}
         answers={answers as AnswerWithQuestionId[] | null}
-        quizThreshold={frontmatter.quizThreshold || 0.8}
+        quizThreshold={frontmatter.quizThreshold || 0}
       >
         <Layout
           title={frontmatter.title}
