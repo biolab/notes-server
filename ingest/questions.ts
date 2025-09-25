@@ -220,7 +220,7 @@ export const extractQuizzes = async (
             question,
             type,
             options,
-            answer,
+            answer: correctOptions?.[0] || answer,
             points
           });
         }
@@ -229,4 +229,3 @@ export const extractQuizzes = async (
   });
   return questions;
 };
-
