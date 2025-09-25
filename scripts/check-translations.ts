@@ -29,7 +29,9 @@ Object.entries(dict)
     const missing = keys.filter(k => !d[k]);
     const extra = Object.keys(d)
       .filter(k => !keys.includes(k) && !KNOWN_EXTRAS.includes(k));
-    if (missing.length || extra.length) {
+    const mismatching = Object.keys(d)
+      .filter(k => dict["en"][k] && typeof dict["en"][k] !== typeof d[k]);
+    if (missing.length || extra.length || mismatching.length) {
       console.log(`\nIssues in ${lang}:`);
       if (missing.length) {
         console.log(`  Missing translations (${missing.length}):`);
@@ -38,6 +40,11 @@ Object.entries(dict)
       if (extra.length) {
         console.log(`  Extra translations (${extra.length}):`);
         extra.forEach(k => console.log(`    - ${k}`));
+      }
+      if (mismatching.length) {
+        console.log(`  Mismatching types (${mismatching.length}):`);
+        mismatching.forEach(k =>
+          console.log(`    - ${k} (expected ${typeof dict["en"][k]}, got ${typeof d[k]})`));
       }
       console.log("\n");
     }

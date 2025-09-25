@@ -14,7 +14,6 @@ const plsi = (n: number, forms: string) => {
   const f = forms.split("|");
   const actN = Math.min(n % 100, 5);
   const i = Math.min(forms.length, [4, 1, 2, 3, 3, 4][actN]);
-  console.log(forms, f, actN, i, f[i - 1]);
   return f[i - 1];
 }
 
