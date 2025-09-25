@@ -236,12 +236,12 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
 
             <MdxContent content={content} bookId={bookId} t={t}/>
 
-            {!frontmatter.tocInHeader && (
+            {!frontmatter.tocInHeader && chapters.length > 1 &&
               <ContentIndexControl
                 chapters={chapters}
                 isChapterIndexVisible={isChapterIndexVisible}
               />
-            )}
+            }
 
             {chapters.map((chapterDef, index) => (
               <Chapter
