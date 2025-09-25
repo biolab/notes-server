@@ -72,7 +72,7 @@ export default function Layout({
         <div className="flex justify-between items-center min-w-0 gap-3">
           <div className="flex flex-row gap-5">
             {home && <HomeIcon link={home}/> }
-            { chapters.length > 0 &&
+            { chapters.length > 1 &&
               <div className="header-content-index flex items-center">
                 <ImList2 />
                 <ContentIndex
