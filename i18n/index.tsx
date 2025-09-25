@@ -41,7 +41,10 @@ export const useIntlFromBrowser = () => {
 
   React.useEffect(() => {
       if (typeof window !== "undefined") {
-        setIntl({t: getT(navigator.language.split("-")[0])});
+        const lang = navigator.language.split("-")[0];
+        if (dict[lang]) {
+          setIntl({t: getT(lang)});
+        }
       }
   }, []);
 
