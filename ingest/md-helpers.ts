@@ -44,6 +44,14 @@ export const readPublicDirMd = (spath: string | string[], base = "index") => {
 export const parseMd = (content: string) =>
   content
     .replaceAll(
+      /<!!!\s+float-aside\s+!!!>([\s\S]*?)\n\s*\n/g,
+      (_, paragraph) => `<Sidenote>
+${paragraph}
+</Sidenote>
+
+`
+    )
+    .replaceAll(
       /<!!!(.*)!!!>/g,
       (_, styles) => `<div ${styles
                              .split(" ")
