@@ -74,7 +74,9 @@ const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}
   const toPage = () =>
     { window.location.assign(window.location.origin + window.location.pathname); }
   const toLogin = () =>
-    { window.location.assign("/login"); }
+    { const currentPath = encodeURIComponent(window.location.pathname);
+      window.location.assign(`/login?redirect=${currentPath}`);
+    }
   const toLogout = () =>
     { logOut(); window.location.reload(); }
   const changeShowUsersAnswers = (e: React.ChangeEvent<HTMLInputElement>) => {
