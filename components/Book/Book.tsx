@@ -171,6 +171,14 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     }
   }, [layout]);
 
+  // If there are no chapters, ensure enough space for any side notes in intro.
+  // Doing this in presence of chapters would increase the left margin too much;
+  // let us assume that books with chapters don't have side notes in intro.
+  const marginClass = React.useMemo(
+    () => frontmatter.chapters?.length ? "mx-auto" : "mx-l320",
+    [frontmatter.chapters?.length]
+  );
+
   const loading = React.useMemo(() =>
       !user
       || groupRequired === null
@@ -218,7 +226,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
           }
           showLinkToResults={isAdmin && hasQuestions}
           onChangeShowAnswers={(isAdmin && hasQuestions) ? setShowAnswers : undefined}>
-          <div className="prose mx-auto book">
+          <div className={`prose book ${marginClass}`}>
             {frontmatter.coverImg && (
               <div className="book-cover-img">
                 <Image

@@ -87,6 +87,11 @@ $max-size: 140;
   }
 }
 
+.mx-l320 {
+  margin-left: max(calc($aside-width + 60px), calc((100vw - $prose-width - $gap) / 2)) !important;
+  margin-right: auto;
+}
+
 div.expanding-side-img {
   transform-origin: top left;
   position: absolute;
