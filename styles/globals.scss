@@ -38,7 +38,9 @@ $max-size: 140;
   }
 }
 
-[data-width-max] + * img, .full-width {
+[data-width-max] + * img,
+[data-width-max]+ .widget-iframe,
+.full-width {
   width: calc(100% + $aside-width + $gap);
   max-width: calc(100% + $aside-width + $gap);
   margin-left: (-$aside-width - $gap) !important;
@@ -76,10 +78,13 @@ $max-size: 140;
     margin-bottom: 8px !important;
   }
 
+  .widget-iframe {
+    width: $aside-width !important;
+  }
+
   p {
     font-weight: 400 !important;
   }
-
 }
 
 div.expanding-side-img {
