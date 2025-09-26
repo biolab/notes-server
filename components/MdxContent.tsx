@@ -96,6 +96,30 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
         {children}
       </div>,
 
+    WidgetIframe: ({ src, width, height, className }: {
+      src: string,
+      width?: string,
+      height?: string,
+      className?: string
+    }) => {
+      const [show, setShow] = React.useState(false);
+      React.useEffect(() => { setShow(true); }, []);
+      return (
+        <>
+          {show && (
+            <iframe
+              className={`widget-iframe ${className ?? ""}`}
+              allow="clipboard-write"
+              width={width || "100%"}
+              height={height || "900px"}
+              src={src}
+              style={{zoom: 0.9}}
+            />
+          )}
+        </>
+      );
+    },
+
     ReplayImg: ({ src, alt }: { src: string; alt?: string }) => {
       const [_src, setSrc] = React.useState(src ? src + "?" : null);
       const replay = React.useCallback(() => {
