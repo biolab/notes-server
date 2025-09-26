@@ -23,11 +23,12 @@ html {
 
 $img-margin: 8px;
 $aside-width: 260px;
+$prose-width: 940px;
 $gap: 32px;
 $max-size: 140;
 
 /*
- * Commands, that are used in MD
+ * Commands that are used in MD
  */
 @for $i from 10 through $max-size {
   [data-width-#{$i}] {
@@ -61,7 +62,6 @@ $max-size: 140;
 [data-float-right] {
   + * img {
     float: right;
-    margin: 0;
     margin: 0 0 0 $img-margin !important;
   }
 }
@@ -87,6 +87,11 @@ $max-size: 140;
   }
 }
 
+.mx-l320 {
+  margin-left: max(calc($aside-width + 60px), calc((100vw - $prose-width - $gap) / 2)) !important;
+  margin-right: auto;
+}
+
 div.expanding-side-img {
   transform-origin: top left;
   position: absolute;
@@ -109,7 +114,7 @@ div.expanding-side-img {
 
   &:hover {
     position: relative;
-    width: 882px;
+    width: $prose-width;
     max-width: min(882px, calc(100vw - 4rem));
     transform-origin: top left;
     transition: all 0.5s;
@@ -117,7 +122,7 @@ div.expanding-side-img {
     transform: translateX(calc(0px - $aside-width - $gap));
 
     .img {
-      max-width: 882px;
+      max-width: $prose-width;
     }
 
     .children {
@@ -146,7 +151,7 @@ div.expanding-side-img {
 }
 
 .prose {
-  max-width: 882px;
+  max-width: $prose-width;
   color: #000;
   margin-bottom: 30px;
 
@@ -218,50 +223,7 @@ div.expanding-side-img {
   }
 }
 
-/*
- * Editor
- */
-.md-editor {
-  position: fixed;
-  z-index: 10;
-  left: 10px;
-  top: 64px;
-  border: 2px solid;
-  border-radius: 8px;
-  box-shadow: rgb(0 0 0 / 35%) 0px 5px 15px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(2px);
-
-  textarea {
-    padding: 8px;
-    width: 750px;
-    height: 80vh;
-    background: transparent;
-
-    &:focus {
-      outline: none;
-    }
-  }
-
-  &.small {
-    textarea {
-      width: 180px;
-      height: 280px;
-    }
-  }
-}
-
-.md-editor {
-  .toolbar {
-    display: flex;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(0, 0, 0, 1);
-  }
-}
-
-.content-index,
-.md-editor {
+.content-index {
   .icon-button {
     display: inline-block;
     padding: 7px;
@@ -318,7 +280,7 @@ h3 {
 }
 
 .collection {
-  max-width: 882px;
+  max-width: $prose-width;
 
   h1 {
     text-align: left;
