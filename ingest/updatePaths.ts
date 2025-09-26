@@ -6,6 +6,7 @@ import { elide } from "@/utils/string";
 import { serializedContent } from "./md-helpers";
 import { parseCollection, RawCollectionDef } from "./collection";
 import { parseBook, RawBookDef, RawChapterDef } from "./book";
+import { gatherRedirections, updateRedirections } from "./redirections";
 import { catchErrors, hasError, logError } from "./errors";
 
 
@@ -499,6 +500,7 @@ export const updatePaths = async (
 
   await checkBooks(books, allBookSlugs, db, pathPrefix);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
+  const redirections = gatherRedirections(pathPrefix);
   if (hasError()) {
     process.exit(1);
   }
@@ -510,6 +512,7 @@ export const updatePaths = async (
   await insertBooks(books, db, buildId);
   await insertCollections(collections, db, buildId);
   await insertFavicons(faviconPaths, db, buildId);
+  await updateRedirections(db, buildId, pathPrefix, redirections);
 
   await cleanup(db, pathPrefix, buildId);
 };
