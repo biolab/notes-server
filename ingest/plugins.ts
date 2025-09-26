@@ -49,3 +49,18 @@ export const addRelativePath = ({relativePath}: {relativePath: string}) => () =>
     }
   );
 }
+
+export const forbiddenComponents = ({forbidden}: {
+  forbidden: string[];
+}) => {
+  return () => (tree: Root) => {
+    visit(tree, ["mdxJsxFlowElement", "mdxJsxTextElement"], (node: any) => {
+      if (forbidden.includes(node.name)) {
+        throw new Error(`<${node.name}> component is invalid here (or everywhere).`);
+      }
+      if (node.name == "Quiz") {
+        throw new Error("Replace <Quiz> with <Question>." );
+      }
+    });
+  };
+};
