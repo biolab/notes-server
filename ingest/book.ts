@@ -73,8 +73,8 @@ export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
     frontmatter.chapters?.map((_slug) =>
       _slug.startsWith("/")
         ? path.join(pathParts[0], _slug.slice(1))
-        : _slug.startsWith("./")
-        ? path.join(...pathParts, _slug.slice(2))
+        : _slug.startsWith(".")
+        ? path.join(...pathParts, _slug)
         : path.join(pathParts[0], "_chapters", _slug)
     ) ||
     readPublicDirMd(pathParts)
@@ -111,4 +111,3 @@ export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
     chapters,
   };
 };
-
