@@ -175,8 +175,8 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
   // Doing this in presence of chapters would increase the left margin too much;
   // let us assume that books with chapters don't have side notes in intro.
   const marginClass = React.useMemo(
-    () => frontmatter.chapters?.length ? "mx-auto" : "mx-l320",
-    [frontmatter.chapters?.length]
+    () => chapters.length ? "mx-auto" : "mx-l320",
+    [chapters]
   );
 
   const loading = React.useMemo(() =>
