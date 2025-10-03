@@ -1,6 +1,7 @@
 import React from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
+import { getRedirections } from "@/utils/redirections";
 import { getBook } from "@/api/book";
 import { getCollection } from "@/api/collection";
 import { getItem, getMetadata } from "@/api/content";
@@ -25,6 +26,14 @@ export default async function CollectionOrBookPage(
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>}
 ) {
   const path = ((await params).path ?? []).join("/");
+
+  for (const [from, to] of await getRedirections()) {
+    if (from === path || path.startsWith(from + "/")) {
+      const destination = to + path.slice(from.length);
+      redirect(destination);
+    }
+  }
+
   const results = (await searchParams).results !== undefined;
   const item = await getItem(path);
   if (!item) {

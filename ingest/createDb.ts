@@ -274,6 +274,17 @@ export const rebuildDatabase = async () => {
             UNIQUE (email, collectionId)
         );
     `);
+
+    await handle("redirections");
+    await run(`
+        CREATE TABLE redirections
+        (
+            path        TEXT NOT NULL,
+            target      TEXT NOT NULL,
+            ${LAST_BUILD_ID},
+            UNIQUE (path)
+        );
+    `);
   }
   finally {
     conn.close();
