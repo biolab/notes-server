@@ -14,10 +14,11 @@ program
   .option("-u, --update", "Update without increasing the build number", false)
   .option("--recreate", "Recreate the database from scratch", false)
   .option("-c, --check", "Check, but don't update the database", false)
+  .option("-e, --exceptions <path>", "Yaml file with moved books and books with relaxed checks", "")
   .argument("[path]", "Path to the notes directory (default: from .env)", "");
 
 program.parse(process.argv);
-const { path: pathPrefix, update, recreate, check } = program.opts();
+const { path: pathPrefix, update, recreate, check, exceptions } = program.opts();
 const [notesPath] = program.args;
 
 if (pathPrefix.includes("/") || pathPrefix.includes("\\")) {
@@ -57,7 +58,7 @@ const ask = (question: string): Promise<string> => {
     await rebuildDatabase();
   }
 
-  await updateDb(pathPrefix, update, check).catch((err) => {
+  await updateDb(pathPrefix, update, check, exceptions).catch((err) => {
     console.error("Error:", err);
     process.exit(1);
   });

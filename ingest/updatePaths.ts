@@ -9,26 +9,46 @@ import { parseBook, RawBookDef, RawChapterDef } from "./book";
 import { gatherRedirections, updateRedirections } from "./redirections";
 import { catchErrors, hasError, logError } from "./errors";
 
+const checkMoved = (moved: [string, string][]) => {
+  moved.forEach(([from]) => {
+    const prefixes = moved.filter(([f,]) => f !== from && f.startsWith(from));
+    if (prefixes.length > 0) {
+      logError(from, `${from} is a sub-path of ${prefixes.map(([f,]) => f).join(", ")}.`);
+    }
+  });
+}
 
 const checkBooks = async (
   books: RawBookDef[],
   allBookSlugs: Set<string>,
   db: Database,
-  pathPrefix: string
+  pathPrefix: string,
+  moved: [string, string][],
+  relaxed: string[],
 ) => {
   // All books that include questions with answers must exist (with the same slug)
   // JOIN answers ON questions.id = answers.questionId filters out the questions
   // that do not have answers.
-  const booksWithQuestions = await db.all(
+  const booksWithQuestions = (await db.all(
     `SELECT DISTINCT books.path
      FROM books
      JOIN books_chapters ON books.id = books_chapters.bookId
      JOIN chapters ON books_chapters.chapterId = chapters.id
      JOIN questions ON chapters.id = questions.chapterId
      JOIN answers ON questions.id = answers.questionId
-     WHERE books.path LIKE ?`,
-     [`${pathPrefix}/%`]
-  );
+     ${pathPrefix ? "WHERE books.path LIKE ?" : ""}
+     `,
+     pathPrefix ? [`${pathPrefix}/%`] : []
+  )).map(({path, ...rest}) => {
+    const applicable = moved?.filter(([from]) => path.startsWith(from));
+    if (!applicable?.length) {
+      return { path, ...rest };
+    }
+    const [from, to] = applicable[0];
+    return {
+      path: path.replace(from, to),
+      ...rest
+    }});
   booksWithQuestions
     .filter(({ path }) => !allBookSlugs.has(path))
     .forEach(({ path }) =>
@@ -89,41 +109,43 @@ const checkBooks = async (
     }
 
     // No question with answers may disappear from the book
-    const pastQuestions = (
-      (await db.all(
-        `
-        SELECT DISTINCT questions.questionId, a.id IS NOT NULL AS hasAnswer
-        FROM questions
-        JOIN chapters ON questions.chapterId = chapters.id
-        JOIN books_chapters ON chapters.id = books_chapters.chapterId
-        JOIN books ON books_chapters.bookId = books.id
-        LEFT JOIN answers a ON questions.id = a.questionId AND a.bookId = books.id
-        WHERE books.path = ?`,
-        [book.slug]
-      )) as { questionId: string, hasAnswer: boolean }[]
-    );
-    const missingQuestions = pastQuestions.filter(
-      ({ questionId, hasAnswer }) => hasAnswer && !questionsByIds[questionId]
-    );
-    if (missingQuestions.length > 0) {
-      missingQuestions.forEach(({questionId}) => {
-        logError(
-          book.slug,
-          `Question "${elide(questionId)}" is missing.`
-        );
-      });
-      const knownIds = pastQuestions.map(({ questionId }) => questionId);
-      const extras = bookQuestions.filter(
-        ({ question: { questionId } }) => !knownIds.includes(questionId)
+    if (!relaxed.includes(book.slug)) {
+      const pastQuestions = (
+        (await db.all(
+          `
+              SELECT DISTINCT questions.questionId, a.id IS NOT NULL AS hasAnswer
+              FROM questions
+                       JOIN chapters ON questions.chapterId = chapters.id
+                       JOIN books_chapters ON chapters.id = books_chapters.chapterId
+                       JOIN books ON books_chapters.bookId = books.id
+                       LEFT JOIN answers a ON questions.id = a.questionId AND a.bookId = books.id
+              WHERE books.path = ?`,
+          [book.slug]
+        )) as { questionId: string, hasAnswer: boolean }[]
       );
-      if (extras.length > 0) {
-        console.log(`Hint: if the above question(s) is an edit of an existing,
-        set its 'id' to its original text.`
-        );
-        extras.forEach(({ chapter, question: { questionId } }) => {
-          console.log(`- ${chapter} "${elide(questionId)}"`);
+      const missingQuestions = pastQuestions.filter(
+        ({questionId, hasAnswer}) => hasAnswer && !questionsByIds[questionId]
+      );
+      if (missingQuestions.length > 0) {
+        missingQuestions.forEach(({questionId}) => {
+          logError(
+            book.slug,
+            `Question "${elide(questionId)}" is missing.`
+          );
         });
-        console.log();
+        const knownIds = pastQuestions.map(({questionId}) => questionId);
+        const extras = bookQuestions.filter(
+          ({question: {questionId}}) => !knownIds.includes(questionId)
+        );
+        if (extras.length > 0) {
+          console.log(`Hint: if the above question(s) is an edit of an existing,
+          set its 'id' to its original text.`
+          );
+          extras.forEach(({chapter, question: {questionId}}) => {
+            console.log(`- ${chapter} "${elide(questionId)}"`);
+          });
+          console.log();
+        }
       }
     }
   }
@@ -453,6 +475,21 @@ const insertFavicons = async (
     }));
 }
 
+const movePaths = async (
+  moved: [string, string][],
+  db: Database
+) => {
+  for(const [from, to] of Object.entries(moved)) {
+    for(const table of ["books", "collections", "chapters", "faviconaths"]) {
+      await db.run(
+        `UPDATE ${table}
+         SET path = ? || substr(path, ?)
+         WHERE path LIKE ?`,
+        [to, from.length + 1, from + "/%"]);
+    }
+  }
+}
+
 const cleanup = async (
   db: Database,
   pathPrefix: string,
@@ -484,6 +521,8 @@ export const updatePaths = async (
   db: Database,
   buildId: number | null,
   pathPrefix: string,
+  moved: [string, string][],
+  relaxed: string[],
 ) => {
   const books = (await Promise.all(
     bookSlugs.map((book) => catchErrors(
@@ -498,7 +537,8 @@ export const updatePaths = async (
   ).filter(x => x) as RawCollectionDef[];
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
-  await checkBooks(books, allBookSlugs, db, pathPrefix);
+  await checkMoved(moved);
+  await checkBooks(books, allBookSlugs, db, pathPrefix, moved, relaxed);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   const redirections = gatherRedirections(pathPrefix);
   if (hasError()) {
@@ -508,6 +548,7 @@ export const updatePaths = async (
     return;
   }
 
+  await movePaths(moved, db);
   await insertChapters(books, db, buildId);
   await insertBooks(books, db, buildId);
   await insertCollections(collections, db, buildId);
