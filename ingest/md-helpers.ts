@@ -6,7 +6,7 @@ import { compile } from "@mdx-js/mdx";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
-import { addRelativePath, replacer } from "./plugins";
+import { addRelativePath, forbiddenComponents, replacer } from "./plugins";
 import { getImageSize } from "./getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "./paths";
 
@@ -112,7 +112,8 @@ export const isListOfStrings = (value: unknown) =>
   && "'tokens' must be a list of strings (don't forget the leading dashes)"
 
 export const serializedContent = async (
-  source: string, language: string, relativePath: string
+  source: string, language: string, relativePath: string,
+  forbidden: string[] = []
 ) => {
   const compiled = await compile(source, {
     outputFormat: 'function-body',
@@ -121,7 +122,9 @@ export const serializedContent = async (
     development: false,
     remarkPlugins: [
       remarkMath,
-      replacer({ language })],
+      replacer({ language }),
+      forbiddenComponents({ forbidden })
+    ],
     rehypePlugins: [
       rehypeKatex,
       addRelativePath( { relativePath }),

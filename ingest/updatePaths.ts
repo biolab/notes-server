@@ -65,7 +65,9 @@ const checkBooks = async (
 
     // Check that book content can be serialized
     await catchErrors(book.slug, async () =>
-      await serializedContent(book.mdxContent, book.frontmatter.language, book.slug)
+      await serializedContent(
+        book.mdxContent, book.frontmatter.language, book.slug,
+        ["Question"])
     );
 
     // Check that chapters' content can be serialized
@@ -162,7 +164,8 @@ const checkCollections = async (
       serializedContent(
         collection.mdxContent,
         collection.frontmatter.language,
-        collection.slug)
+        collection.slug,
+        ["Question"])
     );
 
     // Check that all books in the collection exist
