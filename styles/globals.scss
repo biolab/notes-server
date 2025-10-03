@@ -88,7 +88,11 @@ $max-size: 140;
 }
 
 .mx-l320 {
-  margin-left: max(calc($aside-width + 60px), calc((100vw - $prose-width - $gap) / 2)) !important;
+  margin-left: clamp(
+          calc($aside-width + 60px),              /* minimum margin */
+          calc((100vw - $prose-width - $gap) / 2),/* preferred (centered) */
+          calc((100vw - $prose-width - $gap) / 2) /* max = same as preferred */
+  ) !important;
   margin-right: auto;
 }
 
