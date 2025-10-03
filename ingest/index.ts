@@ -40,6 +40,12 @@ export async function updateDb(
       relaxed?: string[],
       prefix?: string
     };
+    if (exceptions.moved && typeof exceptions.moved !== "object") {
+      if (Array.isArray(exceptions.moved)) {
+        throw new Error("Exceptions file must be a mapping, not a list (no leading dashes!)");
+      }
+      throw new Error("Exceptions file must be a mapping");
+    }
     const p = exceptions.prefix
       ? (s: string) => `${exceptions.prefix}/${s.replace(/^\//, "")}`
       : (s: string) => s;

@@ -480,7 +480,7 @@ const movePaths = async (
   db: Database
 ) => {
   for(const [from, to] of Object.entries(moved)) {
-    for(const table of ["books", "collections", "chapters", "faviconaths"]) {
+    for(const table of ["books", "collections", "chapters", "faviconpaths"]) {
       await db.run(
         `UPDATE ${table}
          SET path = ? || substr(path, ?)
