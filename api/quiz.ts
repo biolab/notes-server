@@ -6,6 +6,18 @@ import { isAdminFor } from "@/api/user";
 
 
 // Functions get user's accessToken rather than id because id's can be faked.
+export const idFromQuestionId = async (bookId: number, questionId: string) => {
+  const question = await db.get(`
+    SELECT id FROM questions q
+    JOIN books_chapters bc ON q.chapterId = bc.chapterId
+    WHERE questionId = ? AND bc.bookId = ?
+    `, [questionId, bookId]
+  );
+  if (!question) {
+    throw Error(`Question ${questionId} not found in book with id ${bookId}`)
+  }
+  return question.id;
+}
 
 export const postAnswer = async (
   { accessToken, group, bookId, questionId, answer, isCorrect, points}: {
@@ -23,20 +35,12 @@ export const postAnswer = async (
     [group]
   ))?.id : null;
 
-  const question = await db.get(`
-    SELECT id FROM questions q
-    JOIN books_chapters bc ON q.chapterId = bc.chapterId
-    WHERE questionId = ? AND bc.bookId = ?
-    `, [questionId, bookId]
-  );
-  if (!question) {
-    throw Error(`Question ${questionId} not found in book with id ${bookId}`)
-  }
+  const qId = await idFromQuestionId(bookId, questionId);
 
   await db.run(
     `INSERT INTO answers (userId, bookId, groupId, questionId, answer, isCorrect, points)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, bookId, groupId, question.id, answer, isCorrect, points]
+    [userId, bookId, groupId, qId, answer, isCorrect, points]
   );
 };
 

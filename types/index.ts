@@ -1,6 +1,6 @@
 /* Questions */
 
-export type QuestionTypes = "singlechoice" | "text" | "long-text";
+export type QuestionTypes = "singlechoice" | "text" | "long-text" | "upload" | "uploads";
 
 export type QuestionDef = {
   id?: number;
@@ -84,4 +84,3 @@ export const extraCollectionMatter = {
   collections: [] as string[],
   admins: [] as string[],
 } satisfies Record<string, unknown>;
-

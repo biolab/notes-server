@@ -13,6 +13,10 @@ export type BookProps = {
   chapters: ChapterDef[];
 };
 
+export const bookExists = async (id: number): Promise<boolean> => {
+  return !!await db.get(`SELECT id FROM books WHERE id = ?`, [id]);
+}
+
 export const getBook = async (id: number): Promise<BookProps> => {
   const book = await db.get(`SELECT * FROM books WHERE id = ?`, [id]);
 

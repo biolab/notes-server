@@ -14,6 +14,9 @@ import { ExpandingSideImg, Sidenote } from "@/components/Book/Sidenote";
 export interface QuestionProps extends QuizPropsBase {
   id?: string;
   longtext?: boolean;
+  upload?: boolean;
+  uploads?: boolean;
+  accept?: string;
   ungraded?: boolean;
   scorer?: (option: string) => (boolean | undefined);
   answer?: string;
@@ -40,7 +43,8 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
         throw new Error("Questions can appear only in chapters");
       }
       const { answer, scorer, options, ungraded,
-              longtext, points, trials, id, question,
+              longtext, upload, uploads, points, trials, id, question,
+              accept,
               ...restProps } = props;
 
       const correctAnswer =
@@ -57,7 +61,7 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
                  ? opt.slice(CorrectAnswerPrefix.length).trim()
                  : opt);
 
-      const type = determineQuestionType({options, longtext});
+      const type = determineQuestionType({options, longtext, upload, uploads});
       const actScorer = scorer || (
         ungraded || points === 0 || actAnswer === undefined
         ? () => undefined
@@ -68,6 +72,13 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
           {...rest, answers: answers[id || question]}))
         .filter(({answers}) => answers && answers.length > 0);
 
+      const acceptList = accept
+        ?.replaceAll("*", "")
+        .replaceAll(";", " ")
+        .replaceAll(",", " ")
+        .split(/\s+/)
+        || undefined;
+
       return (
         <Question
           {...restProps}
@@ -75,6 +86,7 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
           id={id || question}
           bookId={bookId!}
           type={type}
+          accept={acceptList}
           scorer={actScorer}
           correctAnswer={correctAnswer}
           options={actOptions}
