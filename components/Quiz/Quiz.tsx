@@ -1,11 +1,14 @@
 import React, { JSXElementConstructor } from "react";
-import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine, RiDeleteBin2Line } from "react-icons/ri";
+import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine } from "react-icons/ri";
 
 import { UserDesc } from "@/api/quiz";
 import { QuestionTypes } from "@/types";
 import { corrColor, corrSym } from "@/utils/questions";
 import { useIntl } from "@/i18n";
 import { useLastAnswer } from "@/context/QuizContextProvider";
+import { FileDropFunction, FileQuestion } from "./UploadQuestion";
+import { LongTextQuestion, TextQuestion } from "./TextQuestions";
+import { SingleChoiceQuestion } from "./SingleChoiceQuestion";
 
 
 export interface QuizPropsBase {
@@ -15,7 +18,7 @@ export interface QuizPropsBase {
   children?: Element;
 }
 
-export interface IQuestion extends QuizPropsBase {
+interface IQuestion extends QuizPropsBase {
   id: string;
   type: QuestionTypes;
   scorer: (option: string) => (boolean | undefined)
@@ -36,117 +39,39 @@ export interface IQuestion extends QuizPropsBase {
 }
 
 export default function Question({
-  type,
-  id,
-  question,
-  options = [],
-  checker,
-  correctAnswer,
-  scorer,
-  maxPoints = 0,
-  maxTrials = 1,
-  accept,
-  children,
-  usersAnswers,
-}: IQuestion) {
+  type, id, question, options = [], checker, correctAnswer, scorer,
+  maxPoints = 0, maxTrials = 1, accept, children, usersAnswers }: IQuestion)
+{
+  const { t } = useIntl();
   const [answer, setAnswer] = React.useState<null | string>(null);
-  const [files, setFiles] = React.useState<File[]>([]);
+  const [formatError, setFormatError] = React.useState<null | string>(null);
   const [submitted, setSubmitted] = React.useState(false);
-  const isUpload = React.useMemo(
-    () => type.startsWith("upload") || undefined,
-    [type]);
-  const isMultiple = React.useMemo(
-    () => type === "uploads" || undefined,
-    [type]);
-
   const { isCorrect, points, trials, answer: last, submissionErrored,
-          answerQuestion, uploadFiles } = useLastAnswer(id);
+          answerQuestion } = useLastAnswer(id);
+  const isUpload = React.useMemo(
+    () => type === "upload" || type === "uploads",
+    [type]);
   React.useEffect(() => {
     if (last) {
       setSubmitted(true);
       setAnswer(last);
     }
   }, [last])
-  const [formatError, setFormatError] = React.useState<null | string>(null);
-  const { t } = useIntl();
 
-  const submitDisabled = React.useMemo(
-    () => maxTrials && trials >= maxTrials,
+  const submitDisabled = React.useMemo(() =>
+    !!maxTrials && trials >= maxTrials,
   [maxTrials, trials]);
 
   const onSubmit = React.useCallback(
-    async (e: React.MouseEvent, option: string ) => {
-      e.preventDefault();
-      if (submitDisabled || !option) {
-        return;
-      }
-
-      const normalizedAnswer = option.trim().toLowerCase();
-      const errored = checker ? checker(normalizedAnswer) : null;
-      setAnswer(answer);
-      setFormatError(errored);
-      if (errored) {
-        return;
-      }
-
-      const isCorrect = scorer(normalizedAnswer);
+    async (answer: string, normalizedAnswer: string | null = null) => {
+      const isCorrect = scorer(normalizedAnswer || answer);
       const points = isCorrect ? maxPoints : 0;
-      if (await answerQuestion({answer: option, isCorrect, points})) {
+      if (await answerQuestion({answer, isCorrect, points})) {
         setSubmitted(true);
       }
     },
-    [submitDisabled, answer, checker, scorer, maxPoints, answerQuestion]
+    [scorer, maxPoints, answerQuestion]
   );
-
-  const onSubmitFiles = React.useCallback(async (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (submitDisabled || files.length === 0) {
-      return;
-    }
-    if (await uploadFiles(files)) {
-      setSubmitted(true);
-      setFiles([]);
-    }
-  }, [files, uploadFiles, submitDisabled]);
-
-  const onFilesAdd = React.useCallback(async (newFiles: File[]) => {
-    const filtered = newFiles.filter(
-      ({name}) => !accept?.length || accept.includes("." + (name.split('.').pop() || "")));
-    if (!filtered.length) {
-      return;
-    }
-    if (isMultiple) {
-      const newFileNames = newFiles.map(({name}) => name);
-      setFiles([
-        ...files.filter(({name}) => !newFileNames.includes(name)),
-        ...filtered]);
-    }
-    else {
-      setFiles([filtered[0]]);
-    }
-  }, [files, isMultiple, accept]);
-
-  const onRemoveFile = React.useCallback((name: string) => {
-    setFiles(files.filter((f) => f.name !== name));
-  }, [files]);
-
-  const onFileChange = React.useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      await onFilesAdd([...event.target.files]);
-    }
-  }, [onFilesAdd]);
-
-  const onFileDrop = React.useCallback(async (event: React.DragEvent<HTMLElement>) => {
-    event.preventDefault();
-      await onFilesAdd(
-      [...event.dataTransfer.items]
-        .map((item: DataTransferItem) => item.getAsFile())
-        .filter((item) => item !== null));
-  }, [onFilesAdd]);
-
-  const onFileDragOver = React.useCallback((event: React.DragEvent<HTMLElement>) => {
-    event.preventDefault();
-  }, []);
 
   const message = React.useMemo(() => {
     if (submissionErrored) {
@@ -197,11 +122,28 @@ export default function Question({
 
   const icon = React.useMemo(() =>
     submissionErrored ? <RiAlertLine />
-    : (type === "long-text" || type.startsWith("upload")) && submitted ? <RiCheckboxCircleFill />
+    : (type === "long-text" || isUpload) && submitted ? <RiCheckboxCircleFill />
     : isCorrect === true ? <RiCheckboxCircleFill />
     : isCorrect === false ? <RiCloseCircleLine />
     : null,
   [submissionErrored, isCorrect, submitted, type]);
+
+  const onFileDropRef = React.useRef<FileDropFunction>(null);
+
+  const onTextChange = React.useCallback((e: {target: {value: string}}) => {
+    setSubmitted(false);
+    setAnswer(e.target.value);
+    setFormatError(null);
+  }, [setSubmitted, setAnswer, setFormatError]);
+
+  const textProps  = React.useMemo(() => ({
+    submitDisabled,
+    answer,
+    checker,
+    onSubmit,
+    onChange: onTextChange,
+    setFormatError
+  }), [submitDisabled, answer, checker, onSubmit, onTextChange, setFormatError]);
 
   const childrenWithProps: any = React.Children.map(children, (child) => {
     if (
@@ -217,16 +159,12 @@ export default function Question({
     return child;
   });
 
-  const normalizedAnswer = React.useMemo(
-    () => answer?.trim().toLowerCase(),
-    [answer]);
-
   return <>
     <a id={`question-${id}`} />
       <div
         className={`quiz ${usersAnswers ? "" : correctnessClass}`}
-        onDrop={isUpload && onFileDrop}
-        onDragOver={isUpload && onFileDragOver}
+        onDrop={onFileDropRef.current || undefined }
+        onDragOver={isUpload ? (e) => e.preventDefault() : undefined}
       >
         <div className="quiz-question">
           <h3>
@@ -236,117 +174,45 @@ export default function Question({
         </div>
 
         <form>
-          <fieldset disabled={!!submitDisabled}>
-            { (type === "text" || type === "long-text") && <>
-              { type === "long-text" ?
-                <textarea
-                  value={answer || ""}
-                  onChange={(e) => {
-                    setSubmitted(false);
-                    setAnswer(e.target.value);
-                    setFormatError(null);
-                  }}
-                />
-                :
-                <input
-                  type="text"
-                  value={answer || ""}
-                  onChange={(e) => {
-                    setAnswer(e.target.value);
-                    setFormatError(null);
-                  }}
-                />
+          <fieldset disabled={submitDisabled}>
+            { type === "text" && <TextQuestion {...textProps} /> }
+            { type === "long-text" && <LongTextQuestion {...textProps} /> }
+            { type === "singlechoice" && <SingleChoiceQuestion
+                options={options} answer={usersAnswers ? "" : answer} onSubmit={onSubmit} /> }
+            { (type === "upload" || type === "uploads") && <FileQuestion
+              id={id}
+              submitDisabled={submitDisabled}
+              setSubmitted={setSubmitted}
+              ref={onFileDropRef}
+              accept={accept}
+              multiple={type === "uploads"}/> }
+          </fieldset>
+
+          { !usersAnswers &&
+            <>
+              { message &&
+                <p className="quiz-message">{message}</p>
               }
-              <button
-                disabled={!answer}
-                onClick={(e) => onSubmit(e, answer as string)}
-              >
-                {t("quiz.submit-button")}
-              </button>
-            </>}
-
-            {!!options?.length &&
-              <div className="buttons-wrapper">
-                {options.map((option) => (
-                  <button
-                    className={!usersAnswers && normalizedAnswer === option.toLowerCase() ? "selected " : ""}
-                    onClick={(e) => onSubmit(e, option)}
-                    key={option}
-                  >
-                    {option}
-                  </button>
-                ))}
-             </div>
-            }
-
-            {isUpload && <>
-              { answer &&
-                <div className="mb-4">
-                  { `${t("quiz.uploaded-file")} ${answer}.` }
+              { submissionErrored &&
+                <div
+                  className="bg-red-100 order-red-500 text-red-700 mt-2 p-1 pl-4 rounded"
+                  role="alert"
+                >
+                  <p>
+                    { typeof submissionErrored === "string"
+                      ? submissionErrored
+                      : t("quiz.submission-error")}
+                  </p>
                 </div>
               }
-              { !submitDisabled && <>
-                { files.length > 0 &&
-                  <div className="flex gap-4 my-4">
-                    <div className="text-nowrap">
-                      {t("quiz.upload-staged")}
-                    </div>
-                    <div>
-                      <div className="flex flex-wrap gap-4 mb-4">
-                        {files.map((f =>
-                            <div className="flex gap-1 border border-dashed rounded px-1 items-center" key={f.name}>
-                              {f.name}
-                              <RiDeleteBin2Line
-                                onClick={() => onRemoveFile(f.name)}
-                                style={{cursor: "pointer"}}
-                              />
-                            </div>
-                        ))}
-                      </div>
-                      <button onClick={onSubmitFiles}>
-                        {t(`quiz.upload${answer ? "-replace" : ""}-button`)}
-                      </button>
-                    </div>
-                  </div>
-                }
-                <div className="flex items-center  justify-between">
-                  <input id="file" type="file" multiple={type === "uploads"} onChange={onFileChange}
-                           style={{display: 'none'}}/>
-                  <label
-                    htmlFor="file"
-                    className={`px-10 py-2 mr-4 submit-quiz-popup-button border border-black rounded cursor-pointer transition inline-block`}
-                  >
-                    {t(isMultiple ? "quiz.select-files" : "quiz.select-file")}
-                  </label>
-
-                  <small className="form-text text-muted" style={{lineHeight: "1.4"}}>
-                    {t(`quiz.upload-${isMultiple ? "multiple" : "single"}-desc`)}
-                    { accept && <>
-                      <br/>
-                      {t("quiz.upload-allowed-extensions")}: {accept.join(", ")}
-                    </> }
-                  </small>
-                </div>
-                </>
-              }
-              </>
-            }
-
-            </fieldset>
-
-            {!usersAnswers && message && <p className="quiz-message">{message}</p>
+             { formatError &&
+               <p className="error">{formatError}</p>
+             }
+             { childrenWithProps}
+            </>
           }
-          {submissionErrored &&
-          <div
-            className="bg-red-100 order-red-500 text-red-700 mt-2 p-1 pl-4 rounded"
-              role="alert"
-            >
-              <p>{typeof submissionErrored === "string" ? submissionErrored : t("quiz.submission-error")}</p>
-            </div>
-          }
-          {formatError && <p className="error">{formatError}</p>}
-          {!usersAnswers && childrenWithProps}
         </form>
+
         {usersAnswers && usersAnswers.length > 0 && (
           <div className="users-answers">
             {usersAnswers.map(({ name, surname, answers }, ui) => (

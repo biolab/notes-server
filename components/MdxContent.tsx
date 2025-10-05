@@ -54,7 +54,6 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
           ?.slice(CorrectAnswerPrefix.length)
          || undefined)
           ?.trim();
-      const actAnswer = correctAnswer?.toLowerCase()
 
       const actOptions = options?.map(
         (opt) => opt.startsWith(CorrectAnswerPrefix)
@@ -62,10 +61,12 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
                  : opt);
 
       const type = determineQuestionType({options, longtext, upload, uploads});
+
       const actScorer = scorer || (
-        ungraded || points === 0 || actAnswer === undefined
+        ungraded || points === 0 || correctAnswer === undefined
         ? () => undefined
-        : (x: string) => x === actAnswer);
+        : options ? (x: string) => x === correctAnswer
+        : (x: string) => x === correctAnswer?.toLowerCase());
 
       const usersAnswers = allAnswers
         ?.map(({answers, ...rest}) => (
