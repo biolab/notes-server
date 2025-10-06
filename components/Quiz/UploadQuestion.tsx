@@ -72,7 +72,7 @@ export const FileQuestion = ({id, submitDisabled, setSubmitted, accept, multiple
   return <>
     { answer &&
       <div className="mb-4">
-        { `${t("quiz.uploaded-file")} ${answer}.` }
+        { `${t("quiz.uploaded-file")} ${answer.replaceAll(":", ", ")}.` }
       </div>
     }
     { !submitDisabled &&

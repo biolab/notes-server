@@ -129,6 +129,47 @@ export const getAnswersInBook = async (
   return resultTable;
 }
 
+type FileAnswersInBook = {
+  groupId: number,
+  qId: number,
+  accessToken: string,
+  fileNames: string[],
+  group: string,
+  name: string,
+  surname: string,
+  email: string,
+  questionId: string,
+};
+
+export const getAnswersFilesInBook = async (
+  bookId: number,
+  accessToken: string,
+  groupId: number | null = null
+): Promise<FileAnswersInBook[] | false> =>
+  (await isAdminFor({accessToken, bookId})
+  ) && (
+    (await db.all(`
+      SELECT a.groupId,
+             q.id as qId,
+             u.accessToken,
+             a.answer,
+             g.name as 'group',
+             u.name,
+             u.surname,
+             u.email,
+             q.questionId
+      FROM answers a
+      JOIN users u ON a.userId = u.id
+      JOIN questions q ON a.questionId = q.id AND q.questionType LIKE 'upload%'
+      LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
+      WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
+      `,
+      [bookId, ...(groupId ? [groupId] : [])]
+    )) as (Omit<FileAnswersInBook, "fileNames"> & {answer: string})[]
+  )
+  .map(({answer, ...rest}) => ({fileNames: answer.split(":"), ...rest}));
+
+
 export type UsersPoints = {
   [bookId: number]: number
 }

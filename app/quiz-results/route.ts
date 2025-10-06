@@ -1,7 +1,9 @@
-import { NextRequest } from "next/server";
-import { getAnswersInBook } from "@/api/quiz";
-import { getBook } from "@/api/book";
+import { readFileSync } from "fs";
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
+import { NextRequest } from "next/server";
+import { getAnswersFilesInBook, getAnswersInBook } from "@/api/quiz";
+import { getBook } from "@/api/book";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -92,13 +94,47 @@ export async function GET(request: NextRequest) {
 
   const buffer = await workbook.xlsx.writeBuffer();
   const filename = encodeURIComponent(`${title}-quiz-answers.xlsx`);
-  return new Response(buffer, {
+
+  const answersFiles = await getAnswersFilesInBook(
+    bookId, accessToken, groupId === null ? null : parseInt(groupId));
+
+  if (!answersFiles || answersFiles.length == 0) {
+    return new Response(buffer, {
+      status: 200,
+      headers: {
+        'Content-Type':
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition':
+          `attachment; filename="${filename}"`,
+      },
+    });
+  }
+
+  const zip = new JSZip();
+  zip.file("answers.xlsx", buffer, {binary: true});
+  answersFiles.forEach(({group, questionId, name, surname, email, qId, fileNames}) => {
+    fileNames.forEach((fileName) => {
+      const data = readFileSync(`uploads/${bookId}/${groupId ? `${group}` : "no-group"}/${qId}/${accessToken}/${fileName}`);
+      const path = `files/${groupId ? `${group}/` : ""}${questionId}/${name}-${surname}-${email}/${fileName}`;
+      zip.file(path, data, {binary: true});
+    });
+  });
+
+  const zipBuffer: Buffer = await new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    zip.generateNodeStream({type: "nodebuffer", streamFiles: true})
+      .on("data", (chunk: Buffer) => chunks.push(chunk))
+      .on("error", reject)
+      .on("end", () => resolve(Buffer.concat(chunks)));
+  });
+  const zipFilename = encodeURIComponent(`${title}-quiz-answers.zip`);
+  return new Response(zipBuffer, {
     status: 200,
     headers: {
       'Content-Type':
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/zip',
       'Content-Disposition':
-        `attachment; filename="${filename}"`,
+        `attachment; filename="${zipFilename}"`,
     },
   });
 }

@@ -30,7 +30,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Upload failed: invalid bookId or questionId" }, { status: 500 });
     }
     const uploadDir = path.join(
-      process.cwd(), "uploads", bookId!, group || ".", `${qId}`, accessToken);
+      process.cwd(), "uploads", bookId!, group || "no-group", `${qId}`, accessToken);
 
     if (existsSync(uploadDir)) {
       rmSync(uploadDir, { force: true, recursive: true });

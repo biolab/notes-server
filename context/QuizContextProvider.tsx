@@ -222,7 +222,7 @@ export const QuizContextProvider = ({
 
       const answer = {
         questionId, isCorrect: undefined, points: 0,
-        answer: files.map(({name}) => name).join(", ")};
+        answer: files.map(({name}) => name).join(":")};
       try {
         await postAnswer({
           accessToken: user.accessToken, group: userGroup,
