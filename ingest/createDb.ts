@@ -172,7 +172,7 @@ export const rebuildDatabase = async () => {
             question     TEXT    NOT NULL,
             options      TEXT,
             answer       TEXT,
-            questionType TEXT    NOT NULL,
+            type         TEXT    NOT NULL,
             ${LAST_BUILD_ID},
             
             UNIQUE (chapterId, questionId)

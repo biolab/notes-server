@@ -6,7 +6,7 @@ export type QuestionDef = {
   id?: number;
   questionId: string;
   question: string;
-  questionType: QuestionTypes;
+  type: QuestionTypes;
   options: string[] | null;
   answer: string | null;
   points: number | null;

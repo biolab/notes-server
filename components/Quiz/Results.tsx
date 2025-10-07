@@ -72,10 +72,10 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
     () => chapters.flatMap(({questions}) => questions),
     [chapters]
   );
+  console.log(questions);
   const questionTypes = React.useMemo(
     () => Object.fromEntries(
-      questions.map(({questionId, questionType}) => [questionId, questionType])
-    ),
+      questions.map(({questionId, type}) => [questionId, type])),
     [questions]
   );
 
@@ -88,8 +88,8 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
   const hasGroups = React.useMemo(() => groups?.length > 0, [groups]);
 
   const hasUploadedFiles = React.useMemo(
-    () => results && questions.some(({questionType, questionId}) =>
-        (questionType === "upload" || questionType === "uploads")
+    () => results && questions.some(({type, questionId}) =>
+        (type === "upload" || type === "uploads")
          && results.some(({answers}) => answers[questionId]?.length)),
     [questions, results]);
 
