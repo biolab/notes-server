@@ -207,7 +207,7 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
               {questions.flatMap(({questionId}) =>
                 filteredResults
                   .map(({answers}) => lastAttempt(answers[questionId!])?.points || 0)
-              ).reduce((a: number, b) => a + b, 0) / filteredResults.length
+              ).reduce((a: number, b) => a + b, 0) / (filteredResults.length || 1)
               }
             </th>
           </tr>
