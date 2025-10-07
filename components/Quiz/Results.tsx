@@ -84,6 +84,8 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
     return <p>Loading results...</p>
   }
 
+  const lastAttempt = (ars: AnswerRecord[]) => ars?.[ars.length - 1];
+
   return (
     <Layout title={frontmatter.title} returnLink="Book" >
       <div className="prose mx-auto admin-page">
@@ -161,29 +163,28 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
               })}
               <th className="total">
                 {questions
-                  .map(({id}) => answers[id!])
-                  .map((attempts) => attempts?.[attempts.length - 1].points || 0)
+                  .map(({questionId}) => answers[questionId!])
+                  .map((attempts) => lastAttempt(attempts)?.points || 0)
                   .reduce((a: number, b) => a + b, 0)}
               </th>
             </tr>
             ))}
           <tr>
             <th>N = {filteredResults.length}</th>
-            {questions.map(({id, question}) =>
+            {questions.map(({id, questionId, question}) =>
               <td key={`tot-${id}`}>
                 <TooltipWrapper tooltip={question}>
                   { filteredResults
-                      .map(({answers}) =>
-                        answers[id!]?.[answers[id!].length - 1].isCorrect ? 1 : 0)
+                      .map(({answers}) => lastAttempt(answers[questionId!])?.isCorrect ? 1 : 0)
                       .reduce((a: number, b) => a + b, 0)
                   }
                 </TooltipWrapper>
               </td>
             )}
             <th style={{textAlign: "center"}}>
-              {questions.flatMap(({id}) =>
+              {questions.flatMap(({questionId}) =>
                 filteredResults
-                  .map(({answers}) => answers[id!]?.[answers[id!].length - 1].points || 0)
+                  .map(({answers}) => lastAttempt(answers[questionId!])?.points || 0)
               ).reduce((a: number, b) => a + b, 0) / filteredResults.length
               }
             </th>
