@@ -11,6 +11,8 @@ import { UserContext } from "@/context/UserContextProvider";
 import { corrColor, corrSym } from "@/utils/questions";
 
 import Layout from "../Layout/Layout";
+import { RiDownloadCloud2Line } from "react-icons/ri";
+import { useIntl } from "@/i18n";
 
 
 function GroupsCombo({groups, value, onChange}: {
@@ -48,6 +50,7 @@ function filterResults<T extends UserDesc>(results: T[] | false | null, group: n
 }
 
 export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
+  const { t } = useIntl();
   const { user } = React.useContext(UserContext);
   const [results, setResults] = React.useState<AnswersInBook | false | null>(null);
   React.useEffect(() => {
@@ -110,22 +113,22 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
               </th>
               ))}
             <th>
-              Points
+              { t("results.points") }
             </th>
           </tr>
           </thead>
           <tbody>
           {filteredResults.length === 0
-           ? <tr><td>No results</td></tr>
+           ? <tr><td>{ t("results.no-answers") }</td></tr>
             : filteredResults.map(({userId, groupId, name, surname, email, answers}) => (
             <tr key={userId}>
               <th>
                 <TooltipWrapper
                   tooltip={
-                    [email, hasGroups && `Group: ${groups.find((g) => g.id === groupId)?.name}`]
+                    [email, hasGroups && `${t("results.group")}: ${groups.find((g) => g.id === groupId)?.name}`]
                       .filter(Boolean)
                       .join("\n")}>
-                  {name ? `${name} ${surname}` : `User #${userId}`}
+                  {name ? `${name} ${surname}` : `${t("results.user-nr")}${userId}`}
                 </TooltipWrapper>
               </th>
               {questions.map(({questionId, question}) => {

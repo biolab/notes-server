@@ -104,6 +104,12 @@ const dict: {[lang: string]: {[key: string]: any}} = {
     "login.register-user": "Login as a new user",
     "login.proceed": "Start Reading",
     "login.email-sent": "Email has been sent. Please check your inbox.",
+    "results.download-as-excel": "Download all answers as Excel",
+    "results.download-as-zip": "Download a zip with results and all uploaded files",
+    "results.no-answers": "No answers to display.",
+    "results.group": "Group",
+    "results.user-nr": "User #",
+    "results.points": "Points",
   },
   "sl": {
     "loading": "Nalaganje ...",
@@ -196,6 +202,12 @@ const dict: {[lang: string]: {[key: string]: any}} = {
     "login.register-user": "Prijava kot nov uporabnik",
     "login.proceed": "Začnite z branjem",
     "login.email-sent": "Sporočilo je poslano. Prosimo, preverite svoj poštni predal.",
+    "results.download-as-excel": "Prenesi vse odgovore kot Excelovo preglednico",
+    "results.download-as-zip": "Prenesi zip z rezultati in vsemi naloženimi datotekami",
+    "results.no-answers": "Ni odgovorov za prikaz.",
+    "results.group": "Skupina",
+    "results.user-nr": "Uporabnik #",
+    "results.points": "Točke",
 
     "text-replacements": {
       "/(\\s)\"/": "$1»",
