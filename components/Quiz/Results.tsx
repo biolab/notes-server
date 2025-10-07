@@ -2,8 +2,10 @@
 
 import React from "react";
 
-import { AnswersInBook, PointsInCollection, getAnswersInBook,
-         getCollectionResults, UserDesc,} from "@/api/quiz";
+import {
+  AnswersInBook, PointsInCollection, getAnswersInBook,
+  getCollectionResults, UserDesc, AnswerRecord
+} from "@/api/quiz";
 import { BookProps, getGroups as getBookGroups } from "@/api/book";
 import { CollectionProps, getGroups as getCollectionGroups } from "@/api/collection";
 import { GroupList } from "@/api/content";
@@ -70,6 +72,12 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
     () => chapters.flatMap(({questions}) => questions),
     [chapters]
   );
+  const questionTypes = React.useMemo(
+    () => Object.fromEntries(
+      questions.map(({questionId, questionType}) => [questionId, questionType])
+    ),
+    [questions]
+  );
 
   const [group, setGroup] = React.useState<number | null>(null);
   const filteredResults = React.useMemo(
@@ -78,6 +86,12 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
   );
 
   const hasGroups = React.useMemo(() => groups?.length > 0, [groups]);
+
+  const hasUploadedFiles = React.useMemo(
+    () => results && questions.some(({questionType, questionId}) =>
+        (questionType === "upload" || questionType === "uploads")
+         && results.some(({answers}) => answers[questionId]?.length)),
+    [questions, results]);
 
   if (results === false) {
     return <p>You do not have permission to view these results.</p>
@@ -159,7 +173,12 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
                         </ul>
                       </>}
                     >
-                      { corrSym(isCorrect) }
+                      { questionTypes[questionId].startsWith("upload")
+                        ? <a href={`/question-uploads?bookId=${bookId}&userId=${userId}&questionId=${questionId}&accessToken=${user?.accessToken}${group ? `&groupId=${group}` : ""}`}>
+                            <RiDownloadCloud2Line className="inline-block align-middle"/>
+                         </a>
+                        : corrSym(isCorrect)
+                      }
                     </TooltipWrapper>
                   </td>
                 );
@@ -197,7 +216,7 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
     </div>
     <p>
       <a href={`/quiz-results?bookId=${bookId}&accessToken=${user?.accessToken}${group ? `&groupId=${group}` : ""}`}>
-        Download all answers as Excel
+        { t(hasUploadedFiles ? "results.download-as-zip" : "results.download-as-excel") }
        </a>
     </p>
     </Layout>

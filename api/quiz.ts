@@ -149,26 +149,74 @@ export const getAnswersFilesInBook = async (
   (await isAdminFor({accessToken, bookId})
   ) && (
     (await db.all(`
-      SELECT a.groupId,
-             q.id as qId,
-             u.accessToken,
-             a.answer,
-             g.name as 'group',
-             u.name,
-             u.surname,
-             u.email,
-             q.questionId
-      FROM answers a
-      JOIN users u ON a.userId = u.id
-      JOIN questions q ON a.questionId = q.id AND q.questionType LIKE 'upload%'
-      LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
-      WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
+      SELECT groupId, qId, accessToken, answer, "group", name, surname, email, questionId
+      FROM (
+        SELECT a.groupId,
+               q.id as qId,
+               u.accessToken,
+               a.answer,
+               g.name as "group",
+               u.name,
+               u.surname,
+               u.email,
+               q.questionId,
+               ROW_NUMBER() OVER (PARTITION BY a.userId, a.groupId, q.id ORDER BY a.createdAt DESC) AS rn
+        FROM answers a
+        JOIN users u ON a.userId = u.id
+        JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
+        LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
+        WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
+      )
+      WHERE rn = 1; 
       `,
       [bookId, ...(groupId ? [groupId] : [])]
     )) as (Omit<FileAnswersInBook, "fileNames"> & {answer: string})[]
   )
   .map(({answer, ...rest}) => ({fileNames: answer.split(":"), ...rest}));
 
+type UserFileAnswersInBook = {
+  questionId: string;
+  group: string;
+  groupId: number;
+  accessToken: string;
+  qId: number;
+  fileNames: string[]
+};
+
+export const getUserFilesInBook = async (
+  {bookId, userId, accessToken, groupId, questionId}:
+{ bookId: number;
+  userId: string;
+  accessToken: string;
+  groupId: number | null;
+  questionId: number | null;
+}) : Promise<UserFileAnswersInBook[] | false> =>
+  (await isAdminFor({accessToken, bookId})
+  ) && (
+    (await db.all(`
+      SELECT groupId, qId, accessToken, answer, "group", questionId
+      FROM (
+        SELECT
+          a.groupId,
+          q.id as qId,
+          u.accessToken,
+          a.answer,
+          g.name as "group",
+          q.questionId,
+          ROW_NUMBER() OVER (PARTITION BY q.id ORDER BY a.createdAt DESC) AS rn
+          FROM answers a
+          JOIN users u ON u.id = ?
+          JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
+          LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
+          WHERE a.bookId = ?
+                ${groupId ? "AND a.groupId = ?" : ""}
+                ${questionId ? "AND q.questionId = ?" : ""}
+          )
+      WHERE rn = 1;
+      `,
+      [userId, bookId, ...(groupId ? [groupId] : []), ...(questionId ? [questionId] : [])]
+    )) as (Omit<UserFileAnswersInBook, "fileNames"> & {answer: string})[]
+  ).map(({answer, ...rest}) => ({fileNames: answer.split(":"), ...rest}));
 
 export type UsersPoints = {
   [bookId: number]: number

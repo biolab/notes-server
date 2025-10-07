@@ -126,7 +126,7 @@ export default function Question({
     : isCorrect === true ? <RiCheckboxCircleFill />
     : isCorrect === false ? <RiCloseCircleLine />
     : null,
-  [submissionErrored, isCorrect, submitted, type]);
+  [submissionErrored, isCorrect, submitted, type, isUpload]);
 
   const onFileDropRef = React.useRef<FileDropFunction>(null);
 

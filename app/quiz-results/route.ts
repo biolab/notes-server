@@ -4,6 +4,7 @@ import JSZip from "jszip";
 import { NextRequest } from "next/server";
 import { getAnswersFilesInBook, getAnswersInBook } from "@/api/quiz";
 import { getBook } from "@/api/book";
+import { zipResponse } from "@/utils/zip";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -119,22 +120,5 @@ export async function GET(request: NextRequest) {
       zip.file(path, data, {binary: true});
     });
   });
-
-  const zipBuffer: Buffer = await new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    zip.generateNodeStream({type: "nodebuffer", streamFiles: true})
-      .on("data", (chunk: Buffer) => chunks.push(chunk))
-      .on("error", reject)
-      .on("end", () => resolve(Buffer.concat(chunks)));
-  });
-  const zipFilename = encodeURIComponent(`${title}-quiz-answers.zip`);
-  return new Response(zipBuffer, {
-    status: 200,
-    headers: {
-      'Content-Type':
-        'application/zip',
-      'Content-Disposition':
-        `attachment; filename="${zipFilename}"`,
-    },
-  });
+  return await zipResponse(zip, `${title}-quiz-answers.zip`);
 }
