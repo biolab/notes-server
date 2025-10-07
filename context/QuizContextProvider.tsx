@@ -1,10 +1,11 @@
 import React from "react";
 
-import { postAnswer } from "@/api/quiz";
+import { getQId, postAnswer } from "@/api/quiz";
 import { ChapterDef } from "@/types";
 import { logger } from "@/utils/logger";
 import { UserContext } from "@/context/UserContextProvider";
 import { useIntl } from "@/i18n";
+import { getGroupId } from "@/api/book";
 
 
 export type Answer = {
@@ -202,13 +203,21 @@ export const QuizContextProvider = ({
           value: {questionId, error: t("quiz.file-too-large")}});
         return false;
       }
+      const groupId = userGroup !== null ? await getGroupId(bookId, userGroup) : null;
+      if (userGroup && groupId === null) {
+        quizReducer({
+          type: "ERROR",
+          value: {questionId, error: t("quiz.invalid-group")}});
+        return false;
+      }
       const formData = new FormData();
       files.forEach((file) => formData.append("files", file));
-      formData.append("questionId", questionId);
-      formData.append("bookId", bookId.toString());
       formData.append("accessToken", user?.accessToken || "");
-      if (userGroup) {
-        formData.append("group", userGroup);
+      formData.append("bookId", bookId.toString());
+      formData.append("qId",
+        (await getQId(bookId, questionId)).toString());
+      if (groupId) {
+        formData.append("groupId", groupId.toString());
       }
 
       const res = await fetch("/api/upload-answer", {

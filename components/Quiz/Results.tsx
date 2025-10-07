@@ -1,6 +1,7 @@
 'use client';
 
 import React from "react";
+import { RiDownloadCloud2Line } from "react-icons/ri";
 
 import {
   AnswersInBook, PointsInCollection, getAnswersInBook,
@@ -13,7 +14,6 @@ import { UserContext } from "@/context/UserContextProvider";
 import { corrColor, corrSym } from "@/utils/questions";
 
 import Layout from "../Layout/Layout";
-import { RiDownloadCloud2Line } from "react-icons/ri";
 import { useIntl } from "@/i18n";
 
 
@@ -72,7 +72,6 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
     () => chapters.flatMap(({questions}) => questions),
     [chapters]
   );
-  console.log(questions);
   const questionTypes = React.useMemo(
     () => Object.fromEntries(
       questions.map(({questionId, type}) => [questionId, type])),
@@ -86,6 +85,11 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
   );
 
   const hasGroups = React.useMemo(() => groups?.length > 0, [groups]);
+
+  const getGroupName  = React.useCallback((groupId: number) =>
+    groups.find((g) => g.id === groupId)?.name,
+    [groups]
+  );
 
   const hasUploadedFiles = React.useMemo(
     () => results && questions.some(({type, questionId}) =>
@@ -139,13 +143,13 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
               <th>
                 <TooltipWrapper
                   tooltip={
-                    [email, hasGroups && `${t("results.group")}: ${groups.find((g) => g.id === groupId)?.name}`]
+                    [email, hasGroups && `${t("results.group")}: ${getGroupName(groupId)}`]
                       .filter(Boolean)
                       .join("\n")}>
                   {name ? `${name} ${surname}` : `${t("results.user-nr")}${userId}`}
                 </TooltipWrapper>
               </th>
-              {questions.map(({questionId, question}) => {
+              {questions.map(({id: qId, questionId, question}) => {
                 const attempts = answers[questionId!];
                 if (!attempts || attempts.length === 0) {
                   return <td key={userId + questionId} />;
@@ -174,7 +178,7 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
                       </>}
                     >
                       { questionTypes[questionId].startsWith("upload")
-                        ? <a href={`/question-uploads?bookId=${bookId}&userId=${userId}&questionId=${questionId}&accessToken=${user?.accessToken}${group ? `&groupId=${group}` : ""}`}>
+                        ? <a href={`/download-uploads?bookId=${bookId}&userId=${userId}&qId=${qId}&accessToken=${user?.accessToken}${group ? `&groupId=${group}` : ""}`}>
                             <RiDownloadCloud2Line className="inline-block align-middle"/>
                          </a>
                         : corrSym(isCorrect)

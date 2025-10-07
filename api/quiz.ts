@@ -4,9 +4,11 @@ import db from "@/utils/db";
 import { getUserId } from "@/utils/user";
 import { isAdminFor } from "@/api/user";
 
+/* Functions in this module get user's accessToken rather than id
+   because id's can be faked.
+ */
 
-// Functions get user's accessToken rather than id because id's can be faked.
-export const idFromQuestionId = async (bookId: number, questionId: string) => {
+export const getQId = async (bookId: number, questionId: string) => {
   const question = await db.get(`
     SELECT id FROM questions q
     JOIN books_chapters bc ON q.chapterId = bc.chapterId
@@ -17,6 +19,11 @@ export const idFromQuestionId = async (bookId: number, questionId: string) => {
     throw Error(`Question ${questionId} not found in book with id ${bookId}`)
   }
   return question.id;
+}
+
+export const getQuestionIdFromId = async (id: number) => {
+  const question = await db.get(`SELECT questionId FROM questions WHERE id = ?`, [id]);
+  return question ? question.questionId : null;
 }
 
 export const postAnswer = async (
@@ -35,7 +42,7 @@ export const postAnswer = async (
     [group]
   ))?.id : null;
 
-  const qId = await idFromQuestionId(bookId, questionId);
+  const qId = await getQId(bookId, questionId);
 
   await db.run(
     `INSERT INTO answers (userId, bookId, groupId, questionId, answer, isCorrect, points)
@@ -184,12 +191,12 @@ type UserFileAnswersInBook = {
 };
 
 export const getUserFilesInBook = async (
-  {bookId, userId, accessToken, groupId, questionId}:
+  {bookId, userId, accessToken, groupId, qId}:
 { bookId: number;
   userId: string;
   accessToken: string;
   groupId: number | null;
-  questionId: number | null;
+  qId: number | null;
 }) : Promise<UserFileAnswersInBook[] | false> =>
   (await isAdminFor({accessToken, bookId})
   ) && (
@@ -210,11 +217,11 @@ export const getUserFilesInBook = async (
           LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
           WHERE a.bookId = ?
                 ${groupId ? "AND a.groupId = ?" : ""}
-                ${questionId ? "AND q.questionId = ?" : ""}
+                ${qId ? "AND q.id = ?" : ""}
           )
       WHERE rn = 1;
       `,
-      [userId, bookId, ...(groupId ? [groupId] : []), ...(questionId ? [questionId] : [])]
+      [userId, bookId, ...(groupId ? [groupId] : []), ...(qId ? [qId] : [])]
     )) as (Omit<UserFileAnswersInBook, "fileNames"> & {answer: string})[]
   ).map(({answer, ...rest}) => ({fileNames: answer.split(":"), ...rest}));
 

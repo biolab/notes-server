@@ -1,10 +1,10 @@
 import { readFileSync } from "fs";
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAnswersFilesInBook, getAnswersInBook } from "@/api/quiz";
 import { getBook } from "@/api/book";
-import { zipResponse } from "@/utils/zip";
+import { getUploadDir, zipResponse } from "@/utils/zip";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -113,12 +113,16 @@ export async function GET(request: NextRequest) {
 
   const zip = new JSZip();
   zip.file("answers.xlsx", buffer, {binary: true});
-  answersFiles.forEach(({group, questionId, name, surname, email, qId, fileNames}) => {
+  for(const {group, questionId, name, surname, email, qId, fileNames} of answersFiles) {
+    const { dir, error} = await getUploadDir({accessToken, bookId, groupId: group || null, qId});
+    if (!dir || error) { // both will be true; this is to satisfy TS later on
+      return NextResponse.json({ error }, { status: 500 });
+    }
     fileNames.forEach((fileName) => {
-      const data = readFileSync(`uploads/${bookId}/${groupId ? `${group}` : "no-group"}/${qId}/${accessToken}/${fileName}`);
+      const data = readFileSync(`${dir}/${fileName}`);
       const path = `files/${groupId ? `${group}/` : ""}${questionId}/${name}-${surname}-${email}/${fileName}`;
       zip.file(path, data, {binary: true});
     });
-  });
+  }
   return await zipResponse(zip, `${title}-quiz-answers.zip`);
 }
