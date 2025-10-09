@@ -1,5 +1,5 @@
 import React, { JSXElementConstructor } from "react";
-import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine } from "react-icons/ri";
+import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine, RiRecordCircleLine } from "react-icons/ri";
 
 import { UserDesc } from "@/api/quiz";
 import { QuestionTypes } from "@/types";
@@ -48,9 +48,6 @@ export default function Question({
   const [submitted, setSubmitted] = React.useState(false);
   const { isCorrect, points, trials, answer: last, submissionErrored,
           answerQuestion } = useLastAnswer(id);
-  const isUpload = React.useMemo(
-    () => type === "upload" || type === "uploads",
-    [type]);
   React.useEffect(() => {
     if (last) {
       setSubmitted(true);
@@ -122,13 +119,11 @@ export default function Question({
 
   const icon = React.useMemo(() =>
     submissionErrored ? <RiAlertLine />
-    : (type === "long-text" || isUpload) && submitted ? <RiCheckboxCircleFill />
+    : ["long-text", "upload", "uploads"].includes(type) ? (submitted ? <RiRecordCircleLine /> : null)
     : isCorrect === true ? <RiCheckboxCircleFill />
     : isCorrect === false ? <RiCloseCircleLine />
     : null,
-  [submissionErrored, isCorrect, submitted, type, isUpload]);
-
-  const onFileDropRef = React.useRef<FileDropFunction>(null);
+  [submissionErrored, isCorrect, submitted, type]);
 
   const onTextChange = React.useCallback((e: {target: {value: string}}) => {
     setSubmitted(false);
@@ -144,6 +139,22 @@ export default function Question({
     onChange: onTextChange,
     setFormatError
   }), [submitDisabled, answer, checker, onSubmit, onTextChange, setFormatError]);
+
+  const [isDragging, setIsDragging] = React.useState(false);
+  const onDragOver = React.useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const onDragLeave = React.useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    // Only deactivate when actually leaving the container, not child elements
+    if (e.currentTarget.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    setIsDragging(false);
+  }, []);
+
+  const onFileDropRef = React.useRef<FileDropFunction | null>(null);
 
   const childrenWithProps: any = React.Children.map(children, (child) => {
     if (
@@ -163,9 +174,13 @@ export default function Question({
     <a id={`question-${id}`} />
       <div
         className={`quiz ${usersAnswers ? "" : correctnessClass}`}
-        onDrop={onFileDropRef.current || undefined }
-        onDragOver={isUpload ? (e) => e.preventDefault() : undefined}
+        onDrop={onFileDropRef.current ? ((e) => { setIsDragging(false); onFileDropRef.current?.(e); }) : undefined}
+        onDragOver={onFileDropRef.current ? onDragOver : undefined}
+        onDragLeave={onFileDropRef.current ? onDragLeave : undefined}
       >
+        {isDragging &&
+          <div className="absolute inset-0 bg-blue-200/40 border-2 border-blue-400 rounded-md flex items-center justify-center pointer-events-none" />
+        }
         <div className="quiz-question">
           <h3>
             {question} {!!maxPoints && <span>({maxPoints}pt.)</span>}
@@ -181,11 +196,12 @@ export default function Question({
                 options={options} answer={usersAnswers ? "" : answer} onSubmit={onSubmit} /> }
             { (type === "upload" || type === "uploads") && <FileQuestion
               id={id}
-              submitDisabled={submitDisabled}
+              submitDisabled={submitDisabled} /* TODO: is this needed? */
               setSubmitted={setSubmitted}
               ref={onFileDropRef}
               accept={accept}
-              multiple={type === "uploads"}/> }
+              multiple={type === "uploads"}
+            /> }
           </fieldset>
 
           { !usersAnswers &&

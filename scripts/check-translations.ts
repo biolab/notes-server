@@ -20,7 +20,7 @@ const keys = [...new Set(DIRS.flatMap(getFiles)
       .matchAll(/[\^\W]t\(([^)]+)\)/g)])
     .map((m) => m[1])
     .flatMap((args) =>
-      [...args.matchAll(/(["'])([^"'`]+)\1/g)]
+      [...args.matchAll(/(["'`])([^"'`]+)\1/g)]
         .map(m => m[2]))
 )];
 

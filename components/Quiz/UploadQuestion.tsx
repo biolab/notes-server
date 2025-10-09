@@ -11,7 +11,7 @@ export const FileQuestion = ({id, submitDisabled, setSubmitted, accept, multiple
   setSubmitted: (s: boolean) => void;
   accept?: string[];
   multiple?: boolean;
-  ref: React.Ref<FileDropFunction>
+  ref?: React.RefObject<FileDropFunction | null>;
 }) => {
   const {t} = useIntl();
   const {answer, uploadFiles} = useLastAnswer(id);
@@ -77,48 +77,60 @@ export const FileQuestion = ({id, submitDisabled, setSubmitted, accept, multiple
     }
     { !submitDisabled &&
       <>
-        { files.length > 0 &&
-          <div className="flex gap-4 my-4">
-            <div className="text-nowrap">
-              {t("quiz.upload-staged")}
-            </div>
-            <div>
-              <div className="flex flex-wrap gap-4 mb-4">
-                {files.map((f =>
-                    <div className="flex gap-1 border border-dashed rounded px-1 items-center" key={f.name}>
-                      {f.name}
-                      <RiDeleteBin2Line
-                        onClick={() => onRemoveFile(f.name)}
-                        style={{cursor: "pointer"}}
-                      />
-                    </div>
-                ))}
-              </div>
-              <button onClick={onSubmitFiles}>
-                {t(`quiz.upload${answer ? "-replace" : ""}-button`)}
-              </button>
-            </div>
+        <div className="flex flex-col gap-1 my-4 border-dashed border-1 rounded p-3"
+        >
+          <div className="grid gap-x-5 px-1 mb-3 items-center"
+               style={{gridTemplateColumns: "max-content auto"}}>
+            {files.map((f) =>
+              <React.Fragment key={f.name}>
+                {f.name}
+                {multiple &&
+                  <RiDeleteBin2Line
+                    onClick={() => onRemoveFile(f.name)}
+                    style={{cursor: "pointer"}}
+                    className="hover:text-red-700"
+                  />
+                }
+              </React.Fragment>
+          )}
           </div>
-        }
-        <div className="flex items-center  justify-between">
-          <input id="file" type="file" multiple={multiple} onChange={onFileChange}
-                 style={{display: 'none'}}/>
-          <label
-            htmlFor="file"
-            className={`px-10 py-2 mr-4 submit-quiz-popup-button border border-black rounded cursor-pointer transition inline-block`}
-          >
-            {t(multiple ? "quiz.select-files" : "quiz.select-file")}
-          </label>
+          <div className="flex items-center  justify-between">
+            <input id="file" type="file" multiple={multiple} onChange={onFileChange}
+                   style={{display: 'none'}}/>
+            <label
+              htmlFor="file"
+              className={`px-10 mr-4 submit-quiz-popup-button border border-black rounded cursor-pointer transition inline-block`}
+            >
+              {t("quiz.select-files")(files.length, multiple)}
+            </label>
 
-          <small className="form-text text-muted" style={{lineHeight: "1.4"}}>
-            {t(`quiz.upload-${multiple ? "multiple" : "single"}-desc`)}
-            { accept && <>
-              <br/>
-              {t("quiz.upload-allowed-extensions")}: {accept.join(", ")}
-            </> }
-          </small>
+            <small className="form-text text-muted" style={{lineHeight: "1.4"}}>
+              {t(`quiz.upload-desc`)(multiple)}
+              {accept && <>
+                <br/>
+                {t("quiz.upload-allowed-extensions")} {accept.join(", ")}
+              </>}
+            </small>
+          </div>
+        </div>
+        <div className="flex items-end gap-2">
+          <button onClick={onSubmitFiles} disabled={!files.length}>
+            {t(`quiz.submit-button`)}
+          </button>
+          { !!files.length &&
+            <div className="flex flex-col" style={{lineHeight: "1.4"}}>
+              <small className="form-text text-muted">
+                { t("quiz.dont-forget-to-submit-file")(files.length) }
+              </small>
+            {!!answer &&
+              <small className="form-text text-muted">
+                {t("quiz.submit-will-replace")(files.length)}
+              </small>
+            }
+            </div>
+          }
         </div>
       </>
-    }
-  </>
-}
+      }
+    </>
+  }
