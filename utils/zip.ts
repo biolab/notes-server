@@ -1,7 +1,6 @@
+import path from "path";
 import crypto from "crypto";
 import JSZip from "jszip";
-import path from "path";
-import { getUser } from "@/api/user";
 import { getBookSlug, getGroupName } from "@/api/book";
 import { getQuestionIdFromId } from "@/api/quiz";
 
