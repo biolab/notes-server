@@ -142,9 +142,10 @@ type FileAnswersInBook = {
   accessToken: string,
   fileNames: string[],
   group: string,
-  name: string,
-  surname: string,
-  email: string,
+  userId: number,
+  name: string | null,
+  surname: string | null,
+  email: string | null,
   questionId: string,
 };
 
@@ -156,13 +157,14 @@ export const getAnswersFilesInBook = async (
   (await isAdminFor({accessToken, bookId})
   ) && (
     (await db.all(`
-      SELECT groupId, qId, accessToken, answer, "group", name, surname, email, questionId
+      SELECT groupId, qId, accessToken, answer, "group", userId, name, surname, email, questionId
       FROM (
         SELECT a.groupId,
                q.id as qId,
                u.accessToken,
                a.answer,
                g.name as "group",
+               u.id as userId,
                u.name,
                u.surname,
                u.email,

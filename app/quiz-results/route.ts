@@ -113,14 +113,27 @@ export async function GET(request: NextRequest) {
 
   const zip = new JSZip();
   zip.file("answers.xlsx", buffer, {binary: true});
-  for(const {group, questionId, name, surname, email, fileNames, ...dirParts} of answersFiles) {
+  for(const {group, questionId, userId, name, surname, email, fileNames,
+             ...dirParts}
+      of answersFiles) {
     const { dir, error} = await getUploadDir({bookId, ...dirParts});
     if (!dir || error) { // both will be true; this is to satisfy TS later on
       return NextResponse.json({ error }, { status: 500 });
     }
+    const userDir = name ? `${name}-${surname}-${email}` : `User-${userId}`;
     fileNames.forEach((fileName) => {
       const data = readFileSync(`${dir}/${fileName}`);
-      const path = `files/${groupId ? `${group}/` : ""}${questionId}/${name}-${surname}-${email}/${fileName}`;
+      // Sanitize each part separately, otherwise you lose / :)
+      const path = [
+        "files",
+        groupId && group,
+        questionId,
+        userDir,
+        fileName
+      ].filter(Boolean)
+        // Cannot be null, but TS does not know that?!
+       .map((n: string | null) => n && n.replace(/[<>:"/\\|?*]/g, '_'))
+       .join("/")
       zip.file(path, data, {binary: true});
     });
   }
