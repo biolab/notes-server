@@ -1,57 +1,56 @@
 import React from "react";
 import { useIntl } from "@/i18n";
 
-const TextSubmitButton = ({onSubmit, disabled}: {
-  onSubmit: (e: React.MouseEvent) => void;
-  disabled: boolean}
+type TextQuestionProps = {
+  answer: string | null;
+  setAnswer: (answer: string) => void;
+  checker: ((option: string) => string | null) | undefined;
+  onSubmit: ((answer: string, normalizedAnswer?: string | null) => void) | false;
+  setSubmitted: (submitted: boolean) => void;
+}
+
+export const BaseTextQuestion = (
+  {onSubmit, long, setSubmitted, checker, answer, setAnswer}
+    : TextQuestionProps & {long?: boolean}
 ) => {
   const { t } = useIntl();
-  return <button disabled={disabled} onClick={onSubmit}>
-    {t("quiz.submit-button")}
-  </button>
-}
+  const [formatError, setFormatError] = React.useState<null | string>(null);
 
-type TextualSubmitProps = {
-  submitDisabled: boolean;
-  answer: string | null;
-  checker: ((option: string) => string | null) | undefined;
-  onSubmit: (answer: string, normalizedAnswer?: string | null) => void;
-  setFormatError: (err: string | null) => void;
-}
-
-type TextualQuestionProps = TextualSubmitProps &  {
-  onChange: (e: {target: {value: string}}) => void;
-}
-
-const useOnSubmitText = ({submitDisabled, answer, checker, onSubmit, setFormatError}: TextualSubmitProps) =>
-  React.useCallback((e: React.MouseEvent) => {
+  const onSubmitText = React.useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    if (submitDisabled || !answer) {
+    if (!onSubmit || !answer) {
       return;
     }
     const normalizedAnswer = answer.trim().toLowerCase();
     const errored = checker ? checker(normalizedAnswer) : null;
     setFormatError(errored);
-    if (errored) {
-      return;
+    if (!errored) {
+      onSubmit(answer, normalizedAnswer);
     }
-    onSubmit(answer, normalizedAnswer);
-  }, [onSubmit, answer, checker, submitDisabled, setFormatError]);
+  }, [onSubmit, answer, checker, setFormatError]);
 
-export const LongTextQuestion = ({answer, onChange, ...submitProps}: TextualQuestionProps) =>
-  <>
-    <textarea value={answer || ""} onChange={onChange} />
-    <TextSubmitButton
-      onSubmit={useOnSubmitText({answer, ...submitProps})}
-      disabled={!answer}
-    />
-  </>
+  const onChange = React.useCallback((e: {target: {value: string}}) => {
+    setSubmitted(false);
+    setAnswer(e.target.value);
+    setFormatError(null);
+  }, [setSubmitted, setAnswer, setFormatError]);
 
-export const TextQuestion = ({answer, onChange, ...submitProps}: TextualQuestionProps) =>
-  <>
-    <input type="text" value={answer || ""} onChange={onChange} />
-    <TextSubmitButton
-      onSubmit={useOnSubmitText({answer, ...submitProps})}
-      disabled={!answer}
-    />
+  return <>
+    {long ? <textarea value={answer || ""} onChange={onChange}/>
+          : <input type="text" value={answer || ""} onChange={onChange}/>}
+    { formatError &&
+      <p className="error">
+        {formatError}
+      </p>
+    }
+    <button disabled={!onSubmit} onClick={onSubmitText}>
+      {t("quiz.submit-button")}
+    </button>
   </>
+}
+
+export const TextQuestion = (props: TextQuestionProps) =>
+  <BaseTextQuestion {...props}/>
+
+export const LongTextQuestion = (props: TextQuestionProps) =>
+  <BaseTextQuestion long {...props}/>

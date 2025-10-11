@@ -1,5 +1,6 @@
 import React, { JSXElementConstructor } from "react";
-import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine, RiRecordCircleLine } from "react-icons/ri";
+import { RiAlertLine, RiCheckboxCircleFill, RiCloseCircleLine, RiRecordCircleLine
+} from "react-icons/ri";
 
 import { UserDesc } from "@/api/quiz";
 import { QuestionTypes } from "@/types";
@@ -44,7 +45,6 @@ export default function Question({
 {
   const { t } = useIntl();
   const [answer, setAnswer] = React.useState<null | string>(null);
-  const [formatError, setFormatError] = React.useState<null | string>(null);
   const [submitted, setSubmitted] = React.useState(false);
   const { isCorrect, points, trials, answer: last, submissionErrored,
           answerQuestion } = useLastAnswer(id);
@@ -125,21 +125,6 @@ export default function Question({
     : null,
   [submissionErrored, isCorrect, submitted, type]);
 
-  const onTextChange = React.useCallback((e: {target: {value: string}}) => {
-    setSubmitted(false);
-    setAnswer(e.target.value);
-    setFormatError(null);
-  }, [setSubmitted, setAnswer, setFormatError]);
-
-  const textProps  = React.useMemo(() => ({
-    submitDisabled,
-    answer,
-    checker,
-    onSubmit,
-    onChange: onTextChange,
-    setFormatError
-  }), [submitDisabled, answer, checker, onSubmit, onTextChange, setFormatError]);
-
   const [isDragging, setIsDragging] = React.useState(false);
   const onDragOver = React.useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -169,6 +154,11 @@ export default function Question({
     }
     return child;
   });
+
+  const textProps  = React.useMemo(() => ({
+    answer, setAnswer, checker, setSubmitted,
+    onSubmit: !submitDisabled && onSubmit,
+  }), [submitDisabled, checker, onSubmit, setSubmitted, answer, setAnswer]);
 
   return <>
     <a id={`question-${id}`} />
@@ -221,9 +211,6 @@ export default function Question({
                   </p>
                 </div>
               }
-             { formatError &&
-               <p className="error">{formatError}</p>
-             }
              { childrenWithProps}
             </>
           }
