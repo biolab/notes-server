@@ -3,6 +3,7 @@ import JSZip from "jszip";
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFilesInBook } from "@/api/quiz";
 import { getUploadDir, zipResponse } from "@/utils/zip";
+import mime from "mime-types";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -30,7 +31,15 @@ export async function GET(request: NextRequest) {
     if (error || !dir) {
       return NextResponse.json({ error }, { status: 500 });
     }
-    return new Response(readFileSync(`${dir}/${fileNames[0]}`))
+    const fileName = fileNames[0];
+    const contentType = mime.lookup(fileName) || "application/octet-stream";
+    const fileBuffer = readFileSync(`${dir}/${fileName}`);
+    return new Response(fileBuffer, {
+      headers: {
+        "Content-Type": contentType,
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+      },
+    });
   }
   const zip = new JSZip();
   for(const {questionId, group, fileNames, ...dirParts} of answerFiles) {

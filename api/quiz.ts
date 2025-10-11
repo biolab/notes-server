@@ -212,7 +212,7 @@ export const getUserFilesInBook = async (
           q.questionId,
           ROW_NUMBER() OVER (PARTITION BY q.id ORDER BY a.createdAt DESC) AS rn
           FROM answers a
-          JOIN users u ON u.id = ?
+          JOIN users u ON u.id = ? AND a.userId = u.id
           JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
           LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
           WHERE a.bookId = ?
