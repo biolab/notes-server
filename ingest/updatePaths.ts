@@ -227,19 +227,20 @@ const insertChapter = async (
   ).id;
 
   let position = 0;
-  for (const {questionId, question, type, options, answer} of questions) {
+  for (const {questionId, question, type, options, answer, points} of questions) {
     await db.run(
       `
-          INSERT INTO questions (chapterId, position, questionId, question, options, answer, type, lastBuildId)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO questions (chapterId, position, questionId, question, options, answer, maxPoints, type, lastBuildId)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT DO UPDATE SET position    = excluded.position,
                                     question    = excluded.question,
                                     options     = excluded.options,
                                     answer      = excluded.answer,
+                                    maxPoints   = excluded.maxPoints,
                                     type        = excluded.type,
                                     lastBuildId = excluded.lastBuildId`,
       [chapterId, position++, questionId, question, JSON.stringify(options),
-       answer, type, buildId]
+       answer, points, type, buildId]
     );
   }
 };

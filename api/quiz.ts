@@ -26,6 +26,10 @@ export const getQuestionIdFromId = async (id: number) => {
   return question ? question.questionId : null;
 }
 
+export type PostAnswerResult =
+ { status: "error", message: string} |
+ { status: "ok", isCorrect: boolean | undefined; points: number};
+
 export const postAnswer = async (
   { accessToken, group, bookId, questionId, answer, isCorrect, points}: {
   accessToken: string;
@@ -35,20 +39,41 @@ export const postAnswer = async (
   answer: string;
   isCorrect?: boolean;
   points?: number
-}) => {
+}): Promise<PostAnswerResult> => {
   const userId = await getUserId(accessToken);
   const groupId = group ? (await db.get(
     `SELECT id FROM groups WHERE name = ?`,
     [group]
   ))?.id : null;
 
-  const qId = await getQId(bookId, questionId);
+  const question = await db.get(`
+    SELECT id, answer, maxPoints, type FROM questions q
+    JOIN books_chapters bc ON q.chapterId = bc.chapterId
+    WHERE questionId = ? AND bc.bookId = ?
+    `, [questionId, bookId]
+  );
+  if (!question) {
+    return {status: "error", message: "Question id and book id don't match"};
+  }
+
+  /* If we have the answer in the database, we check the submitted answer
+     and assign points. Otherwise, we trust the received isCorrect and points.
+   */
+  const actCorrect =
+    !question.answer ? isCorrect
+    : question.type === "singlechoice" ? question.answer === answer
+    : question.answer.trim().toLocaleLowerCase() === answer.trim().toLocaleLowerCase()
+  const actPoints =
+    !question.answer ? points
+    : actCorrect && question.maxPoints || 0;
 
   await db.run(
     `INSERT INTO answers (userId, bookId, groupId, questionId, answer, isCorrect, points)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, bookId, groupId, qId, answer, isCorrect, points]
+    [userId, bookId, groupId, question.id, answer, actCorrect, actPoints]
   );
+
+  return {status: "ok", isCorrect: actCorrect, points: actPoints};
 };
 
 export const getAnswers = async ({ accessToken, bookId }: {

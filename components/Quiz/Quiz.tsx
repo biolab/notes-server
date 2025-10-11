@@ -22,9 +22,7 @@ export interface QuizPropsBase {
 interface IQuestion extends QuizPropsBase {
   id: string;
   type: QuestionTypes;
-  scorer: (option: string) => (boolean | undefined)
-  correctAnswer?: string;
-  bookId: number;
+  scorer: ((option: string) => (boolean | undefined)) | undefined
   maxPoints: number;
   maxTrials: number;
   accept?: string[];
@@ -40,7 +38,7 @@ interface IQuestion extends QuizPropsBase {
 }
 
 export default function Question({
-  type, id, question, options = [], checker, correctAnswer, scorer,
+  type, id, question, options = [], checker, scorer,
   maxPoints = 0, maxTrials = 1, accept, children, usersAnswers }: IQuestion)
 {
   const { t } = useIntl();
@@ -60,10 +58,12 @@ export default function Question({
   [maxTrials, trials]);
 
   const onSubmit = React.useCallback(
-    async (answer: string, normalizedAnswer: string | null = null) => {
-      const isCorrect = scorer(normalizedAnswer || answer);
-      const points = isCorrect ? maxPoints : 0;
-      if (await answerQuestion({answer, isCorrect, points})) {
+    async (answer: string) => {
+      const isCorrect = scorer && scorer(answer.trim().toLowerCase());
+      if (await answerQuestion({
+        answer,
+        isCorrect,
+        points: (scorer && isCorrect) ? maxPoints : 0})) {
         setSubmitted(true);
       }
     },
@@ -86,11 +86,6 @@ export default function Question({
         if (trials < maxTrials && maxTrials > 1) {
           msg += ` ${t("quiz.remaining")}: ${maxTrials - trials}`
         }
-        else {
-          if (maxTrials > 0 && correctAnswer) {
-            msg += ` ${t("quiz.correct-answer")} "${correctAnswer}"`;
-          }
-        }
         return msg;
       }
       case true: {
@@ -103,7 +98,7 @@ export default function Question({
       default:
         return null;
     }
-  }, [t, submissionErrored, isCorrect, correctAnswer, trials, maxTrials, points]);
+  }, [t, submissionErrored, isCorrect, trials, maxTrials, points]);
 
   const correctnessClass = React.useMemo(() => {
     if (submissionErrored) {

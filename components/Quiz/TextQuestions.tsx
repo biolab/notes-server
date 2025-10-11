@@ -5,7 +5,7 @@ type TextQuestionProps = {
   answer: string | null;
   setAnswer: (answer: string) => void;
   checker: ((option: string) => string | null) | undefined;
-  onSubmit: ((answer: string, normalizedAnswer?: string | null) => void) | false;
+  onSubmit: ((answer: string) => void) | false;
   setSubmitted: (submitted: boolean) => void;
 }
 
@@ -21,11 +21,10 @@ export const BaseTextQuestion = (
     if (!onSubmit || !answer) {
       return;
     }
-    const normalizedAnswer = answer.trim().toLowerCase();
-    const errored = checker ? checker(normalizedAnswer) : null;
+    const errored = checker ? checker(answer.trim().toLowerCase()) : null;
     setFormatError(errored);
     if (!errored) {
-      onSubmit(answer, normalizedAnswer);
+      onSubmit(answer);
     }
   }, [onSubmit, answer, checker, setFormatError]);
 

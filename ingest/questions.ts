@@ -210,7 +210,7 @@ export const extractQuizzes = async (
             type,
             options,
             answer: correctOptions?.[0] || answer,
-            points
+            points: ungraded ? 0 : (points ?? 1),
           });
         }
       }

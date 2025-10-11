@@ -1,6 +1,6 @@
 import React from "react";
 
-import { getQId, postAnswer } from "@/api/quiz";
+import { getQId, postAnswer, PostAnswerResult } from "@/api/quiz";
 import { ChapterDef } from "@/types";
 import { logger } from "@/utils/logger";
 import { UserContext } from "@/context/UserContextProvider";
@@ -12,7 +12,7 @@ export type Answer = {
   answer: string;
   isCorrect: boolean | undefined;
   points: number;
-};
+}
 
 export type AnswerWithQuestionId = Answer & {
   questionId: string
@@ -165,23 +165,38 @@ export const QuizContextProvider = ({
     );
 
   const answerQuestion = React.useCallback(
-    async (value: AnswerWithQuestionId): Promise<boolean> => {
-      const {questionId, answer, points, isCorrect} = value;
+    async ({questionId, answer, isCorrect, points}: AnswerWithQuestionId
+    ): Promise<boolean> => {
       if (!user) {
         quizReducer({
           type: "ERROR",
           value: {questionId, error: t("quiz.not-logged-in")}});
         return false;
       }
+      let postResult: PostAnswerResult | undefined;
       try {
-        await postAnswer({
-          accessToken: user.accessToken, group: userGroup,
-          questionId, bookId, answer, isCorrect, points});
+        postResult = await postAnswer({
+          accessToken: user.accessToken, group: userGroup, bookId,
+          questionId, answer, isCorrect, points});
       } catch (error: any) {
         quizReducer({ type: "ERROR", value: {questionId}});
         return false;
       }
-      quizReducer({ type: "ANSWER", value });
+      if (postResult.status === "error") {
+        quizReducer({
+          type: "ERROR",
+          value: {questionId, error: postResult.message}});
+        return false;
+      }
+      quizReducer({
+        type: "ANSWER",
+        value: {
+          questionId,
+          answer,
+          isCorrect: postResult.isCorrect,
+          points: postResult.points
+        }
+      });
       return true;
     },
     [user, bookId, quizReducer, userGroup, t]
@@ -195,7 +210,6 @@ export const QuizContextProvider = ({
           value: {questionId, error: t("quiz.not-logged-in")}});
         return false;
       }
-
       const totalSize = files.reduce((acc, file) => acc + file.size, 0);
       if (totalSize > 50 * 1024 * 1024) {
         quizReducer({
@@ -210,6 +224,7 @@ export const QuizContextProvider = ({
           value: {questionId, error: t("quiz.invalid-group")}});
         return false;
       }
+
       const formData = new FormData();
       files.forEach((file) => formData.append("files", file));
       formData.append("accessToken", user?.accessToken || "");
@@ -219,7 +234,6 @@ export const QuizContextProvider = ({
       if (groupId) {
         formData.append("groupId", groupId.toString());
       }
-
       const res = await fetch("/api/upload-answer", {
         method: "POST",
         body: formData,
@@ -229,21 +243,14 @@ export const QuizContextProvider = ({
         return false;
       }
 
-      const answer = {
-        questionId, isCorrect: undefined, points: 0,
-        answer: files.map(({name}) => name).join(":")};
-      try {
-        await postAnswer({
-          accessToken: user.accessToken, group: userGroup,
-          bookId, ...answer});
-      } catch (error: any) {
-        quizReducer({type: "ERROR", value: {questionId}});
-        return false;
-      }
-      quizReducer({type: "ANSWER", value: answer});
-      return true;
+      return answerQuestion({
+        questionId,
+        answer: files.map(({name}) => name).join(":"),
+        isCorrect: undefined,
+        points: 0
+      })
     },
-    [user, bookId, quizReducer, userGroup, t]);
+    [user, bookId, quizReducer, answerQuestion, userGroup, t]);
 
   const {
     nQuestions,

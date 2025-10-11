@@ -6,7 +6,7 @@ import { compile } from "@mdx-js/mdx";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
-import { addRelativePath, forbiddenComponents, replacer } from "./plugins";
+import { addRelativePath, forbiddenComponents, removeQuestionAnswers, replacer } from "./plugins";
 import { getImageSize } from "./getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "./paths";
 
@@ -129,6 +129,7 @@ export const serializedContent = async (
       rehypeKatex,
       addRelativePath( { relativePath }),
       getImageSize,
+      removeQuestionAnswers,
     ],
   });
   return compiled.value as string;

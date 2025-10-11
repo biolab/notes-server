@@ -19,12 +19,9 @@ export interface QuestionProps extends QuizPropsBase {
   accept?: string;
   ungraded?: boolean;
   scorer?: (option: string) => (boolean | undefined);
-  answer?: string;
   points?: number;
   trials?: number;
 }
-
-const CorrectAnswerPrefix = "*";
 
 export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
   content: string;
@@ -42,31 +39,12 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
       if (chapterId === undefined || bookId === undefined) {
         throw new Error("Questions can appear only in chapters");
       }
-      const { answer, scorer, options, ungraded,
+      const { scorer, options, ungraded,
               longtext, upload, uploads, points, trials, id, question,
               accept,
               ...restProps } = props;
 
-      const correctAnswer =
-        (answer
-         || options
-          ?.find((opt) => opt.startsWith(CorrectAnswerPrefix))
-          ?.slice(CorrectAnswerPrefix.length)
-         || undefined)
-          ?.trim();
-
-      const actOptions = options?.map(
-        (opt) => opt.startsWith(CorrectAnswerPrefix)
-                 ? opt.slice(CorrectAnswerPrefix.length).trim()
-                 : opt);
-
       const type = determineQuestionType({options, longtext, upload, uploads});
-
-      const actScorer = scorer || (
-        ungraded || points === 0 || correctAnswer === undefined
-        ? () => undefined
-        : options ? (x: string) => x === correctAnswer
-        : (x: string) => x === correctAnswer?.toLowerCase());
 
       const usersAnswers = allAnswers
         ?.map(({answers, ...rest}) => (
@@ -85,12 +63,10 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
           {...restProps}
           question={question}
           id={id || question}
-          bookId={bookId!}
           type={type}
           accept={acceptList}
-          scorer={actScorer}
-          correctAnswer={correctAnswer}
-          options={actOptions}
+          scorer={scorer}
+          options={options}
           maxPoints={ungraded ? 0 : (points ?? 1)}
           maxTrials={trials ?? 1}
           usersAnswers={usersAnswers}
