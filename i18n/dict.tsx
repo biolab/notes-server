@@ -45,7 +45,7 @@ const dict: {[lang: string]: {[key: string]: any}} = {
     "quiz-progress.no-answers": "You have not answered any questions yet.",
     "quiz-progress.remaining": (n: number) => `\n${n} ${pl(n, "question")} remaining.`,
     "quiz.select-files": (n: number, multiple: boolean) => n == 0 ? `Select ${multiple ? "files" : "file"}`
-                                                           : multiple ? "Add Files" : "Select a different file",
+                                                           : multiple ? "Select More Files" : "Select a different file",
     "quiz.upload-desc": (multiple: boolean) => `Select ${multiple ? "files" : "a file"} or drop ${multiple ? "them" : "it"} here.`,
     "quiz.uploaded-file": "You have uploaded",
     "quiz.not-logged-in": "You are not logged in; your answer cannot be saved.",
@@ -140,7 +140,7 @@ const dict: {[lang: string]: {[key: string]: any}} = {
     "quiz-progress.remaining": (n: number) =>
       `\n${plsi(n, `Ostalo je še eno vprašanje|Ostali sta še dve vprašanji|Ostala so še ${n} vprašanja|Ostalo je še ${n} vprašanj`)}.`,
     "quiz.select-files": (n: number, multiple: boolean) => n == 0 ? `Izberi ${multiple ? "datoteke" : "datotekeo"}`
-                                                                  : multiple ? "Dodaj datoteke" : "Izberi drugo datoteko",
+                                                                  : multiple ? "Izberi dodatne datoteke" : "Izberi drugo datoteko",
     "quiz.upload-desc": (multiple: boolean) => `Izberite ${multiple ? "datoteke" : "datoteko"} za nalaganje ali ${multiple ? "jo" : "jih"} povlecite sem.`,
     "quiz.uploaded-file": "Naložili ste",
     "quiz.not-logged-in": "Niste prijavljeni; vaš odgovor ne more biti shranjen.",
