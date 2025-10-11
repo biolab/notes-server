@@ -20,7 +20,7 @@ export interface QuestionProps extends QuizPropsBase {
   ungraded?: boolean;
   scorer?: (option: string) => (boolean | undefined);
   points?: number;
-  trials?: number;
+  attempts?: number;
 }
 
 export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
@@ -40,7 +40,7 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
         throw new Error("Questions can appear only in chapters");
       }
       const { scorer, options, ungraded,
-              longtext, upload, uploads, points, trials, id, question,
+              longtext, upload, uploads, points, attempts, id, question,
               accept,
               ...restProps } = props;
 
@@ -68,7 +68,7 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
           scorer={scorer}
           options={options}
           maxPoints={ungraded ? 0 : (points ?? 1)}
-          maxTrials={trials ?? 1}
+          maxAttempts={attempts ?? 1}
           usersAnswers={usersAnswers}
         />
       );

@@ -27,8 +27,12 @@ export const getQuestionIdFromId = async (id: number) => {
 }
 
 export type PostAnswerResult =
- { status: "error", message: string} |
- { status: "ok", isCorrect: boolean | undefined; points: number};
+ { status: "error",
+   message: string} |
+ { status: "ok",
+   isCorrect: boolean | undefined;
+   points: number,
+   correctAnswer?: string };
 
 export const postAnswer = async (
   { accessToken, group, bookId, questionId, answer, isCorrect, points}: {
@@ -47,13 +51,21 @@ export const postAnswer = async (
   ))?.id : null;
 
   const question = await db.get(`
-    SELECT id, answer, maxPoints, type FROM questions q
+    SELECT id, answer, maxPoints, maxAttempts, type FROM questions q
     JOIN books_chapters bc ON q.chapterId = bc.chapterId
     WHERE questionId = ? AND bc.bookId = ?
     `, [questionId, bookId]
   );
   if (!question) {
     return {status: "error", message: "Question id and book id don't match"};
+  }
+  const nPastAnswers = (await db.get(`
+    SELECT COUNT(*) as count FROM answers
+    WHERE userId = ? AND bookId = ? AND groupId IS ?
+      AND questionId = ?
+    `, [userId, bookId, groupId, question.id])).count;
+  if (question.maxAttempts && nPastAnswers >= question.maxAttempts) {
+    return {status: "error", message: "Maximum number of attempts reached"};
   }
 
   /* If we have the answer in the database, we check the submitted answer
@@ -73,24 +85,56 @@ export const postAnswer = async (
     [userId, bookId, groupId, question.id, answer, actCorrect, actPoints]
   );
 
-  return {status: "ok", isCorrect: actCorrect, points: actPoints};
+  const shownAnswer =
+    (question.maxAttempts
+     && nPastAnswers + 1 >= question.maxAttempts
+     && question.answer) ? { correctAnswer: question.answer } : {};
+  return {
+    status: "ok",
+    isCorrect: actCorrect,
+    points: actPoints,
+    ...shownAnswer};
 };
 
-export const getAnswers = async ({ accessToken, bookId }: {
+export type CorrectAnswers = { questionId: string, answer: string }[];
+
+export const getAnswers = async ({ accessToken, bookId, group }: {
   accessToken: string;
   bookId: number;
-}) =>
-  (await db.all(
-    `SELECT answers.answer, q.questionId, isCorrect, points
-    FROM answers
-    JOIN questions q ON answers.questionId = q.id
-    WHERE userId = ? AND bookId = ?
-    ORDER BY q.position, answers.createdAt`,
-    [await getUserId(accessToken), bookId]
-  )).map(({isCorrect, ...rest}) => ({
+  group: string | undefined;
+}) => {
+  const userId = await getUserId(accessToken);
+  const answers = (
+    await db.all(`
+      SELECT answers.answer, q.questionId, isCorrect, points
+      FROM answers
+      JOIN questions q ON answers.questionId = q.id
+      LEFT JOIN groups g ON answers.groupId = g.id
+      WHERE userId = ? AND bookId = ? AND g.name IS ?
+      ORDER BY q.position, answers.createdAt`,
+      [userId, bookId, group]
+    )).map(({isCorrect, ...rest}) => ({
     // DB stores 0 and 1 even if the column is declared as BOOLEAN
     isCorrect: isCorrect === null ? undefined : !!isCorrect,
-    ...rest}));
+    ...rest
+  }));
+  const correctAnswers =
+    (await db.all(`
+      SELECT q.questionId, q.answer
+      FROM questions q
+      JOIN books_chapters bc ON q.chapterId = bc.chapterId
+      WHERE bc.bookId = ?
+        AND q.answer IS NOT NULL
+        AND (SELECT COUNT(*)
+             FROM answers a
+             LEFT JOIN groups g ON a.groupId = g.id
+             WHERE a.questionId = q.id
+             AND userId = ? AND bookId = ? AND g.name IS ?
+      ) >= q.maxAttempts`,
+      [bookId, userId, bookId, group]
+    ) as CorrectAnswers);
+  return {answers, correctAnswers};
+}
 
 export type AnswerRecord = {
   createdAt: string;

@@ -134,6 +134,7 @@ export const extractQuizzes = async (
 
           const questionId = getProp(where, "id") || question;
           const points = getNumProp(where, "points");
+          const attempts = getNumProp(where, "attempts");
           const ungraded = getBoolProp(where, "ungraded") ?? false;
           const options = getPropArray(where, "options");
           const answer = getProp(where, "answer");
@@ -147,7 +148,6 @@ export const extractQuizzes = async (
           const uploads = getBoolProp(where, "uploads");
           const accept = getProp(where, "accept");
           const type = determineQuestionType({options, longtext, upload, uploads});
-          getNumProp(where, "trials"); // just check it's a number
           const newErrors: string[] = (
             [
               /* Add more as needed */
@@ -210,6 +210,7 @@ export const extractQuizzes = async (
             type,
             options,
             answer: correctOptions?.[0] || answer,
+            attempts: attempts ?? 1,
             points: ungraded ? 0 : (points ?? 1),
           });
         }

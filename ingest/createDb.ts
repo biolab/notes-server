@@ -173,6 +173,7 @@ export const rebuildDatabase = async () => {
             options      TEXT,
             answer       TEXT,
             maxPoints    INTEGER,
+            maxAttempts  INTEGER,
             type         TEXT    NOT NULL,
             ${LAST_BUILD_ID},
             

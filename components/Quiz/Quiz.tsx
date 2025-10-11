@@ -24,7 +24,7 @@ interface IQuestion extends QuizPropsBase {
   type: QuestionTypes;
   scorer: ((option: string) => (boolean | undefined)) | undefined
   maxPoints: number;
-  maxTrials: number;
+  maxAttempts: number;
   accept?: string[];
   usersAnswers?: (
     UserDesc &
@@ -39,13 +39,13 @@ interface IQuestion extends QuizPropsBase {
 
 export default function Question({
   type, id, question, options = [], checker, scorer,
-  maxPoints = 0, maxTrials = 1, accept, children, usersAnswers }: IQuestion)
+  maxPoints = 0, maxAttempts = 1, accept, children, usersAnswers }: IQuestion)
 {
   const { t } = useIntl();
   const [answer, setAnswer] = React.useState<null | string>(null);
   const [submitted, setSubmitted] = React.useState(false);
-  const { isCorrect, points, trials, answer: last, submissionErrored,
-          answerQuestion } = useLastAnswer(id);
+  const { isCorrect, points, attempts, answer: last, submissionErrored,
+          answerQuestion, correctAnswer } = useLastAnswer(id);
   React.useEffect(() => {
     if (last) {
       setSubmitted(true);
@@ -54,8 +54,8 @@ export default function Question({
   }, [last])
 
   const submitDisabled = React.useMemo(() =>
-    !!maxTrials && trials >= maxTrials,
-  [maxTrials, trials]);
+    !!maxAttempts && attempts >= maxAttempts,
+  [maxAttempts, attempts]);
 
   const onSubmit = React.useCallback(
     async (answer: string) => {
@@ -76,15 +76,20 @@ export default function Question({
     }
     switch (isCorrect) {
       case null: {
-        if (maxTrials > 1) {
-          return `${t("quiz.attempts")}: ${maxTrials - trials}`;
+        if (maxAttempts > 1) {
+          return `${t("quiz.attempts")}: ${maxAttempts - attempts}`;
         }
         return;
       }
       case false: {
         let msg = t("quiz.incorrect");
-        if (trials < maxTrials && maxTrials > 1) {
-          msg += ` ${t("quiz.remaining")}: ${maxTrials - trials}`
+        if (attempts < maxAttempts && maxAttempts > 1) {
+          msg += ` ${t("quiz.remaining")}: ${maxAttempts - attempts}`
+        }
+        else {
+          if (maxAttempts > 0 && correctAnswer) {
+            msg += ` ${t("quiz.correct-answer")} "${correctAnswer}"`;
+          }
         }
         return msg;
       }
@@ -98,7 +103,7 @@ export default function Question({
       default:
         return null;
     }
-  }, [t, submissionErrored, isCorrect, trials, maxTrials, points]);
+  }, [t, submissionErrored, isCorrect, attempts, maxAttempts, points, correctAnswer]);
 
   const correctnessClass = React.useMemo(() => {
     if (submissionErrored) {
@@ -142,8 +147,8 @@ export default function Question({
       (child.type as JSXElementConstructor<any>).name === "Explanation"
     ) {
       return React.cloneElement(child as React.ReactElement<any>, {
-        ntrials: trials,
-        maxTrialsUsed: !!(maxTrials && maxTrials === trials),
+        nattempts: attempts,
+        attemptsExhausted: !!(maxAttempts && maxAttempts === attempts),
         isCorrect: !submissionErrored && isCorrect,
       });
     }

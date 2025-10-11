@@ -66,11 +66,33 @@ export const forbiddenComponents = ({forbidden}: {
   };
 };
 
-export const removeQuestionAnswers = () => (tree: Root) => {
+export const rewriteQuestions = () => (tree: Root) => {
   visit(tree, ["mdxJsxFlowElement"], (node: any) => {
-    if (node.name == "Question") {
+    if (node.name == "Explanation") {
       node.attributes = node.attributes
-        .filter((attr: { name: string }) => attr.name !== "answer");
+        .map((attr: { name: string, value: any }) => {
+          if (attr.name === "after") {
+            if (attr.value === "correctOrMaxTrials") {
+              return {...attr, value: "done"};
+            }
+            // While we're here, we might as well validate the value
+            if (!["attempt", "correct", "done"].includes(attr.value)
+            ) {
+              throw new Error(
+                "invalid value for `after`; allowed values are null, 'attempt', 'correct' and 'done'"
+              );
+            }
+          }
+          return attr;
+        });
+    }
+    else if (node.name == "Question") {
+      node.attributes = node.attributes
+        .filter((attr: { name: string }) => attr.name !== "answer")
+        .map((attr: { name: string }) =>
+          attr.name === "trials" ? {...attr, name: "attempts"} : attr
+        );
+
       node.attributes.forEach((attr: { name: string, value: any }) => {
         if (attr.name !== "options"
           || attr.value?.type !== "mdxJsxAttributeValueExpression"

@@ -1,6 +1,6 @@
 import React from "react";
 
-import { getQId, postAnswer, PostAnswerResult } from "@/api/quiz";
+import { getQId, postAnswer, PostAnswerResult, CorrectAnswers } from "@/api/quiz";
 import { ChapterDef } from "@/types";
 import { logger } from "@/utils/logger";
 import { UserContext } from "@/context/UserContextProvider";
@@ -15,7 +15,7 @@ export type Answer = {
 }
 
 export type AnswerWithQuestionId = Answer & {
-  questionId: string
+  questionId: string;
 }
 
 export interface QuestionI {
@@ -24,6 +24,7 @@ export interface QuestionI {
   chapterIndex: number;
   answers: Answer[];
   submissionErrored?: boolean | string;
+  correctAnswer?: string;
 }
 
 type Questions = {[questionID: string]: QuestionI};
@@ -52,10 +53,12 @@ const getQuizState = ({
   quizThreshold,
   chapters = [],
   answers,
+  correctAnswers
 }: {
   chapters: ChapterDef[];
   quizThreshold: number;
-  answers?: AnswerWithQuestionId[] | null;
+  answers: AnswerWithQuestionId[] | null;
+  correctAnswers: CorrectAnswers
 }) => {
   const state: QuizStateI = {
     questions: getQuestionsFromChapters(chapters),
@@ -68,18 +71,22 @@ const getQuizState = ({
     const {questionId, ...answerWOutId} = answer;
     state.questions[questionId].answers.push(answerWOutId as Answer);
     }
-  )
+  );
+  correctAnswers.forEach(({questionId, answer}) => {
+    state.questions[questionId].correctAnswer = answer;
+  });
   logger("Quiz state initialized with answers:", state);
   return state;
 };
 
 type ActionType =
-  { type: "ANSWER", value: AnswerWithQuestionId } |
+  { type: "ANSWER", value: AnswerWithQuestionId & { correctAnswer?: string; } } |
   { type: "ERROR",  value: {questionId: string, error?: string}
 }
 
 const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
-  const { questionId, ...data } = action.value;
+  const { questionId, correctAnswer, ...data }
+    = {correctAnswer: undefined, ...action.value};
   const prev = state.questions[questionId];
   switch (action.type) {
     case "ANSWER": {
@@ -87,6 +94,7 @@ const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
         ...state.questions,
         [questionId]: {
           ...prev,
+          correctAnswer,
           submissionErrored: false,
           answers: [...prev?.answers ?? ([] as Answer[]), data as Answer]
         }
@@ -117,6 +125,7 @@ export const QuizContext = React.createContext<{
   answerQuestion: (value: AnswerWithQuestionId) => Promise<boolean>;
   uploadFiles: (questionId: string, files: File[]) => Promise<boolean>;
   getAnswers: (questionId: string) => Answer[];
+  getCorrectAnswer: (questionId: string) => string | undefined;
   submissionErrored: (questionId: string) => boolean | string;
   chapterStats: (chapterIndex: number) => {
     nQuestions: number;
@@ -137,6 +146,7 @@ export const QuizContext = React.createContext<{
   answerQuestion: async () => false,
   uploadFiles: async () => false,
   getAnswers: () => [],
+  getCorrectAnswer: () => undefined,
   submissionErrored: () => false,
   chapterStats: () => ({ nQuestions: 0, answered: 0, correct: 0, wrong: 0,
                          achievedPoints: 0, correctness: [], questionIds: []})
@@ -147,6 +157,7 @@ export const QuizContextProvider = ({
   quizThreshold,
   chapters,
   answers,
+  correctAnswers,
   bookId,
 }: {
   children: React.ReactNode;
@@ -154,6 +165,7 @@ export const QuizContextProvider = ({
   chapters: ChapterDef[];
   bookId: number;
   answers: AnswerWithQuestionId[] | null;
+  correctAnswers: { questionId: string, answer: string}[]
 }) => {
   const { user, userGroup } = React.useContext(UserContext);
   const { t } = useIntl();
@@ -161,7 +173,7 @@ export const QuizContextProvider = ({
   const [quizState, quizReducer]: [QuizStateI, React.Dispatch<ActionType>] =
     React.useReducer(
       reducer,
-      getQuizState({ quizThreshold, answers, chapters })
+      getQuizState({ quizThreshold, answers, correctAnswers, chapters })
     );
 
   const answerQuestion = React.useCallback(
@@ -193,8 +205,7 @@ export const QuizContextProvider = ({
         value: {
           questionId,
           answer,
-          isCorrect: postResult.isCorrect,
-          points: postResult.points
+          ...postResult
         }
       });
       return true;
@@ -317,7 +328,7 @@ export const QuizContextProvider = ({
       achievedPoints: Object.values(quizState.questions).reduce(
         (acc, {answers}) =>
           acc + (answers.length && answers[answers.length - 1].points),
-        0),
+        0)
     }),
     [quizState]
   );
@@ -334,6 +345,7 @@ export const QuizContextProvider = ({
       answerQuestion,
       uploadFiles,
       chapterStats,
+      getCorrectAnswer: (questionId: string) => quizState.questions[questionId]?.correctAnswer,
       getAnswers: (questionId: string) => quizState.questions[questionId]?.answers ?? [],
       submissionErrored: (questionId: string) => quizState.questions[questionId]?.submissionErrored || false
     }),
@@ -364,20 +376,23 @@ export const useLastAnswer = (questionId: string) => {
     submissionErrored,
     answerQuestion: aq,
     uploadFiles: uf,
+    getCorrectAnswer,
   } = React.useContext(QuizContext);
   const answers = getAnswers(questionId) || [];
   const value = {
-    trials: answers.length,
+    attempts: answers.length,
     submissionErrored: submissionErrored(questionId),
     answerQuestion: async (value: Answer) => await aq({questionId, ...value}),
-    uploadFiles: async (files: File[]) => await uf(questionId, files)
+    uploadFiles: async (files: File[]) => await uf(questionId, files),
+    correctAnswer: getCorrectAnswer(questionId)
   };
   if (answers.length === 0) {
     return {
       ...value,
       isCorrect: null,
       answer: null,
-      trials: 0,
+      correctAnswer: null,
+      attempts: 0,
       points: null}
   }
   return {...value, ...answers[answers.length - 1] }

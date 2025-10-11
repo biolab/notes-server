@@ -3,9 +3,9 @@ import { useIntl } from "@/i18n";
 
 
 export interface IExplanation {
-  after?: "attempt" | "correct" | "correctOrMaxTrials" | null;
-  ntrials?: number;
-  maxTrialsUsed?: boolean;
+  after?: "attempt" | "correct" | "done" | null;
+  nattempts?: number;
+  attemptsExhausted?: boolean;
   isCorrect?: boolean;
   gptExplanation?: string;
   children?: JSX.Element | JSX.Element[];
@@ -13,8 +13,8 @@ export interface IExplanation {
 
 export function Explanation({
   after,
-  ntrials,
-  maxTrialsUsed,
+  nattempts,
+  attemptsExhausted,
   isCorrect,
   gptExplanation,
   children,
@@ -27,28 +27,17 @@ export function Explanation({
   const [shown, setShown] = React.useState(false);
   const { t } = useIntl();
 
-  React.useEffect(() => {
-    if (
-      after &&
-      !["attempt", "correct", "correctOrMaxTrials"].includes(after)
-    ) {
-      throw new Error(
-        "invalid value for prop `after`; allowed values are null, 'attempt', 'correct' and 'correctOrMaxTrials'"
-      );
-    }
-  }, [after]);
-
   const button = React.useMemo(() => {
     if (isCorrect) {
       /* If the answer is correct, we offer an "explanation"; the user already knows the answer. */
       return t(shown ? "chapter.hideexplanation" : "chapter.showexplanation");
     }
 
-    if (maxTrialsUsed && after === "correctOrMaxTrials") {
+    if (attemptsExhausted && after === "done") {
       return t(shown ? "chapter.hideexplanation" : "chapter.showexplanation");
     }
 
-    if (!after || (after == "attempt" && ntrials)) {
+    if (!after || (after == "attempt" && nattempts)) {
       /* Otherwise, we offer an "answer" and not an "explanation", lest the user could believe
          that (s)he'll be given an explanation of the question or the path to the solution,
          rather than the spoiler, which is the actual case. */
@@ -56,10 +45,10 @@ export function Explanation({
     }
 
     return null;
-  }, [after, isCorrect, ntrials, shown, t, maxTrialsUsed]);
+  }, [after, isCorrect, nattempts, shown, t, attemptsExhausted]);
 
   const renderExplanationContent = React.useMemo(() => {
-    if (gptExplanation && !isCorrect && !maxTrialsUsed) {
+    if (gptExplanation && !isCorrect && !attemptsExhausted) {
       return (
         <>
           <p>{gptExplanation}</p>
@@ -70,7 +59,7 @@ export function Explanation({
       );
     }
     return children;
-  }, [children, gptExplanation, isCorrect, maxTrialsUsed]);
+  }, [children, gptExplanation, isCorrect, attemptsExhausted]);
 
   if (!button) {
     return null;
