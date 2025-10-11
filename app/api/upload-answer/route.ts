@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { existsSync, rmSync, mkdirSync, writeFileSync } from "fs";
 import path from "path";
+import { existsSync, rmSync, mkdirSync, writeFileSync } from "fs";
+import { NextResponse } from "next/server";
 import { getUploadDir } from "@/utils/zip";
 
 export async function POST(req: Request) {
@@ -16,12 +16,17 @@ export async function POST(req: Request) {
     // from calling this manually and uploading huge files
     const totalSize = files.reduce((acc, file) => acc + file.size, 0);
     if (totalSize > 50 * 1024 * 1024) {
-      return NextResponse.json({ error: "Upload failed: total file size if too large" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Upload failed: total file size is too large" },
+        { status: 500 });
     }
     const {dir, error} = await getUploadDir({accessToken, bookId, groupId, qId});
     if (!dir || error) { // both will be true; this is to satisfy TS later on
-      return NextResponse.json({ error: `Upload failed: ${error}` },{ status: 500 });
+      return NextResponse.json(
+        { error: `Upload failed: ${error}` },
+        { status: 500 });
     }
+
     if (existsSync(dir)) {
       rmSync(dir, { force: true, recursive: true });
     }

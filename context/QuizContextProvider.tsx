@@ -203,7 +203,7 @@ export const QuizContextProvider = ({
           value: {questionId, error: t("quiz.file-too-large")}});
         return false;
       }
-      const groupId = userGroup !== null ? await getGroupId(bookId, userGroup) : null;
+      const groupId = userGroup !== null ? await getGroupId(userGroup, bookId) : null;
       if (userGroup && groupId === null) {
         quizReducer({
           type: "ERROR",

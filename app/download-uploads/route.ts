@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
     return new Response(readFileSync(`${dir}/${fileNames[0]}`))
   }
   const zip = new JSZip();
-  for(const {questionId, group, groupId: aGroupId, accessToken: uAccessToken, qId, fileNames} of answerFiles) {
-    const { dir, error } = await getUploadDir({accessToken: uAccessToken, bookId, qId, groupId: aGroupId });
+  for(const {questionId, group, fileNames, ...dirParts} of answerFiles) {
+    const { dir, error } = await getUploadDir({bookId, ...dirParts});
     if (error || !dir) {
       return NextResponse.json({ error }, { status: 500 });
     }

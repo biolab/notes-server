@@ -113,8 +113,8 @@ export async function GET(request: NextRequest) {
 
   const zip = new JSZip();
   zip.file("answers.xlsx", buffer, {binary: true});
-  for(const {group, questionId, name, surname, email, qId, fileNames} of answersFiles) {
-    const { dir, error} = await getUploadDir({accessToken, bookId, groupId: group || null, qId});
+  for(const {group, questionId, name, surname, email, fileNames, ...dirParts} of answersFiles) {
+    const { dir, error} = await getUploadDir({bookId, ...dirParts});
     if (!dir || error) { // both will be true; this is to satisfy TS later on
       return NextResponse.json({ error }, { status: 500 });
     }

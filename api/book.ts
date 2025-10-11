@@ -84,14 +84,17 @@ export const getGroups = async (bookId: number): Promise<GroupList> =>
     [bookId]
   )) as {id: number, name: string}[];
 
-export const getGroupId = async (bookId: number, groupName: string): Promise<number | null> => {
-  const row = await db.get(
-    `SELECT g.id
-     FROM books_groups bg
-     JOIN groups g on g.id = bg.groupId
-     WHERE bg.bookId = ? AND g.name = ?`,
-    [bookId, groupName]
-  );
+export const getGroupId = async (groupName: string, bookId: number | undefined
+): Promise<number | null> => {
+  /* JOIN on books_groups checks that the group exists for the given book */
+  const row = bookId
+  ? (await db.get(
+    `SELECT id FROM groups g
+     JOIN books_groups bg ON g.id = bg.groupId
+     WHERE g.name = ? AND bg.bookId = ?`,
+    [groupName, bookId]
+  ))
+  : await db.get(`SELECT id FROM groups WHERE name = ?`, [groupName]);
   return row ? row.id : null;
 }
 
