@@ -181,6 +181,11 @@ div.expanding-side-img {
     margin-bottom: 3px;
   }
 
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
   .replay-img-button {
     cursor: pointer;
     display: inline-flex;
