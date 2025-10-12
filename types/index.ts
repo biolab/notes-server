@@ -1,6 +1,6 @@
 /* Questions */
 
-export type QuestionTypes = "singlechoice" | "text" | "long-text";
+export type QuestionTypes = "singlechoice" | "text" | "long-text" | "upload" | "uploads";
 
 export type QuestionDef = {
   id?: number;
@@ -10,6 +10,7 @@ export type QuestionDef = {
   options: string[] | null;
   answer: string | null;
   points: number | null;
+  attempts: number | null;
 };
 
 
@@ -84,4 +85,3 @@ export const extraCollectionMatter = {
   collections: [] as string[],
   admins: [] as string[],
 } satisfies Record<string, unknown>;
-

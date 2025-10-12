@@ -1,9 +1,12 @@
 'use client';
 
 import React from "react";
+import { RiDownloadCloud2Line } from "react-icons/ri";
 
-import { AnswersInBook, PointsInCollection, getAnswersInBook,
-         getCollectionResults, UserDesc,} from "@/api/quiz";
+import {
+  AnswersInBook, PointsInCollection, getAnswersInBook,
+  getCollectionResults, UserDesc, AnswerRecord
+} from "@/api/quiz";
 import { BookProps, getGroups as getBookGroups } from "@/api/book";
 import { CollectionProps, getGroups as getCollectionGroups } from "@/api/collection";
 import { GroupList } from "@/api/content";
@@ -11,6 +14,7 @@ import { UserContext } from "@/context/UserContextProvider";
 import { corrColor, corrSym } from "@/utils/questions";
 
 import Layout from "../Layout/Layout";
+import { useIntl } from "@/i18n";
 
 
 function GroupsCombo({groups, value, onChange}: {
@@ -48,6 +52,7 @@ function filterResults<T extends UserDesc>(results: T[] | false | null, group: n
 }
 
 export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
+  const { t } = useIntl();
   const { user } = React.useContext(UserContext);
   const [results, setResults] = React.useState<AnswersInBook | false | null>(null);
   React.useEffect(() => {
@@ -67,6 +72,11 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
     () => chapters.flatMap(({questions}) => questions),
     [chapters]
   );
+  const questionTypes = React.useMemo(
+    () => Object.fromEntries(
+      questions.map(({questionId, type}) => [questionId, type])),
+    [questions]
+  );
 
   const [group, setGroup] = React.useState<number | null>(null);
   const filteredResults = React.useMemo(
@@ -76,6 +86,17 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
 
   const hasGroups = React.useMemo(() => groups?.length > 0, [groups]);
 
+  const getGroupName  = React.useCallback((groupId: number) =>
+    groups.find((g) => g.id === groupId)?.name,
+    [groups]
+  );
+
+  const hasUploadedFiles = React.useMemo(
+    () => results && questions.some(({type, questionId}) =>
+        (type === "upload" || type === "uploads")
+         && results.some(({answers}) => answers[questionId]?.length)),
+    [questions, results]);
+
   if (results === false) {
     return <p>You do not have permission to view these results.</p>
   }
@@ -83,6 +104,8 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
   if (!filteredResults || !groups) {
     return <p>Loading results...</p>
   }
+
+  const lastAttempt = (ars: AnswerRecord[]) => ars?.[ars.length - 1];
 
   return (
     <Layout title={frontmatter.title} returnLink="Book" >
@@ -108,25 +131,25 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
               </th>
               ))}
             <th>
-              Points
+              { t("results.points") }
             </th>
           </tr>
           </thead>
           <tbody>
           {filteredResults.length === 0
-           ? <tr><td>No results</td></tr>
+           ? <tr><td>{ t("results.no-answers") }</td></tr>
             : filteredResults.map(({userId, groupId, name, surname, email, answers}) => (
             <tr key={userId}>
               <th>
                 <TooltipWrapper
                   tooltip={
-                    [email, hasGroups && `Group: ${groups.find((g) => g.id === groupId)?.name}`]
+                    [email, hasGroups && `${t("results.group")}: ${getGroupName(groupId)}`]
                       .filter(Boolean)
                       .join("\n")}>
-                  {name ? `${name} ${surname}` : `User #${userId}`}
+                  {name ? `${name} ${surname}` : `${t("results.user-nr")}${userId}`}
                 </TooltipWrapper>
               </th>
-              {questions.map(({questionId, question}) => {
+              {questions.map(({id: qId, questionId, question}) => {
                 const attempts = answers[questionId!];
                 if (!attempts || attempts.length === 0) {
                   return <td key={userId + questionId} />;
@@ -154,37 +177,41 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
                         </ul>
                       </>}
                     >
-                      { corrSym(isCorrect) }
+                      { questionTypes[questionId].startsWith("upload")
+                        ? <a href={`/download-uploads?bookId=${bookId}&userId=${userId}&qId=${qId}&accessToken=${user?.accessToken}${group ? `&groupId=${group}` : ""}`}>
+                            <RiDownloadCloud2Line className="inline-block align-middle"/>
+                         </a>
+                        : corrSym(isCorrect)
+                      }
                     </TooltipWrapper>
                   </td>
                 );
               })}
               <th className="total">
                 {questions
-                  .map(({id}) => answers[id!])
-                  .map((attempts) => attempts?.[attempts.length - 1].points || 0)
+                  .map(({questionId}) => answers[questionId!])
+                  .map((attempts) => lastAttempt(attempts)?.points || 0)
                   .reduce((a: number, b) => a + b, 0)}
               </th>
             </tr>
             ))}
           <tr>
             <th>N = {filteredResults.length}</th>
-            {questions.map(({id, question}) =>
+            {questions.map(({id, questionId, question}) =>
               <td key={`tot-${id}`}>
                 <TooltipWrapper tooltip={question}>
                   { filteredResults
-                      .map(({answers}) =>
-                        answers[id!]?.[answers[id!].length - 1].isCorrect ? 1 : 0)
+                      .map(({answers}) => lastAttempt(answers[questionId!])?.isCorrect ? 1 : 0)
                       .reduce((a: number, b) => a + b, 0)
                   }
                 </TooltipWrapper>
               </td>
             )}
             <th style={{textAlign: "center"}}>
-              {questions.flatMap(({id}) =>
+              {questions.flatMap(({questionId}) =>
                 filteredResults
-                  .map(({answers}) => answers[id!]?.[answers[id!].length - 1].points || 0)
-              ).reduce((a: number, b) => a + b, 0) / filteredResults.length
+                  .map(({answers}) => lastAttempt(answers[questionId!])?.points || 0)
+              ).reduce((a: number, b) => a + b, 0) / (filteredResults.length || 1)
               }
             </th>
           </tr>
@@ -193,7 +220,7 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
     </div>
     <p>
       <a href={`/quiz-results?bookId=${bookId}&accessToken=${user?.accessToken}${group ? `&groupId=${group}` : ""}`}>
-        Download all answers as Excel
+        { t(hasUploadedFiles ? "results.download-as-zip" : "results.download-as-excel") }
        </a>
     </p>
     </Layout>

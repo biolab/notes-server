@@ -14,14 +14,14 @@ import { ExpandingSideImg, Sidenote } from "@/components/Book/Sidenote";
 export interface QuestionProps extends QuizPropsBase {
   id?: string;
   longtext?: boolean;
+  upload?: boolean;
+  uploads?: boolean;
+  accept?: string;
   ungraded?: boolean;
   scorer?: (option: string) => (boolean | undefined);
-  answer?: string;
   points?: number;
-  trials?: number;
+  attempts?: number;
 }
-
-const CorrectAnswerPrefix = "*";
 
 export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
   content: string;
@@ -39,47 +39,36 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
       if (chapterId === undefined || bookId === undefined) {
         throw new Error("Questions can appear only in chapters");
       }
-      const { answer, scorer, options, ungraded,
-              longtext, points, trials, id, question,
+      const { scorer, options, ungraded,
+              longtext, upload, uploads, points, attempts, id, question,
+              accept,
               ...restProps } = props;
 
-      const correctAnswer =
-        (answer
-         || options
-          ?.find((opt) => opt.startsWith(CorrectAnswerPrefix))
-          ?.slice(CorrectAnswerPrefix.length)
-         || undefined)
-          ?.trim();
-      const actAnswer = correctAnswer?.toLowerCase()
-
-      const actOptions = options?.map(
-        (opt) => opt.startsWith(CorrectAnswerPrefix)
-                 ? opt.slice(CorrectAnswerPrefix.length).trim()
-                 : opt);
-
-      const type = determineQuestionType({options, longtext});
-      const actScorer = scorer || (
-        ungraded || points === 0 || actAnswer === undefined
-        ? () => undefined
-        : (x: string) => x === actAnswer);
+      const type = determineQuestionType({options, longtext, upload, uploads});
 
       const usersAnswers = allAnswers
         ?.map(({answers, ...rest}) => (
           {...rest, answers: answers[id || question]}))
         .filter(({answers}) => answers && answers.length > 0);
 
+      const acceptList = accept
+        ?.replaceAll("*", "")
+        .replaceAll(";", " ")
+        .replaceAll(",", " ")
+        .split(/\s+/)
+        || undefined;
+
       return (
         <Question
           {...restProps}
           question={question}
           id={id || question}
-          bookId={bookId!}
           type={type}
-          scorer={actScorer}
-          correctAnswer={correctAnswer}
-          options={actOptions}
+          accept={acceptList}
+          scorer={scorer}
+          options={options}
           maxPoints={ungraded ? 0 : (points ?? 1)}
-          maxTrials={trials ?? 1}
+          maxAttempts={attempts ?? 1}
           usersAnswers={usersAnswers}
         />
       );

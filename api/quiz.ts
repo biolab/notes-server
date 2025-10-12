@@ -4,8 +4,35 @@ import db from "@/utils/db";
 import { getUserId } from "@/utils/user";
 import { isAdminFor } from "@/api/user";
 
+/* Functions in this module get user's accessToken rather than id
+   because id's can be faked.
+ */
 
-// Functions get user's accessToken rather than id because id's can be faked.
+export const getQId = async (bookId: number, questionId: string) => {
+  const question = await db.get(`
+    SELECT id FROM questions q
+    JOIN books_chapters bc ON q.chapterId = bc.chapterId
+    WHERE questionId = ? AND bc.bookId = ?
+    `, [questionId, bookId]
+  );
+  if (!question) {
+    throw Error(`Question ${questionId} not found in book with id ${bookId}`)
+  }
+  return question.id;
+}
+
+export const getQuestionIdFromId = async (id: number) => {
+  const question = await db.get(`SELECT questionId FROM questions WHERE id = ?`, [id]);
+  return question ? question.questionId : null;
+}
+
+export type PostAnswerResult =
+ { status: "error",
+   message: string} |
+ { status: "ok",
+   isCorrect: boolean | undefined;
+   points: number,
+   correctAnswer?: string };
 
 export const postAnswer = async (
   { accessToken, group, bookId, questionId, answer, isCorrect, points}: {
@@ -16,7 +43,7 @@ export const postAnswer = async (
   answer: string;
   isCorrect?: boolean;
   points?: number
-}) => {
+}): Promise<PostAnswerResult> => {
   const userId = await getUserId(accessToken);
   const groupId = group ? (await db.get(
     `SELECT id FROM groups WHERE name = ?`,
@@ -24,37 +51,90 @@ export const postAnswer = async (
   ))?.id : null;
 
   const question = await db.get(`
-    SELECT id FROM questions q
+    SELECT id, answer, maxPoints, maxAttempts, type FROM questions q
     JOIN books_chapters bc ON q.chapterId = bc.chapterId
     WHERE questionId = ? AND bc.bookId = ?
     `, [questionId, bookId]
   );
   if (!question) {
-    throw Error(`Question ${questionId} not found in book with id ${bookId}`)
+    return {status: "error", message: "Question id and book id don't match"};
   }
+  const nPastAnswers = (await db.get(`
+    SELECT COUNT(*) as count FROM answers
+    WHERE userId = ? AND bookId = ? AND groupId IS ?
+      AND questionId = ?
+    `, [userId, bookId, groupId, question.id])).count;
+  if (question.maxAttempts && nPastAnswers >= question.maxAttempts) {
+    return {status: "error", message: "Maximum number of attempts reached"};
+  }
+
+  /* If we have the answer in the database, we check the submitted answer
+     and assign points. Otherwise, we trust the received isCorrect and points.
+   */
+  const actCorrect =
+    !question.answer ? isCorrect
+    : question.type === "singlechoice" ? question.answer === answer
+    : question.answer.trim().toLocaleLowerCase() === answer.trim().toLocaleLowerCase()
+  const actPoints =
+    !question.answer ? points
+    : actCorrect && question.maxPoints || 0;
 
   await db.run(
     `INSERT INTO answers (userId, bookId, groupId, questionId, answer, isCorrect, points)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, bookId, groupId, question.id, answer, isCorrect, points]
+    [userId, bookId, groupId, question.id, answer, actCorrect, actPoints]
   );
+
+  const shownAnswer =
+    (question.maxAttempts
+     && nPastAnswers + 1 >= question.maxAttempts
+     && question.answer) ? { correctAnswer: question.answer } : {};
+  return {
+    status: "ok",
+    isCorrect: actCorrect,
+    points: actPoints,
+    ...shownAnswer};
 };
 
-export const getAnswers = async ({ accessToken, bookId }: {
+export type CorrectAnswers = { questionId: string, answer: string }[];
+
+export const getAnswers = async ({ accessToken, bookId, group }: {
   accessToken: string;
   bookId: number;
-}) =>
-  (await db.all(
-    `SELECT answers.answer, q.questionId, isCorrect, points
-    FROM answers
-    JOIN questions q ON answers.questionId = q.id
-    WHERE userId = ? AND bookId = ?
-    ORDER BY q.position, answers.createdAt`,
-    [await getUserId(accessToken), bookId]
-  )).map(({isCorrect, ...rest}) => ({
+  group: string | undefined;
+}) => {
+  const userId = await getUserId(accessToken);
+  const answers = (
+    await db.all(`
+      SELECT answers.answer, q.questionId, isCorrect, points
+      FROM answers
+      JOIN questions q ON answers.questionId = q.id
+      LEFT JOIN groups g ON answers.groupId = g.id
+      WHERE userId = ? AND bookId = ? AND g.name IS ?
+      ORDER BY q.position, answers.createdAt`,
+      [userId, bookId, group]
+    )).map(({isCorrect, ...rest}) => ({
     // DB stores 0 and 1 even if the column is declared as BOOLEAN
     isCorrect: isCorrect === null ? undefined : !!isCorrect,
-    ...rest}));
+    ...rest
+  }));
+  const correctAnswers =
+    (await db.all(`
+      SELECT q.questionId, q.answer
+      FROM questions q
+      JOIN books_chapters bc ON q.chapterId = bc.chapterId
+      WHERE bc.bookId = ?
+        AND q.answer IS NOT NULL
+        AND (SELECT COUNT(*)
+             FROM answers a
+             LEFT JOIN groups g ON a.groupId = g.id
+             WHERE a.questionId = q.id
+             AND userId = ? AND bookId = ? AND g.name IS ?
+      ) >= q.maxAttempts`,
+      [bookId, userId, bookId, group]
+    ) as CorrectAnswers);
+  return {answers, correctAnswers};
+}
 
 export type AnswerRecord = {
   createdAt: string;
@@ -124,6 +204,97 @@ export const getAnswersInBook = async (
   });
   return resultTable;
 }
+
+type FileAnswersInBook = {
+  groupId: number,
+  qId: number,
+  accessToken: string,
+  fileNames: string[],
+  group: string,
+  userId: number,
+  name: string | null,
+  surname: string | null,
+  email: string | null,
+  questionId: string,
+};
+
+export const getAnswersFilesInBook = async (
+  bookId: number,
+  accessToken: string,
+  groupId: number | null = null
+): Promise<FileAnswersInBook[] | false> =>
+  (await isAdminFor({accessToken, bookId})
+  ) && (
+    (await db.all(`
+      SELECT groupId, qId, accessToken, answer, "group", userId, name, surname, email, questionId
+      FROM (
+        SELECT a.groupId,
+               q.id as qId,
+               u.accessToken,
+               a.answer,
+               g.name as "group",
+               u.id as userId,
+               u.name,
+               u.surname,
+               u.email,
+               q.questionId,
+               ROW_NUMBER() OVER (PARTITION BY a.userId, a.groupId, q.id ORDER BY a.createdAt DESC) AS rn
+        FROM answers a
+        JOIN users u ON a.userId = u.id
+        JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
+        LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
+        WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
+      )
+      WHERE rn = 1; 
+      `,
+      [bookId, ...(groupId ? [groupId] : [])]
+    )) as (Omit<FileAnswersInBook, "fileNames"> & {answer: string})[]
+  )
+  .map(({answer, ...rest}) => ({fileNames: answer.split(":"), ...rest}));
+
+type UserFileAnswersInBook = {
+  questionId: string;
+  group: string;
+  groupId: number;
+  accessToken: string;
+  qId: number;
+  fileNames: string[]
+};
+
+export const getUserFilesInBook = async (
+  {bookId, userId, accessToken, groupId, qId}:
+{ bookId: number;
+  userId: string;
+  accessToken: string;
+  groupId: number | null;
+  qId: number | null;
+}) : Promise<UserFileAnswersInBook[] | false> =>
+  (await isAdminFor({accessToken, bookId})
+  ) && (
+    (await db.all(`
+      SELECT groupId, qId, accessToken, answer, "group", questionId
+      FROM (
+        SELECT
+          a.groupId,
+          q.id as qId,
+          u.accessToken,
+          a.answer,
+          g.name as "group",
+          q.questionId,
+          ROW_NUMBER() OVER (PARTITION BY q.id ORDER BY a.createdAt DESC) AS rn
+          FROM answers a
+          JOIN users u ON u.id = ? AND a.userId = u.id
+          JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
+          LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
+          WHERE a.bookId = ?
+                ${groupId ? "AND a.groupId = ?" : ""}
+                ${qId ? "AND q.id = ?" : ""}
+          )
+      WHERE rn = 1;
+      `,
+      [userId, bookId, ...(groupId ? [groupId] : []), ...(qId ? [qId] : [])]
+    )) as (Omit<UserFileAnswersInBook, "fileNames"> & {answer: string})[]
+  ).map(({answer, ...rest}) => ({fileNames: answer.split(":"), ...rest}));
 
 export type UsersPoints = {
   [bookId: number]: number

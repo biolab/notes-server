@@ -78,25 +78,13 @@ export const extractQuizzes = async (
             if (!prop) {
               return null;
             }
-            if (
-              !(
-                t.isNumericLiteral(prop.value) || t.isDecimalLiteral(prop.value)
-              )
-            ) {
-              logError(
-                where,
-                `
-                Property "${name}" is not a number.
-                Value:
-                ${JSON.stringify(prop.value)}`
-              );
+            if (!t.isNumericLiteral(prop.value) && !t.isDecimalLiteral(prop.value)) {
+              logError(where, `Property "${name}" is not a number.`);
               return null;
             }
-
             if (t.isNumericLiteral(prop.value)) {
               return prop.value.value;
             }
-
             return parseInt(prop.value.value);
           };
 
@@ -113,10 +101,7 @@ export const extractQuizzes = async (
             return prop.value.value;
           };
 
-          const getPropArray = (
-            where: string,
-            name: string
-          ): string[] | null => {
+          const getPropArray = (where: string, name: string): string[] | null => {
             const prop = findProp(name);
             if (!prop) {
               return null;
@@ -129,14 +114,8 @@ export const extractQuizzes = async (
             const strings: string[] = [];
             for (const el of elements) {
               if (!t.isStringLiteral(el)) {
-                logError(
-                  where,
-                  `"${name}" contains a non-string element in array`
-                );
+                logError(where, `"${name}" contains a non-string element in array`);
                 return null;
-              }
-              if (!el.value.length) {
-                console.log(el);
               }
               strings.push(el.value);
             }
@@ -155,6 +134,7 @@ export const extractQuizzes = async (
 
           const questionId = getProp(where, "id") || question;
           const points = getNumProp(where, "points");
+          const attempts = getNumProp(where, "attempts");
           const ungraded = getBoolProp(where, "ungraded") ?? false;
           const options = getPropArray(where, "options");
           const answer = getProp(where, "answer");
@@ -164,7 +144,10 @@ export const extractQuizzes = async (
           const hasAnswer = hasProp("answer") || correctOptions?.length;
           const hasScorer = hasProp("scorer");
           const longtext = getBoolProp(where, "longtext");
-          const type = determineQuestionType({options, longtext})
+          const upload = getBoolProp(where, "upload");
+          const uploads = getBoolProp(where, "uploads");
+          const accept = getProp(where, "accept");
+          const type = determineQuestionType({options, longtext, upload, uploads});
           const newErrors: string[] = (
             [
               /* Add more as needed */
@@ -184,7 +167,13 @@ export const extractQuizzes = async (
               [ longtext && options,
                 "longtext is incompatible with options"
               ],
-              [ !hasAnswer && !hasScorer && !ungraded && !longtext,
+              [ (upload || uploads) && (longtext || options || answer || hasScorer),
+                "upload(s) is incompatible with longtext, options, answer and scorer"
+              ],
+              [ accept && !(upload || uploads),
+                "Accept is only meaningful with upload or uploads"
+              ],
+              [ !hasAnswer && !hasScorer && !ungraded && !(longtext || upload || uploads),
                 `Mark question as ungraded or provide answer or scorer`
               ],
               [ ungraded && points && points > 0,
@@ -221,7 +210,8 @@ export const extractQuizzes = async (
             type,
             options,
             answer: correctOptions?.[0] || answer,
-            points
+            attempts: attempts ?? 1,
+            points: ungraded ? 0 : (points ?? 1),
           });
         }
       }

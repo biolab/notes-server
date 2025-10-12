@@ -13,6 +13,11 @@ export type BookProps = {
   chapters: ChapterDef[];
 };
 
+export const getBookSlug = async (id: number): Promise<string | null> => {
+  const book = await db.get(`SELECT path FROM books WHERE id = ?`, [id]);
+  return book ? book.path : null;
+}
+
 export const getBook = async (id: number): Promise<BookProps> => {
   const book = await db.get(`SELECT * FROM books WHERE id = ?`, [id]);
 
@@ -70,7 +75,6 @@ export const getBook = async (id: number): Promise<BookProps> => {
   };
 };
 
-
 export const getGroups = async (bookId: number): Promise<GroupList> =>
   (await db.all(
     `SELECT g.id, g.name
@@ -79,6 +83,25 @@ export const getGroups = async (bookId: number): Promise<GroupList> =>
      WHERE bg.bookId = ?`,
     [bookId]
   )) as {id: number, name: string}[];
+
+export const getGroupId = async (groupName: string, bookId: number | undefined
+): Promise<number | null> => {
+  /* JOIN on books_groups checks that the group exists for the given book */
+  const row = bookId
+  ? (await db.get(
+    `SELECT id FROM groups g
+     JOIN books_groups bg ON g.id = bg.groupId
+     WHERE g.name = ? AND bg.bookId = ?`,
+    [groupName, bookId]
+  ))
+  : await db.get(`SELECT id FROM groups WHERE name = ?`, [groupName]);
+  return row ? row.id : null;
+}
+
+export const getGroupName = async (groupId: number): Promise<string | null> => {
+  const row = await db.get(`SELECT name FROM groups WHERE id = ?`, [groupId]);
+  return row ? row.name : null;
+}
 
 export const getCollectionsWithBook = async (bookId: number): Promise<ItemDesc[]> =>
   (await db.all(

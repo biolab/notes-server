@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Image from "../Image";
 import { toast } from "react-toastify";
 
-import { AnswersInBook, getAnswers, getAnswersInBook } from "@/api/quiz";
+import { AnswersInBook, CorrectAnswers, getAnswers, getAnswersInBook } from "@/api/quiz";
 import { BookProps, getPublicCollection } from "@/api/book";
 import { LinkDesc } from "@/api/content";
 import { isAdminFor } from "@/api/user";
@@ -32,7 +32,9 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
   const { user, setUserGroup } = useContext(UserContext);
   const [ isAdmin, setIsAdmin ] = useState<boolean>(false);
   const [answers, setAnswers] =
-    useState<"pending" | null | AnswerWithQuestionId[]>("pending");
+    useState<"pending" | null | {
+      answers: AnswerWithQuestionId[],
+      correctAnswers: CorrectAnswers}>("pending");
   const [groupRequired, setGroupRequired] = useState<boolean | null>(null);
   const hasQuestions = useMemo(
     () => chapters.some((chapter) => chapter.questions.length > 0),
@@ -45,14 +47,17 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
 
   /* Restore previous answers */
   React.useEffect(() => {
-    if (!user) {
+    if (!user
+      || groupRequired === null
+      || groupRequired && user.groups[bookId] === undefined
+    ) {
       return;
     }
-    // Do we need to include a group here as well?
-    getAnswers({ accessToken: user.accessToken, bookId })
-      .then((_answers) => {
-        logger("Quiz answers fetched:", _answers);
-        setAnswers(_answers);
+    getAnswers({ accessToken: user.accessToken, bookId,
+                 group: groupRequired ? user.groups[bookId] : undefined})
+      .then((response) => {
+        logger("Quiz answers fetched:", response);
+        setAnswers(response);
       })
       .catch((error) => {
         toast.error(error.message || t("quiz.fetch-answers-error"));
@@ -67,7 +72,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     }
 
     getAnswersInBook(bookId, user.accessToken).then(setAllAnswers);
-  }, [t, user, user?.accessToken, slug, bookId]);
+  }, [t, user, user?.accessToken, slug, bookId, groupRequired]);
 
   const [showAnswers, setShowAnswers] = useState(false);
 
@@ -212,7 +217,8 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
       <QuizContextProvider
         bookId={bookId}
         chapters={chapters}
-        answers={answers as AnswerWithQuestionId[] | null}
+        answers={answers !== "pending" && answers?.answers || null}
+        correctAnswers={answers !== "pending" && answers?.correctAnswers || []}
         quizThreshold={frontmatter.quizThreshold || 0}
       >
         <Layout

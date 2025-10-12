@@ -1,7 +1,10 @@
-import { NextRequest } from "next/server";
-import { getAnswersInBook } from "@/api/quiz";
-import { getBook } from "@/api/book";
+import { readFileSync } from "fs";
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
+import { NextRequest, NextResponse } from "next/server";
+import { getAnswersFilesInBook, getAnswersInBook } from "@/api/quiz";
+import { getBook } from "@/api/book";
+import { getUploadDir, zipResponse } from "@/utils/zip";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -92,13 +95,47 @@ export async function GET(request: NextRequest) {
 
   const buffer = await workbook.xlsx.writeBuffer();
   const filename = encodeURIComponent(`${title}-quiz-answers.xlsx`);
-  return new Response(buffer, {
-    status: 200,
-    headers: {
-      'Content-Type':
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition':
-        `attachment; filename="${filename}"`,
-    },
-  });
+
+  const answersFiles = await getAnswersFilesInBook(
+    bookId, accessToken, groupId === null ? null : parseInt(groupId));
+
+  if (!answersFiles || answersFiles.length == 0) {
+    return new Response(buffer, {
+      status: 200,
+      headers: {
+        'Content-Type':
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition':
+          `attachment; filename="${filename}"`,
+      },
+    });
+  }
+
+  const zip = new JSZip();
+  zip.file("answers.xlsx", buffer, {binary: true});
+  for(const {group, questionId, userId, name, surname, email, fileNames,
+             ...dirParts}
+      of answersFiles) {
+    const { dir, error} = await getUploadDir({bookId, ...dirParts});
+    if (!dir || error) { // both will be true; this is to satisfy TS later on
+      return NextResponse.json({ error }, { status: 500 });
+    }
+    const userDir = name ? `${name}-${surname}-${email}` : `User-${userId}`;
+    fileNames.forEach((fileName) => {
+      const data = readFileSync(`${dir}/${fileName}`);
+      // Sanitize each part separately, otherwise you lose / :)
+      const path = [
+        "files",
+        groupId && group,
+        questionId,
+        userDir,
+        fileName
+      ].filter(Boolean)
+        // Cannot be null, but TS does not know that?!
+       .map((n: string | null) => n && n.replace(/[<>:"/\\|?*]/g, '_'))
+       .join("/")
+      zip.file(path, data, {binary: true});
+    });
+  }
+  return await zipResponse(zip, `${title}-quiz-answers.zip`);
 }

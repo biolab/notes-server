@@ -1,5 +1,6 @@
 import {visit} from "unist-util-visit";
 import type { Root } from "hast";
+import { Expression, parseExpressionAt } from "acorn";
 
 import dictJson from "@/i18n/dict";
 
@@ -63,4 +64,74 @@ export const forbiddenComponents = ({forbidden}: {
       }
     });
   };
+};
+
+export const rewriteQuestions = () => (tree: Root) => {
+  visit(tree, ["mdxJsxFlowElement"], (node: any) => {
+    if (node.name == "Explanation") {
+      node.attributes = node.attributes
+        .map((attr: { name: string, value: any }) => {
+          if (attr.name === "after") {
+            if (attr.value === "correctOrMaxTrials") {
+              return {...attr, value: "done"};
+            }
+            // While we're here, we might as well validate the value
+            if (!["attempt", "correct", "done"].includes(attr.value)
+            ) {
+              throw new Error(
+                "invalid value for `after`; allowed values are null, 'attempt', 'correct' and 'done'"
+              );
+            }
+          }
+          return attr;
+        });
+    }
+    else if (node.name == "Question") {
+      node.attributes = node.attributes
+        .filter((attr: { name: string }) => attr.name !== "answer")
+        .map((attr: { name: string }) =>
+          attr.name === "trials" ? {...attr, name: "attempts"} : attr
+        );
+
+      node.attributes.forEach((attr: { name: string, value: any }) => {
+        if (attr.name !== "options"
+          || attr.value?.type !== "mdxJsxAttributeValueExpression"
+          ) {
+          return;
+        }
+        let ast: Expression;
+        try {
+          ast = parseExpressionAt(attr.value.value, 0, {ecmaVersion: "latest"});
+        } catch (e) {
+          throw new Error(`Failed to parse options: ${attr.value.value}`);
+        }
+        if (ast.type !== "ArrayExpression") {
+          throw new Error(`Invalid options array: ${attr.value.value}`);
+        }
+
+        const cleaned = ast.elements.map((el: any) => {
+          if (!el) return null;
+          if (el.type === "Literal" && typeof el.value === "string") {
+            return el.value.startsWith("*") ? el.value.slice(1).trim() : el.value;
+          }
+          throw new Error(`Unsupported element type in options: ${el.type}`);
+        });
+
+        attr.value.value = JSON.stringify(cleaned);
+        const expr = parseExpressionAt(attr.value.value, 0, { ecmaVersion: "latest" });
+        attr.value.data = attr.value.data = {
+          estree: {
+            type: "Program",
+            sourceType: "module",
+            body: [
+              {
+                type: "ExpressionStatement",
+                expression: expr
+              }
+            ]
+          }
+        };
+      });
+    }
+  });
 };

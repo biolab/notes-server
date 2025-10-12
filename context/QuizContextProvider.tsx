@@ -1,19 +1,21 @@
 import React from "react";
 
-import { postAnswer } from "@/api/quiz";
+import { getQId, postAnswer, PostAnswerResult, CorrectAnswers } from "@/api/quiz";
 import { ChapterDef } from "@/types";
 import { logger } from "@/utils/logger";
 import { UserContext } from "@/context/UserContextProvider";
+import { useIntl } from "@/i18n";
+import { getGroupId } from "@/api/book";
 
 
 export type Answer = {
   answer: string;
   isCorrect: boolean | undefined;
   points: number;
-};
+}
 
 export type AnswerWithQuestionId = Answer & {
-  questionId: string
+  questionId: string;
 }
 
 export interface QuestionI {
@@ -21,7 +23,8 @@ export interface QuestionI {
   maxPoints: number;
   chapterIndex: number;
   answers: Answer[];
-  submissionErrored?: boolean;
+  submissionErrored?: boolean | string;
+  correctAnswer?: string;
 }
 
 type Questions = {[questionID: string]: QuestionI};
@@ -50,10 +53,12 @@ const getQuizState = ({
   quizThreshold,
   chapters = [],
   answers,
+  correctAnswers
 }: {
   chapters: ChapterDef[];
   quizThreshold: number;
-  answers?: AnswerWithQuestionId[] | null;
+  answers: AnswerWithQuestionId[] | null;
+  correctAnswers: CorrectAnswers
 }) => {
   const state: QuizStateI = {
     questions: getQuestionsFromChapters(chapters),
@@ -66,18 +71,22 @@ const getQuizState = ({
     const {questionId, ...answerWOutId} = answer;
     state.questions[questionId].answers.push(answerWOutId as Answer);
     }
-  )
+  );
+  correctAnswers.forEach(({questionId, answer}) => {
+    state.questions[questionId].correctAnswer = answer;
+  });
   logger("Quiz state initialized with answers:", state);
   return state;
 };
 
 type ActionType =
-  { type: "ANSWER", value: AnswerWithQuestionId } |
-  { type: "ERROR",  value: {questionId: string}
+  { type: "ANSWER", value: AnswerWithQuestionId & { correctAnswer?: string; } } |
+  { type: "ERROR",  value: {questionId: string, error?: string}
 }
 
 const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
-  const { questionId, ...data } = action.value;
+  const { questionId, correctAnswer, ...data }
+    = {correctAnswer: undefined, ...action.value};
   const prev = state.questions[questionId];
   switch (action.type) {
     case "ANSWER": {
@@ -85,6 +94,7 @@ const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
         ...state.questions,
         [questionId]: {
           ...prev,
+          correctAnswer,
           submissionErrored: false,
           answers: [...prev?.answers ?? ([] as Answer[]), data as Answer]
         }
@@ -97,7 +107,7 @@ const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
     case "ERROR": {
       const questions = {
         ...state.questions,
-        [questionId]: {...prev, submissionErrored: true}
+        [questionId]: {...prev, submissionErrored: action.value.error || true}
       }
       return {...state, questions}
     }
@@ -113,8 +123,10 @@ export const QuizContext = React.createContext<{
   wrong: number;
   threshold: number | null;
   answerQuestion: (value: AnswerWithQuestionId) => Promise<boolean>;
+  uploadFiles: (questionId: string, files: File[]) => Promise<boolean>;
   getAnswers: (questionId: string) => Answer[];
-  submissionErrored: (questionId: string) => boolean;
+  getCorrectAnswer: (questionId: string) => string | undefined;
+  submissionErrored: (questionId: string) => boolean | string;
   chapterStats: (chapterIndex: number) => {
     nQuestions: number;
     answered: number;
@@ -132,7 +144,9 @@ export const QuizContext = React.createContext<{
   wrong: 0,
   threshold: null,
   answerQuestion: async () => false,
+  uploadFiles: async () => false,
   getAnswers: () => [],
+  getCorrectAnswer: () => undefined,
   submissionErrored: () => false,
   chapterStats: () => ({ nQuestions: 0, answered: 0, correct: 0, wrong: 0,
                          achievedPoints: 0, correctness: [], questionIds: []})
@@ -143,6 +157,7 @@ export const QuizContextProvider = ({
   quizThreshold,
   chapters,
   answers,
+  correctAnswers,
   bookId,
 }: {
   children: React.ReactNode;
@@ -150,35 +165,103 @@ export const QuizContextProvider = ({
   chapters: ChapterDef[];
   bookId: number;
   answers: AnswerWithQuestionId[] | null;
+  correctAnswers: { questionId: string, answer: string}[]
 }) => {
   const { user, userGroup } = React.useContext(UserContext);
+  const { t } = useIntl();
 
   const [quizState, quizReducer]: [QuizStateI, React.Dispatch<ActionType>] =
     React.useReducer(
       reducer,
-      getQuizState({ quizThreshold, answers, chapters })
+      getQuizState({ quizThreshold, answers, correctAnswers, chapters })
     );
 
   const answerQuestion = React.useCallback(
-    async (value: AnswerWithQuestionId): Promise<boolean> => {
-      const {questionId, answer, points, isCorrect} = value;
+    async ({questionId, answer, isCorrect, points}: AnswerWithQuestionId
+    ): Promise<boolean> => {
       if (!user) {
-        quizReducer({type: "ERROR", value: {questionId}});
+        quizReducer({
+          type: "ERROR",
+          value: {questionId, error: t("quiz.not-logged-in")}});
         return false;
       }
+      let postResult: PostAnswerResult | undefined;
       try {
-        await postAnswer({
-          accessToken: user.accessToken, group: userGroup,
-          questionId, bookId, answer, isCorrect, points});
+        postResult = await postAnswer({
+          accessToken: user.accessToken, group: userGroup, bookId,
+          questionId, answer, isCorrect, points});
       } catch (error: any) {
         quizReducer({ type: "ERROR", value: {questionId}});
         return false;
       }
-      quizReducer({ type: "ANSWER", value });
+      if (postResult.status === "error") {
+        quizReducer({
+          type: "ERROR",
+          value: {questionId, error: postResult.message}});
+        return false;
+      }
+      quizReducer({
+        type: "ANSWER",
+        value: {
+          questionId,
+          answer,
+          ...postResult
+        }
+      });
       return true;
     },
-    [user, bookId, quizReducer, userGroup]
+    [user, bookId, quizReducer, userGroup, t]
   );
+
+  const uploadFiles = React.useCallback(
+    async(questionId: string, files: File[]): Promise<boolean> => {
+      if (!user) {
+        quizReducer({
+          type: "ERROR",
+          value: {questionId, error: t("quiz.not-logged-in")}});
+        return false;
+      }
+      const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+      if (totalSize > 50 * 1024 * 1024) {
+        quizReducer({
+          type: "ERROR",
+          value: {questionId, error: t("quiz.file-too-large")}});
+        return false;
+      }
+      const groupId = userGroup !== null ? await getGroupId(userGroup, bookId) : null;
+      if (userGroup && groupId === null) {
+        quizReducer({
+          type: "ERROR",
+          value: {questionId, error: t("quiz.invalid-group")}});
+        return false;
+      }
+
+      const formData = new FormData();
+      files.forEach((file) => formData.append("files", file));
+      formData.append("accessToken", user?.accessToken || "");
+      formData.append("bookId", bookId.toString());
+      formData.append("qId",
+        (await getQId(bookId, questionId)).toString());
+      if (groupId) {
+        formData.append("groupId", groupId.toString());
+      }
+      const res = await fetch("/api/upload-answer", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        quizReducer({type: "ERROR", value: {questionId}});
+        return false;
+      }
+
+      return answerQuestion({
+        questionId,
+        answer: files.map(({name}) => name).join(":"),
+        isCorrect: undefined,
+        points: 0
+      })
+    },
+    [user, bookId, quizReducer, answerQuestion, userGroup, t]);
 
   const {
     nQuestions,
@@ -245,7 +328,7 @@ export const QuizContextProvider = ({
       achievedPoints: Object.values(quizState.questions).reduce(
         (acc, {answers}) =>
           acc + (answers.length && answers[answers.length - 1].points),
-        0),
+        0)
     }),
     [quizState]
   );
@@ -260,13 +343,16 @@ export const QuizContextProvider = ({
       wrong,
       threshold: quizThreshold,
       answerQuestion,
+      uploadFiles,
       chapterStats,
+      getCorrectAnswer: (questionId: string) => quizState.questions[questionId]?.correctAnswer,
       getAnswers: (questionId: string) => quizState.questions[questionId]?.answers ?? [],
-      submissionErrored: (questionId: string) => !!quizState.questions[questionId]?.submissionErrored
+      submissionErrored: (questionId: string) => quizState.questions[questionId]?.submissionErrored || false
     }),
     [
       quizState,
       answerQuestion,
+      uploadFiles,
       nQuestions,
       quizThreshold,
       achievedPoints,
@@ -288,20 +374,25 @@ export const useLastAnswer = (questionId: string) => {
   const {
     getAnswers,
     submissionErrored,
-    answerQuestion: aq
+    answerQuestion: aq,
+    uploadFiles: uf,
+    getCorrectAnswer,
   } = React.useContext(QuizContext);
   const answers = getAnswers(questionId) || [];
   const value = {
-    trials: answers.length,
+    attempts: answers.length,
     submissionErrored: submissionErrored(questionId),
-    answerQuestion: async (value: Answer) => await aq({questionId, ...value})
+    answerQuestion: async (value: Answer) => await aq({questionId, ...value}),
+    uploadFiles: async (files: File[]) => await uf(questionId, files),
+    correctAnswer: getCorrectAnswer(questionId)
   };
   if (answers.length === 0) {
     return {
       ...value,
       isCorrect: null,
       answer: null,
-      trials: 0,
+      correctAnswer: null,
+      attempts: 0,
       points: null}
   }
   return {...value, ...answers[answers.length - 1] }
