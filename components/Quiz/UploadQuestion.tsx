@@ -31,7 +31,7 @@ export const FileQuestion = ({id, submitDisabled, setSubmitted, accept, multiple
   const onFilesAdd = React.useCallback(async (newFiles: File[]) => {
     const filtered = newFiles.filter(({name}) =>
       !accept?.length
-      || accept.includes("." + (name.split('.').pop() || "")));
+      || accept.includes("." + (name.toLocaleLowerCase().split('.').pop() || "")));
     if (!filtered.length) {
       return;
     }
