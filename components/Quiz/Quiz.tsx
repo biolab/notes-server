@@ -125,6 +125,7 @@ export default function Question({
     : null,
   [submissionErrored, isCorrect, submitted, type]);
 
+  const isUpload = React.useMemo(() => type === "upload" || type === "uploads", [type]);
   const [isDragging, setIsDragging] = React.useState(false);
   const onDragOver = React.useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -140,6 +141,11 @@ export default function Question({
   }, []);
 
   const onFileDropRef = React.useRef<FileDropFunction | null>(null);
+  const onDrop = React.useCallback((e:  React.DragEvent<HTMLElement>) => {
+    setIsDragging(false);
+    onFileDropRef.current?.(e);
+  },
+  [setIsDragging, onFileDropRef.current])
 
   const childrenWithProps: any = React.Children.map(children, (child) => {
     if (
@@ -164,9 +170,9 @@ export default function Question({
     <a id={`question-${id}`} />
       <div
         className={`quiz ${usersAnswers ? "" : correctnessClass}`}
-        onDrop={onFileDropRef.current ? ((e) => { setIsDragging(false); onFileDropRef.current?.(e); }) : undefined}
-        onDragOver={onFileDropRef.current ? onDragOver : undefined}
-        onDragLeave={onFileDropRef.current ? onDragLeave : undefined}
+        onDrop={isUpload ? onDrop : undefined}
+        onDragOver={isUpload ? onDragOver : undefined}
+        onDragLeave={isUpload ? onDragLeave : undefined}
       >
         {isDragging &&
           <div className="absolute inset-0 bg-blue-200/40 border-2 border-blue-400 rounded-md flex items-center justify-center pointer-events-none" />
@@ -184,7 +190,7 @@ export default function Question({
             { type === "long-text" && <LongTextQuestion {...textProps} /> }
             { type === "singlechoice" && <SingleChoiceQuestion
                 options={options} answer={usersAnswers ? "" : answer} onSubmit={onSubmit} /> }
-            { (type === "upload" || type === "uploads") && <FileQuestion
+            { isUpload && <FileQuestion
               id={id}
               submitDisabled={submitDisabled} /* TODO: is this needed? */
               setSubmitted={setSubmitted}
