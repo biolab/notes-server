@@ -37,14 +37,11 @@ export const BaseTextQuestion = (
   return <>
     {long ? <textarea value={answer || ""} onChange={onChange}/>
           : <input type="text" value={answer || ""} onChange={onChange}/>}
-    { formatError &&
-      <p className="error">
-        {formatError}
-      </p>
-    }
+    { long && formatError && <p className="checker-message">{formatError}</p> }
     <button disabled={!onSubmit} onClick={onSubmitText}>
       {t("quiz.submit-button")}
     </button>
+    { !long && formatError && <p className="checker-message">{formatError}</p> }
   </>
 }
 
