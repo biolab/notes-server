@@ -19,7 +19,6 @@ export const SidenoteContext = createContext<SidenoteContextType>({
 
 export const SidenoteProvider = ({ children }: { children: ReactNode }) => {
   const sidenotes = useRef<HTMLDivElement[]>([]);
-  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const register = useCallback((sidenote: HTMLDivElement) => {
     // Prevent inserting duplicates due to React strict mode
@@ -36,25 +35,22 @@ export const SidenoteProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const layout = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const containerTop = container.getBoundingClientRect().top;
-
     sidenotes.current.forEach((el) => (el.style.top = ""));
 
     const notes = sidenotes.current
       .map((el) => ({ el, rect: el.getBoundingClientRect() }))
       .sort((a, b) => a.rect.top - b.rect.top);
 
-    let prevBottom = 0;
-
+    let prevBottom = -Infinity;
     notes.forEach(({ el, rect }) => {
-      if (rect.top - containerTop < prevBottom + 3) {
-        el.style.top = `${prevBottom + 3}px`;
+      if (rect.top < prevBottom + 3) {
+        const yOff = el.offsetParent
+                     ? (el.offsetParent as HTMLElement).getBoundingClientRect().top
+                     : 0
+        el.style.top = `${prevBottom + 3 - yOff}px`;
         prevBottom = prevBottom + 3 + rect.height;
       } else {
-        prevBottom = rect.bottom - containerTop;
+        prevBottom = rect.bottom;
       }
     });
   }, []);
@@ -68,7 +64,7 @@ export const SidenoteProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <SidenoteContext.Provider value={contextValue}>
-      <div ref={containerRef} style={{position: "relative"}}>
+      <div style={{position: "relative"}}>
         {children}
       </div>
     </SidenoteContext.Provider>
