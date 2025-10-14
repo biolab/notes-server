@@ -10,7 +10,8 @@ const EMAIL_FROM = process.env.EMAIL_FROM;
 const transporter = nodemailer.createTransport({
   host: SMTP_SERVER_HOST,
   port: SMTP_PORT,
-  secure: SMTP_PORT === 465
+  secure: SMTP_PORT === 465,
+  ignoreTLS: SMTP_PORT !== 465
 });
 
 export const sendEmail = async ({sendTo, subject, text, html}: {
@@ -19,10 +20,6 @@ export const sendEmail = async ({sendTo, subject, text, html}: {
   text: string;
   html: string;
 }) => {
-  if (process.env.NODE_ENV === "development") {
-    return;
-  }
-
   await transporter.verify();
   return await transporter.sendMail(
     {from: EMAIL_FROM, to: sendTo, subject, text, html });
