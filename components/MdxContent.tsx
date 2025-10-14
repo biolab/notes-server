@@ -51,7 +51,7 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
           {...rest, answers: answers[id || question]}))
         .filter(({answers}) => answers && answers.length > 0);
 
-      const acceptList = accept
+      const acceptList = accept?.toLocaleLowerCase()
         ?.replaceAll("*", "")
         .replaceAll(";", " ")
         .replaceAll(",", " ")

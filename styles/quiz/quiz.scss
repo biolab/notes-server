@@ -57,6 +57,10 @@
     }
   }
 
+  .checker-message {
+    color: red;
+  }
+
   input,
   textarea {
     border: 1px solid $inputBorder;
