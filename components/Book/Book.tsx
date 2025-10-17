@@ -191,7 +191,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
       || provider === null,
     [user, groupRequired, publicCollection, provider]);
 
-  if (frontmatter.requireLogin && !user!.email || groupRequired) {
+  if (user && (frontmatter.requireLogin && !user.email || groupRequired)) {
     return (
       <Login
         title={frontmatter.title}
