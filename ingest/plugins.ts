@@ -12,16 +12,18 @@ const replacements = {
     " ...": " …"
 };
 
+export const constructReplacer = ({language, extra_replacements}: {language: string, extra_replacements?: [string, string][]}) =>
+  (s: string) => Object.entries({...replacements,
+    ...(dict[language]?.["text-replacements"] || {}),
+    ...(extra_replacements || {})})
+    .map(([k, v]) => [k.startsWith("/") && k.endsWith("/") ? new RegExp(k.slice(1, -1), "g") : k, v] as [RegExp | string, string])
+    .reduce((value, repl) => value.replaceAll(...repl), s);
+
 export const replacer = ({language, extra_replacements}: {language: string, extra_replacements?: [string, string][]}) => () => (tree: any) => {
-    const all_replacements =
-      Object.entries({...replacements,
-                      ...(dict[language]?.["text-replacements"] || {}),
-                      ...(extra_replacements || {})})
-      .map(([k, v]) => [k.startsWith("/") && k.endsWith("/") ? new RegExp(k.slice(1, -1), "g") : k, v]);
-    visit(tree, 'text', textNode => {
-        textNode.value = all_replacements.reduce(
-            (value, repl) => value.replaceAll(...repl),
-            textNode.value); })
+  const rep = constructReplacer({language, extra_replacements});
+  visit(tree, 'text', textNode => {
+    textNode.value = rep(textNode.value);
+  });
 }
 
 

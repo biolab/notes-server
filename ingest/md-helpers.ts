@@ -6,7 +6,7 @@ import { compile } from "@mdx-js/mdx";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
-import { addRelativePath, forbiddenComponents, rewriteQuestions, replacer } from "./plugins";
+import { addRelativePath, forbiddenComponents, rewriteQuestions, replacer, constructReplacer } from "./plugins";
 import { getImageSize } from "./getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "./paths";
 
@@ -101,6 +101,15 @@ export function checkedMatter<T>(
        ? ` ${errors[0]}`
        : `\n${errors.map((e) => `- ${e}`).join("\n")}`));
   }
+
+  const replacer = constructReplacer({language: data.language});
+  if (data.title) {
+    data.title = replacer(data.title);
+  }
+  if (data.subTitle) {
+    data.subTitle = replacer(data.subTitle);
+  }
+
   return {
     frontmatter: { ...defaultMatter, ...data } as T,
     content,
