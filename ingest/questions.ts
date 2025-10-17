@@ -134,7 +134,7 @@ export const extractQuizzes = async (
 
           const questionId = getProp(where, "id") || question;
           const points = getNumProp(where, "points");
-          const attempts = getNumProp(where, "attempts");
+          const attempts = getNumProp(where, "attempts") ?? getNumProp(where, "trials");
           const ungraded = getBoolProp(where, "ungraded") ?? false;
           const options = getPropArray(where, "options");
           const answer = getProp(where, "answer");
