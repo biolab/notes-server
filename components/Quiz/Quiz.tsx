@@ -145,7 +145,7 @@ export default function Question({
     setIsDragging(false);
     onFileDropRef.current?.(e);
   },
-  [setIsDragging, onFileDropRef.current])
+  [setIsDragging])
 
   const childrenWithProps: any = React.Children.map(children, (child) => {
     if (

@@ -187,18 +187,9 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
   const loading = React.useMemo(() =>
       !user
       || groupRequired === null
-      || answers === "pending"
       || publicCollection === null // prevent showing it later -- looks weird
       || provider === null,
-    [user, groupRequired, answers, publicCollection, provider]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="loader"></div>
-      </div>
-    );
-  }
+    [user, groupRequired, publicCollection, provider]);
 
   if (frontmatter.requireLogin && !user!.email || groupRequired) {
     return (
@@ -212,13 +203,21 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     );
   }
 
+  if (loading || answers === "pending") {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="loader"></div>
+      </div>
+    );
+  }
+
   return (
     <IntlContextProvider lang={frontmatter.language || "en"}>
       <QuizContextProvider
         bookId={bookId}
         chapters={chapters}
-        answers={answers !== "pending" && answers?.answers || null}
-        correctAnswers={answers !== "pending" && answers?.correctAnswers || []}
+        answers={answers?.answers || null}
+        correctAnswers={answers?.correctAnswers || []}
         quizThreshold={frontmatter.quizThreshold || 0}
       >
         <Layout
