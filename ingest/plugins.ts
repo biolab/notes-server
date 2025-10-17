@@ -35,15 +35,21 @@ export const addRelativePath = ({relativePath}: {relativePath: string}) => () =>
       if (!relativePath) {
         return;
       }
-      if (node.type === "element"
-          && node.properties?.src
+      if (node.type === "element") {
+        if (node.properties?.src
           && !/https?:\/\//.test(node.properties.src)
-      ) {
-        node.properties.src = `/${relativePath}/${node.properties.src}`;
+        ) {
+          node.properties.src = `/${relativePath}/${node.properties.src}`;
+        }
+        if (node.properties?.href
+          && !/https?:\/\//.test(node.properties.href)
+        ) {
+          node.properties.href = `/${relativePath}/${node.properties.href}`;
+        }
       }
       if (node.type === "mdxJsxFlowElement") {
         node.attributes.forEach((attr: {name: string, value: string}) => {
-          if (attr.name === "src"
+          if ((attr.name === "src" || attr.name === "href")
               && !/https?:\/\//.test(attr.value)) {
             attr.value = `/${relativePath}/${attr.value}`;
           }
