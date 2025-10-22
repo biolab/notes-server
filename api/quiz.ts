@@ -355,6 +355,18 @@ export const getCollectionHasQuestions = async (collectionId: number): Promise<b
     [collectionId]
   ));
 
+export const getCollectionBooksWithQuestions = async (collectionId: number): Promise<number[]> =>
+  (await db.all(
+    `SELECT b.id as bookId
+       FROM collections
+       JOIN collections_books cb ON collections.id = cb.collectionId
+       JOIN books_chapters bc ON cb.bookId = bc.bookId
+       JOIN books b ON cb.bookId = b.id
+       JOIN questions q ON bc.chapterId = q.chapterId
+       WHERE collections.id = ?`,
+    [collectionId]
+  )).map(({bookId}) => bookId);
+
 export type CollectionStats = {
   answered: number;
   correct: number;

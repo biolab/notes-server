@@ -5,11 +5,11 @@ import { RiDownloadCloud2Line } from "react-icons/ri";
 
 import {
   AnswersInBook, PointsInCollection, getAnswersInBook,
-  getCollectionResults, UserDesc, AnswerRecord
+  getCollectionResults, UserDesc, AnswerRecord, getCollectionBooksWithQuestions
 } from "@/api/quiz";
 import { BookProps, getGroups as getBookGroups } from "@/api/book";
 import { CollectionProps, getGroups as getCollectionGroups } from "@/api/collection";
-import { GroupList } from "@/api/content";
+import { GroupList, ItemDesc } from "@/api/content";
 import { UserContext } from "@/context/UserContextProvider";
 import { corrColor, corrSym } from "@/utils/questions";
 
@@ -244,6 +244,14 @@ export function CollectionResults({collectionId, frontmatter, books}: Collection
   },
   [collectionId]);
 
+  const [actBooks, setActBooks] = React.useState<ItemDesc[]>([]);
+  React.useEffect(() => {
+    getCollectionBooksWithQuestions(collectionId).then((bookIds) =>
+      setActBooks(books.filter(({id}) => bookIds.includes(id)))
+    );
+  },
+  [collectionId, books]);
+
   const [group, setGroup] = React.useState<number | null>(null);
   const filteredResults = React.useMemo(
     () => filterResults(results, group),
@@ -273,7 +281,7 @@ export function CollectionResults({collectionId, frontmatter, books}: Collection
           <thead>
           <tr>
             <td/>
-            {books.map(({title, slug}) => (
+            {actBooks.map(({title, slug}) => (
               <th
                 key={slug}
                 className="rotated"
@@ -299,7 +307,7 @@ export function CollectionResults({collectionId, frontmatter, books}: Collection
            : filteredResults.map(({userId, name, surname, points}) => (
               <tr key={userId}>
                 <th>{name ? `${name} ${surname}` : `User #${userId}`}</th>
-                {books.map(({id: bookId}) =>
+                {actBooks.map(({id: bookId}) =>
                   <td key={`${userId}-${bookId}`}>
                     {points?.[bookId] ?? ""}
                   </td>
