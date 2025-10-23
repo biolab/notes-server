@@ -1,15 +1,8 @@
 import ExcelJS from "exceljs";
 import { NextRequest } from "next/server";
-import {getCollectionResults, UserDesc, getCollectionBooksWithQuestions} from "@/api/quiz";
+import {getCollectionResults, getCollectionBooksWithQuestions} from "@/api/quiz";
 import { getCollection } from "@/api/collection";
 
-
-// copied from Results.tsx, know to little to make it async
-function filterResults<T extends UserDesc>(results: T[] | false | null, group: number | null): T[] | false | null {
-  return group && results
-      ? results.filter(({groupId}) => groupId === group)
-      : results;
-}
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -19,14 +12,11 @@ export async function GET(request: NextRequest) {
 
   const results = await getCollectionResults(
     collectionId,
-    accessToken);
+    accessToken,
+    groupId === null ? null : parseInt(groupId));
   if (!results) {
     return new Response("Forbidden", {status: 403});
   }
-
-  const filteredResults = filterResults(
-    results,
-    groupId === null ? null : parseInt(groupId));
 
   const collection = await getCollection(collectionId) || {};
   const books = collection.books;
@@ -49,16 +39,15 @@ export async function GET(request: NextRequest) {
     {header: 'Total', key: 'total', width: 10}
   ];
 
-  if (filteredResults)
-    filteredResults.forEach(({name, surname, email, points}) => {
-      sheet1.addRow({
-        name, surname, email,
-        ...Object.fromEntries(
-          actBooks.map(({id, slug}) =>
-            [slug, points?.[id] ?? ""])),
-        total: Object.values(points || {}).reduce((a, b) => a + b, 0)
-      });
+  results.forEach(({name, surname, email, points}) => {
+    sheet1.addRow({
+      name, surname, email,
+      ...Object.fromEntries(
+        actBooks.map(({id, slug}) =>
+          [slug, points?.[id] ?? ""])),
+      total: Object.values(points || {}).reduce((a, b) => a + b, 0)
     });
+  });
 
   const buffer = await workbook.xlsx.writeBuffer();
   const filename = encodeURIComponent(`${collection.slug}-quiz-collection.xlsx`);

@@ -303,7 +303,11 @@ export type UsersPoints = {
 type PointsRow = UserDesc & { points: UsersPoints };
 export type PointsInCollection = PointsRow[];
 
-export const getCollectionResults = async (collectionId: number, accessToken: string): Promise<PointsInCollection | false> => {
+export const getCollectionResults = async (
+  collectionId: number,
+  accessToken: string,
+  groupId: number | null = null
+): Promise<PointsInCollection | false> => {
   if (!await isAdminFor({accessToken, collectionId})) {
     return false;
   }
@@ -327,10 +331,10 @@ export const getCollectionResults = async (collectionId: number, accessToken: st
        JOIN questions q ON bc.chapterId = q.chapterId
        JOIN answers a ON q.id = a.questionId
        JOIN users u ON a.userId = u.id
-       WHERE collections.id = ?
+       WHERE collections.id = ? ${groupId ? "AND a.groupId = ?" : ""}
        GROUP BY u.id, a.groupId, b.id
        ORDER BY u.id`,
-      [collectionId]
+      [collectionId, ...(groupId ? [groupId] : [])]
     )) as (UserDesc & { bookId: number, title: string, points: number })[]
   )
     .forEach(({userId, groupId, name, surname, email, bookId, points}) => {
