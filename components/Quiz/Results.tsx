@@ -139,7 +139,7 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
           {filteredResults.length === 0
            ? <tr><td>{ t("results.no-answers") }</td></tr>
             : filteredResults.map(({userId, groupId, name, surname, email, answers}) => (
-            <tr key={userId}>
+            <tr key={`${userId}-${groupId}`}>
               <th>
                 <TooltipWrapper
                   tooltip={
@@ -152,11 +152,11 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
               {questions.map(({id: qId, questionId, question}) => {
                 const attempts = answers[questionId!];
                 if (!attempts || attempts.length === 0) {
-                  return <td key={userId + questionId} />;
+                  return <td key={questionId} />;
                 }
                 const {isCorrect} = attempts[attempts.length - 1];
                 return (
-                  <td key={`${userId}-${questionId}`}>
+                  <td key={questionId}>
                     <TooltipWrapper
                       tooltip={<>
                         <p>{question}</p>
@@ -304,11 +304,11 @@ export function CollectionResults({collectionId, frontmatter, books}: Collection
            ? <tr>
              <td>No results</td>
            </tr>
-           : filteredResults.map(({userId, name, surname, points}) => (
-              <tr key={userId}>
+           : filteredResults.map(({userId, groupId, name, surname, points}) => (
+              <tr key={`${userId}-${groupId}`}>
                 <th>{name ? `${name} ${surname}` : `User #${userId}`}</th>
                 {actBooks.map(({id: bookId}) =>
-                  <td key={`${userId}-${bookId}`}>
+                  <td key={bookId}>
                     {points?.[bookId] ?? ""}
                   </td>
                 )}
