@@ -229,6 +229,7 @@ export function BookResults({bookId, slug, frontmatter, chapters}: BookProps) {
     }
 
 export function CollectionResults({collectionId, frontmatter, books}: CollectionProps) {
+  const { t } = useIntl();
   const [results, setResults] = React.useState<PointsInCollection | false | null>(null);
   const {user} = React.useContext(UserContext);
   React.useEffect(() => {
@@ -321,6 +322,11 @@ export function CollectionResults({collectionId, frontmatter, books}: Collection
           </tbody>
         </table>
       </div>
+      <p>
+      <a href={`/quiz-collection-results?collectionId=${collectionId}&accessToken=${user?.accessToken}${group ? `&groupId=${group}` : ""}`}>
+        { t("collection-results.download-as-excel") }
+      </a>
+      </p>
     </Layout>
   );
 }
