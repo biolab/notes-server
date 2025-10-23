@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { NextRequest } from "next/server";
-import {getCollectionResults, UserDesc} from "@/api/quiz";
+import {getCollectionResults, UserDesc, getCollectionBooksWithQuestions} from "@/api/quiz";
 import { getCollection } from "@/api/collection";
 
 
@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
   const collection = await getCollection(collectionId) || {};
   const books = collection.books;
 
+  const booksWithQuestions = await getCollectionBooksWithQuestions(collectionId);
+  const actBooks = books.filter(({id}) => booksWithQuestions.includes(id));
+
   const workbook = new ExcelJS.Workbook();
 
   const sheet1 = workbook.addWorksheet('Points');
@@ -38,7 +41,7 @@ export async function GET(request: NextRequest) {
     {header: 'Name', key: 'name', width: 20},
     {header: 'Surname', key: 'surname', width: 20},
     {header: 'Email', key: 'email', width: 30},
-    ...books.map(({title, slug}) => ({
+    ...actBooks.map(({title, slug}) => ({
       header: title,
       key: slug,
       width: 10,
@@ -51,7 +54,7 @@ export async function GET(request: NextRequest) {
       sheet1.addRow({
         name, surname, email,
         ...Object.fromEntries(
-          books.map(({id, slug}) =>
+          actBooks.map(({id, slug}) =>
             [slug, points?.[id] ?? ""])),
         total: Object.values(points || {}).reduce((a, b) => a + b, 0)
       });
