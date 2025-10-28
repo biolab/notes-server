@@ -157,7 +157,22 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
       <div className="quiz-section">
         {title && <h2>{title}</h2> }
         {children}
-      </div>
+      </div>,
+
+    RunScript: ({children} : {
+      children: string;
+    }) =>
+      React.useEffect(() => {
+        if (window === undefined) {
+          return;
+        }
+
+        try {
+          eval(children);
+        } catch (err) {
+          console.error("RunScript error:", err);
+        }
+      }, [children]),
   }
 
   const fn = new Function('mdx', content);
