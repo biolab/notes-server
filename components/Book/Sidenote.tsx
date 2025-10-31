@@ -116,7 +116,7 @@ export const ExpandingSideImg = ({src, alt, retina, caption, children}: {
       alt={alt || caption || "image"}
       className={retina ? " retina" : ""}
     />
-    {caption && <div className="caption">{caption}</div>}
+    {caption && <div className={"caption" + (children ? " with-children" : " no-children")}>{caption}</div>}
     {children && <div className="children">{children}</div>}
   </div>
 }

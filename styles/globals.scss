@@ -98,11 +98,21 @@ $max-size: 140;
 
 div.expanding-side-img {
   transform-origin: top left;
-  position: absolute;
-  transition: all 0.5s;
+  position: relative;
+  animation: toAbsolute 0.5s forwards;
   max-width: $aside-width;
   padding: 0;
   object-fit: contain;
+
+  @keyframes toAbsolute {
+    0% { position: relative; }
+    100% { position: absolute; }
+  }
+
+  img {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+  }
 
   img.retina {
     zoom: 0.5;
@@ -119,14 +129,29 @@ div.expanding-side-img {
   &:hover {
     position: relative;
     width: $prose-width;
-    max-width: min(882px, calc(100vw - 4rem));
+    max-width: min($prose-width, calc(100vw - 4rem));
     transform-origin: top left;
-    transition: all 0.5s;
+    animation: none;
+    transition:
+            width 0.5s,
+            max-width 0.5s;
     z-index: 100;
     transform: translateX(calc(0px - $aside-width - $gap));
+    background-color: #eee;
+    border-radius: 4px;
 
-    .img {
+    img {
       max-width: $prose-width;
+      transition: all 0.5s;
+    }
+
+    .caption.no-children, .children {
+      padding: 16px;
+    }
+
+    .caption.with-children {
+      padding: 16px 16px 0 16px;
+      font-weight: 800 !important;
     }
 
     .children {
