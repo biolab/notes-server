@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       ...Object.fromEntries(
         Object.entries(answers).map(([questionId, ans]) => [
           questionId,
-          ans.map(renderAnswer).slice(-1).join('\n')
+          ans.map(renderAnswer).at(-1)
         ])
       )
     });
