@@ -20,20 +20,6 @@ export const SidenoteContext = createContext<SidenoteContextType>({
 export const SidenoteProvider = ({ children }: { children: ReactNode }) => {
   const sidenotes = useRef<HTMLDivElement[]>([]);
 
-  const register = useCallback((sidenote: HTMLDivElement) => {
-    // Prevent inserting duplicates due to React strict mode
-    if (!sidenotes.current.includes(sidenote)) {
-      sidenotes.current.push(sidenote);
-    }
-  }, []);
-
-  const unregister = useCallback((sidenote: HTMLDivElement) => {
-    const index = sidenotes.current.indexOf(sidenote);
-    if (index > -1) {
-      sidenotes.current.splice(index, 1);
-    }
-  }, []);
-
   const layout = useCallback(() => {
     sidenotes.current.forEach((el) => (el.style.top = ""));
 
@@ -54,6 +40,36 @@ export const SidenoteProvider = ({ children }: { children: ReactNode }) => {
       }
     });
   }, []);
+
+  const debouncedLayout = useMemo(() => {
+    let timeout: NodeJS.Timeout;
+    return () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        layout();
+      }, 100);
+    };
+  }, [layout]);
+
+  const register = useCallback((sidenote: HTMLDivElement) => {
+    // Prevent inserting duplicates due to React strict mode
+    if (!sidenotes.current.includes(sidenote)) {
+      sidenotes.current.push(sidenote);
+      Array.from(sidenote.querySelectorAll("img")).forEach((img) => {
+        img.addEventListener("load", debouncedLayout);
+      });
+    }
+  }, [debouncedLayout]);
+
+  const unregister = useCallback((sidenote: HTMLDivElement) => {
+    const index = sidenotes.current.indexOf(sidenote);
+    if (index > -1) {
+      sidenotes.current.splice(index, 1);
+    }
+    Array.from(sidenote.querySelectorAll("img")).forEach((img) => {
+      img.removeEventListener("load", debouncedLayout);
+    });
+  }, [debouncedLayout]);
 
   const contextValue = useMemo(() => ({
     register,
