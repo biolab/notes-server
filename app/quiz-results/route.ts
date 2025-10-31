@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import { NextRequest, NextResponse } from "next/server";
-import { getAnswersFilesInBook, getAnswersInBook } from "@/api/quiz";
+import { AnswerRecord, getAnswersFilesInBook, getAnswersInBook} from "@/api/quiz";
 import { getBook } from "@/api/book";
 import { getUploadDir, zipResponse } from "@/utils/zip";
 
@@ -55,39 +55,58 @@ export async function GET(request: NextRequest) {
     });
   });
 
-  const sheet2 = workbook.addWorksheet('Answers');
-  sheet2.columns = [
-    {header: 'Name', key: 'name', width: 20},
-    {header: 'Surname', key: 'surname', width: 20},
-    {header: 'Email', key: 'email', width: 30},
-    ...questions.map(([question, questionId]) => ({
-      header: question || questionId,
-      key: questionId,
-      width: 30,
-    }))
-  ];
-  const headerRow = sheet2.getRow(1);
-  headerRow.height = 120;
-  questions.forEach((_, i) => {
-    headerRow.getCell(i + 4).alignment = {
-      textRotation: 90,
-      wrapText: true,
-      horizontal: "left"};
-  });
+  function addAnswerWorksheet(name: string) {
+    const ws = workbook.addWorksheet(name);
+    ws.columns = [
+      {header: 'Name', key: 'name', width: 20},
+      {header: 'Surname', key: 'surname', width: 20},
+      {header: 'Email', key: 'email', width: 30},
+      ...questions.map(([question, questionId]) => ({
+        header: question || questionId,
+        key: questionId,
+        width: 30,
+      }))
+    ];
+    const headerRow = ws.getRow(1);
+    headerRow.height = 120;
+    questions.forEach((_, i) => {
+      headerRow.getCell(i + 4).alignment = {
+        textRotation: 90,
+        wrapText: true,
+        horizontal: "left"};
+    });
+    return ws
+  }
 
+  function renderAnswer(a: AnswerRecord) {
+    return a.isCorrect === undefined
+           ? a.answer
+           : a.isCorrect
+             ? `✅ ${a.answer}`
+             : `❌ ${a.answer}`
+  }
+
+  const sheet2 = addAnswerWorksheet("Answers");
   answers.forEach(({name, surname, email, answers}) => {
     sheet2.addRow({
       name, surname, email,
       ...Object.fromEntries(
         Object.entries(answers).map(([questionId, ans]) => [
           questionId,
-          ans.map(a =>
-            a.isCorrect === undefined
-            ? a.answer
-            : a.isCorrect
-              ? `✅ ${a.answer}`
-              : `❌ ${a.answer}`
-          ).join('\n')
+          ans.map(renderAnswer).at(-1)
+        ])
+      )
+    });
+  });
+
+  const sheet3 = addAnswerWorksheet("Answers (all)");
+  answers.forEach(({name, surname, email, answers}) => {
+    sheet3.addRow({
+      name, surname, email,
+      ...Object.fromEntries(
+        Object.entries(answers).map(([questionId, ans]) => [
+          questionId,
+          ans.map(renderAnswer).join('\n')
         ])
       )
     });
