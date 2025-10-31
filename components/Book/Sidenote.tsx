@@ -76,7 +76,7 @@ const useSidenoteRegistration = () => {
   const ref = useRef<HTMLDivElement | null>(null);
   const {register, unregister} = React.useContext(SidenoteContext);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     let current: HTMLDivElement | null = null;
     if (ref.current) {
       current = ref.current;
