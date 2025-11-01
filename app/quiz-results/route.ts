@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
   const workbook = new ExcelJS.Workbook();
 
   const sheet1 = workbook.addWorksheet('Points');
+  sheet1.views = [{state: 'frozen', xSplit: 3, ySplit: 1}];
   sheet1.columns = [
     {header: 'Name', key: 'name', width: 20},
     {header: 'Surname', key: 'surname', width: 20},
@@ -57,6 +58,7 @@ export async function GET(request: NextRequest) {
 
   function addAnswerWorksheet(name: string) {
     const ws = workbook.addWorksheet(name);
+    ws.views = [{state: 'frozen', xSplit: 3, ySplit: 1}];
     ws.columns = [
       {header: 'Name', key: 'name', width: 20},
       {header: 'Surname', key: 'surname', width: 20},
