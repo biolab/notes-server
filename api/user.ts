@@ -60,23 +60,53 @@ export const isAdminFor = async ({accessToken, bookId, collectionId}:
     bookId?: number;
     collectionId?: number }
 ): Promise<boolean> => {
-  const user = await db.get(`
-      SELECT admin, email FROM users WHERE accessToken = ?`,
-      [accessToken]);
+  const isCollectionAdmin = async (collectionId: number) =>
+    !!await db.get(
+    `SELECT 1 FROM collection_admins WHERE collectionId = ? AND email = ?`,
+    [collectionId, user.email]);
+
+  const isAnyCollectionAdmin = async (collectionIds: {collectionId: number}[]) => {
+    for (const {collectionId} of collectionIds) {
+      if (await isAdminFor({accessToken, collectionId})) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  const user = await db.get(
+    `SELECT admin, email FROM users WHERE accessToken = ?`,
+    [accessToken]);
+
   return user && !!(
     user.admin
-    || bookId && await db.get(
-      `SELECT 1 FROM book_admins WHERE bookId = ? AND email == ?`,
-      [bookId, user.email])
-    || bookId && await db.get(
-      `SELECT 1 FROM collections_books cb
-       JOIN collection_admins ca ON cb.collectionId = ca.collectionId
-       WHERE cb.bookId = ? AND ca.email == ?`,
-      [bookId, user.email]
+    || bookId && (
+      await db.get(
+        `SELECT 1 FROM book_admins WHERE bookId = ? AND email = ?`,
+        [bookId, user.email])
+      ||
+      await db.get(
+        `SELECT 1 FROM collections_books cb
+         JOIN collection_admins ca ON cb.collectionId = ca.collectionId
+         WHERE cb.bookId = ? AND ca.email = ?`,
+        [bookId, user.email])
+      ||
+      await isAnyCollectionAdmin(
+         await db.all(
+          `SELECT collectionId
+           FROM collections_books WHERE bookId = ?`, [bookId])
+      )
     )
-    || collectionId && await db.get(
-      `SELECT 1 FROM collection_admins WHERE collectionId = ? AND email == ?`,
-      [collectionId, user.email])
+    || collectionId && (
+      await isCollectionAdmin(collectionId)
+      ||
+      await isAnyCollectionAdmin(
+        await db.all(
+          `SELECT collectionId FROM
+              collections_collections WHERE subCollectionId = ?`,
+          [collectionId])
+      )
+    )
   );
 }
 
