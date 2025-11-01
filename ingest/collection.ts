@@ -43,8 +43,7 @@ export const parseCollection = async (pathParts: string[]): Promise<RawCollectio
       );
 
   const resolveManualPath = (spath: string) =>
-    spath.startsWith("//") ? spath.slice(2)
-    : spath.startsWith("/") ? path.join(pathParts[0], spath.slice(1))
+    spath.startsWith("/") ? path.join(pathParts[0], spath.slice(1))
     : path.join(...pathParts, spath);
 
   const appendIndexName = (slug: string, base: string): [string, string] => {
