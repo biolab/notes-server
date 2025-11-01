@@ -5,7 +5,7 @@ import { RawBookFrontmatter, ChapterDefBase, ChapterFrontmatter } from "@/types"
 
 import { pathExists } from "./paths";
 import { checkedMatter, getMdFile, isListOfStrings, parseMd, readPublicDirMd } from "./md-helpers";
-import { catchErrors, logError } from "./errors";
+import { catchErrors, catchErrorsSync, logError } from "./errors";
 import { extractQuizzes } from "./questions";
 
 
@@ -83,23 +83,28 @@ export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
 
   const chapters = [];
   for (const chapterDir of chapterDirs) {
+    const errorPath = `${chapterDir} (in ${fullPath}):\n  `;
     if (!pathExists(chapterDir)) {
-      logError(fullPath, `Chapter directory ${chapterDir} does not exist.`);
+      logError(errorPath, `Chapter does not exist.`);
       continue;
     }
 
-    const index = await catchErrors(
-      chapterDir, async () => getMdFile(chapterDir));
-    if (!index) {
-      continue;
-    }
+    const index = catchErrorsSync(errorPath, () => getMdFile(chapterDir));
+    if (!index) { continue; }
+
     const chapterMd = fs.readFileSync(index, "utf-8");
-    const { frontmatter, content } = chapterMatter(chapterMd, chapterDir);
-    const mdxContent = parseMd(content);
-    const questions = await extractQuizzes(mdxContent, chapterDir);
+    const parsedMatter = catchErrorsSync(errorPath, () => chapterMatter(chapterMd, chapterDir));
+    if (!parsedMatter) { continue; }
+
+    const mdxContent = catchErrorsSync(errorPath, () => parseMd(parsedMatter.content));
+    if (!mdxContent) { continue; }
+
+    const questions = await catchErrors(errorPath, () => extractQuizzes(mdxContent, chapterDir));
+    if (!questions) { continue; }
+
     chapters.push({
       chapterDir,
-      frontmatter,
+      frontmatter: parsedMatter.frontmatter,
       mdxContent,
       questions,
     });
