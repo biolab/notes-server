@@ -18,4 +18,12 @@ export async function catchErrors<T>(
   }
 }
 
+export function catchErrorsSync<T>(where: string, func: () => T): T | undefined {
+  try {
+    return func();
+  } catch (err) {
+    logError(where, err instanceof Error ? err : new Error(String(err)));
+  }
+}
+
 export const hasError = () => error;
