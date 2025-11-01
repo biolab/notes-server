@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useContext, use } from "react";
+import React, { useContext } from "react";
+import { useSearchParams } from 'next/navigation';
 
 import { UserContext } from "@/context/UserContextProvider";
 import Login from "@/components/Login";
@@ -8,12 +9,11 @@ import Layout from "@/components/Layout/Layout";
 import { useIntlFromBrowser } from "@/i18n";
 
 
-export default function LoginPage({ searchParams }: {
-  searchParams: Promise<{ [key: string]: string | undefined }>;
-})  {
+export default function LoginPage()  {
   const { user, logOut } = useContext(UserContext);
   const { t } = useIntlFromBrowser();
-  const { redirect } = use(searchParams);
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
 
   return (
     <Layout title={t("login")}>
