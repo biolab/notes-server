@@ -161,13 +161,24 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
 
   const provider = usePublicProvider(slug);
 
+  const loading = React.useMemo(() =>
+      !user
+      || groupRequired === null
+      || publicCollection === null // prevent showing it later -- looks weird
+      || provider === null,
+    [user, groupRequired, publicCollection, provider]);
+
+  const needsLogin = React.useMemo(() =>
+    user && (frontmatter.requireLogin && !user.email || groupRequired),
+    [user, frontmatter, groupRequired]);
+
   const { layout } = useContext(SidenoteContext);
   const hasMounted = useHasMounted();
   React.useEffect(() => {
-    if (hasMounted && layout) {
+    if (hasMounted && layout && !loading && !needsLogin && answers !== "pending") {
       layout();
     }
-  }, [hasMounted, layout]);
+  }, [hasMounted, layout, loading, needsLogin, answers]);
 
   React.useEffect(() => {
     if (layout) {
@@ -184,14 +195,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     [chapters]
   );
 
-  const loading = React.useMemo(() =>
-      !user
-      || groupRequired === null
-      || publicCollection === null // prevent showing it later -- looks weird
-      || provider === null,
-    [user, groupRequired, publicCollection, provider]);
-
-  if (user && (frontmatter.requireLogin && !user.email || groupRequired)) {
+  if (needsLogin) {
     return (
       <Login
         title={frontmatter.title}
