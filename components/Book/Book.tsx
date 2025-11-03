@@ -119,7 +119,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
           && (!token || user.tokens?.includes(token))
         );
         if (applicable.length === 1) {
-          setUserGroup(storedGroup);
+          setUserGroup(applicable[0][0]);
           setGroupRequired(false);
           return;
         }
