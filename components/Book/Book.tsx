@@ -35,6 +35,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     useState<"pending" | null | {
       answers: AnswerWithQuestionId[],
       correctAnswers: CorrectAnswers}>("pending");
+  const hasGroups = useMemo(() => frontmatter.groups.length > 0, [frontmatter]);
   const [groupRequired, setGroupRequired] = useState<boolean | null>(null);
   const hasQuestions = useMemo(
     () => chapters.some((chapter) => chapter.questions.length > 0),
@@ -48,8 +49,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
   /* Restore previous answers */
   React.useEffect(() => {
     if (!user
-      || groupRequired === null
-      || groupRequired && !userGroup
+      || hasGroups && !userGroup
     ) {
       return;
     }
@@ -71,7 +71,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     }
 
     getAnswersInBook(bookId, user.accessToken).then(setAllAnswers);
-  }, [t, user, user?.accessToken, userGroup, slug, bookId, groupRequired]);
+  }, [t, user, user?.accessToken, userGroup, slug, bookId, hasGroups]);
 
   const [showAnswers, setShowAnswers] = useState(false);
 
@@ -89,7 +89,10 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
      If there is no matching group or token, set groupRequired
   */
   React.useEffect(() => {
-    if (!user || !frontmatter.groups || frontmatter.groups.length === 0) {
+    if (!user) {
+      return;
+    }
+    if (!hasGroups) {
       setUserGroup(null);
       setGroupRequired(false);
       return;
