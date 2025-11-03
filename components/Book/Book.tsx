@@ -49,11 +49,11 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
   React.useEffect(() => {
     if (!user
       || groupRequired === null
-      || groupRequired && userGroup === undefined
+      || groupRequired && !userGroup
     ) {
       return;
     }
-    getAnswers({ accessToken: user.accessToken, bookId, group: userGroup || undefined})
+    getAnswers({ accessToken: user.accessToken, bookId, group: userGroup})
       .then((response) => {
         logger("Quiz answers fetched:", response);
         setAnswers(response);
