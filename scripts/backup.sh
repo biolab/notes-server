@@ -4,6 +4,7 @@ if [ ! -d backups ]; then
 fi
 
 STEM=backups/$(date +%Y%m%d_%H%M%S)
+gzip -c notes.sqlite > $STEM-notes.sqlite.gz
 
 sqlite3 notes.sqlite <<EOF
 .headers on
@@ -29,5 +30,8 @@ FROM answers a
 SELECT
     accessToken, name, surname, email, admin, createdAt, lastUseAt FROM users;
 EOF
+
+gzip $STEM-answers.csv
+gzip $STEM-users.csv
 
 cd - > /dev/null
