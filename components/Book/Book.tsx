@@ -29,7 +29,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
 ) => {
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
-  const { user, setUserGroup } = useContext(UserContext);
+  const { user, userGroup, setUserGroup } = useContext(UserContext);
   const [ isAdmin, setIsAdmin ] = useState<boolean>(false);
   const [answers, setAnswers] =
     useState<"pending" | null | {
@@ -49,12 +49,11 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
   React.useEffect(() => {
     if (!user
       || groupRequired === null
-      || groupRequired && user.groups[bookId] === undefined
+      || groupRequired && userGroup === undefined
     ) {
       return;
     }
-    getAnswers({ accessToken: user.accessToken, bookId,
-                 group: groupRequired ? user.groups[bookId] : undefined})
+    getAnswers({ accessToken: user.accessToken, bookId, group: userGroup || undefined})
       .then((response) => {
         logger("Quiz answers fetched:", response);
         setAnswers(response);
@@ -72,7 +71,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     }
 
     getAnswersInBook(bookId, user.accessToken).then(setAllAnswers);
-  }, [t, user, user?.accessToken, slug, bookId, groupRequired]);
+  }, [t, user, user?.accessToken, userGroup, slug, bookId, groupRequired]);
 
   const [showAnswers, setShowAnswers] = useState(false);
 
@@ -112,7 +111,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
         }
       } else {
 
-        // Is the intersection of book's and users's groups (with proper tokens)
+        // Is the intersection of book's and user's groups (with proper tokens)
         // a single group?
         const applicable = frontmatter.groups.filter(([group, token]) =>
           Object.values(user.groups).includes(group)

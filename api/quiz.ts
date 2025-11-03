@@ -101,7 +101,7 @@ export type CorrectAnswers = { questionId: string, answer: string }[];
 export const getAnswers = async ({ accessToken, bookId, group }: {
   accessToken: string;
   bookId: number;
-  group: string | undefined;
+  group: string | undefined | null;
 }) => {
   const userId = await getUserId(accessToken);
   const answers = (
@@ -112,7 +112,7 @@ export const getAnswers = async ({ accessToken, bookId, group }: {
       LEFT JOIN groups g ON answers.groupId = g.id
       WHERE userId = ? AND bookId = ? AND g.name IS ?
       ORDER BY q.position, answers.createdAt`,
-      [userId, bookId, group]
+      [userId, bookId, group ?? null]
     )).map(({isCorrect, ...rest}) => ({
     // DB stores 0 and 1 even if the column is declared as BOOLEAN
     isCorrect: isCorrect === null ? undefined : !!isCorrect,
