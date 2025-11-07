@@ -28,10 +28,12 @@ function useOutsideClick(ref: any, onClick: any) {
   }, [onClick, ref]);
 }
 
-const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}: {
+const UserDropdown = (
+  {showLinkToResults=false, returnLink, onChangeGroup, onChangeShowAnswers}: {
   showLinkToResults?: boolean;
   returnLink?: string;
   isAdmin?: boolean
+  onChangeGroup?: () => void;
   onChangeShowAnswers?: (show: boolean) => void;
 }) => {
   const { user, logOut } = React.useContext(UserContext);
@@ -109,6 +111,11 @@ const UserDropdown = ({showLinkToResults=false, returnLink, onChangeShowAnswers}
                     <label htmlFor="showAnswers">
                       &nbsp;{ t("user.show-answers") }
                     </label>
+                  </li>
+                }
+                { onChangeGroup &&
+                  <li onClick={onChangeGroup}>
+                    { t("user.change-group") }
                   </li>
                 }
                 <li onClick={toLogout}>

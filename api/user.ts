@@ -210,8 +210,9 @@ export const setUserGroupAndToken = async (
 
   if (group) {
     await db.run(
-      `INSERT OR IGNORE INTO users_books (userId, bookId, groupId)
-       SELECT ?, ?, id FROM groups WHERE name = ?;
+      `INSERT INTO users_books (userId, bookId, groupId)
+       SELECT ?, ?, id FROM groups WHERE name = ?
+       ON CONFLICT(userId, bookId) DO UPDATE SET groupId = excluded.groupId;
       `,
       [userId, bookId, group]
     );

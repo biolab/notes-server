@@ -30,6 +30,7 @@ export default function Layout({
   chapters = [],
   isChapterIndexVisible = {},
   showLinkToResults = false,
+  onChangeGroup,
   onChangeShowAnswers,
   returnLink,
   children,
@@ -41,12 +42,13 @@ export default function Layout({
   chapters?: ChapterDef[];
   isChapterIndexVisible?: { [key: number]: boolean };
   showLinkToResults?: boolean;
+  onChangeGroup?: () => void;
   onChangeShowAnswers?: (show: boolean) => void;
   returnLink?: string;
   children: React.ReactNode;
 }) {
   const { t } = useIntl();
-  const { user } = React.useContext(UserContext);
+  const { user, userGroup } = React.useContext(UserContext);
 
   const titleLink = React.useMemo(() => title &&
     <a
@@ -116,12 +118,16 @@ export default function Layout({
             </div>
           }
           <div className="flex flex-row gap-5">
-            { user?.email || t("user.anonymous-user") }
+            <div title={user?.email || undefined}>
+              { user?.name ? `${user?.name} ${user?.surname}` : user?.email || t("user.anonymous-user") }
+              { !!userGroup && `, ${userGroup}`}
+            </div>
             <div className="flex">
               <UserDropdown
                 showLinkToResults={showLinkToResults}
                 returnLink={returnLink}
                 isAdmin={isAdmin}
+                onChangeGroup={onChangeGroup}
                 onChangeShowAnswers={onChangeShowAnswers}
               />
             </div>
