@@ -8,6 +8,7 @@ import { parseCollection, RawCollectionDef } from "./collection";
 import { parseBook, RawBookDef, RawChapterDef } from "./book";
 import { gatherRedirections, updateRedirections } from "./redirections";
 import { catchErrors, hasError, logError } from "./errors";
+import { MailPath } from "@/ingest/mail";
 
 const checkMoved = (moved: [string, string][]) => {
   moved.forEach(([from]) => {
@@ -480,6 +481,26 @@ const insertFavicons = async (
     }));
 }
 
+const insertLoginMails = async (
+  mailPaths: MailPath[],
+  prefix: string,
+  db: Database,
+  buildId: number
+) => {
+  await Promise.all(
+    mailPaths.map(({path, subject, plain, html}) => {
+      db.run(`
+        INSERT INTO loginmails (path, subject, plain, html, lastBuildId)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT DO UPDATE SET subject = excluded.subject,
+                                  plain = excluded.plain,
+                                  html = excluded.html,
+                                  lastBuildId = excluded.lastBuildId
+      `,
+      [path, subject, plain, html, buildId]);
+    }));
+}
+
 const movePaths = async (
   moved: [string, string][],
   db: Database
@@ -501,7 +522,7 @@ const cleanup = async (
   buildId: number
 ) => {
   await Promise.all(
-    ["chapters", "books", "collections", "faviconpaths"].map((table) =>
+    ["chapters", "books", "collections", "faviconpaths", "loginmails"].map((table) =>
       db.run(
         `DELETE FROM ${table}
          WHERE (path = ? OR path LIKE ?) AND lastBuildId <> ?`,
@@ -523,6 +544,7 @@ export const updatePaths = async (
   bookSlugs: string[][],
   collectionSlugs: string[][],
   faviconPaths: string[],
+  mailPaths: MailPath[],
   db: Database,
   buildId: number | null,
   pathPrefix: string,
@@ -558,6 +580,7 @@ export const updatePaths = async (
   await insertBooks(books, db, buildId);
   await insertCollections(collections, db, buildId);
   await insertFavicons(faviconPaths, db, buildId);
+  await insertLoginMails(mailPaths, pathPrefix, db, buildId);
   await updateRedirections(db, buildId, pathPrefix, redirections);
 
   await cleanup(db, pathPrefix, buildId);

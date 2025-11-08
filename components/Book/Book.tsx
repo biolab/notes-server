@@ -201,6 +201,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     return (
       <Login
         title={frontmatter.title}
+        slug={slug}
         bookId={bookId}
         requireEmail={frontmatter.requireLogin}
         groups={groupRequired ? frontmatter.groups : undefined}

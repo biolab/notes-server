@@ -253,9 +253,23 @@ export const rebuildDatabase = async () => {
         CREATE TABLE faviconpaths
         (
             path        TEXT NOT NULL,
-            ${LAST_BUILD_ID}
+            ${LAST_BUILD_ID},
+            UNIQUE (path)
         )
-    `)
+    `);
+
+    await handle("loginmails");
+    await run(`
+        CREATE TABLE loginmails
+        (
+            path        TEXT NOT NULL,
+            subject     TEXT NOT NULL,
+            plain       TEXT NOT NULL,
+            html        TEXT,
+            ${LAST_BUILD_ID},
+            UNIQUE (path)
+        );
+    `);
 
     await handle("book_admins");
     await run(`

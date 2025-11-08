@@ -1,6 +1,8 @@
 "use server";
 
 import nodemailer from "nodemailer";
+import db from "@/utils/db";
+import { MailPath } from "@/ingest/mail";
 
 
 const SMTP_SERVER_HOST = process.env.SMTP_SERVER_HOST;
@@ -13,11 +15,20 @@ const transporter = nodemailer.createTransport({
   secure: SMTP_PORT === 465
 });
 
+export const mailForPath = async (path: string): Promise<MailPath | undefined> =>
+  db.get(`
+    SELECT path, subject, plain, html
+    FROM loginmails
+    WHERE ? LIKE path || '%'
+    ORDER BY LENGTH(path) DESC
+    LIMIT 1;`, [path]);
+
+
 export const sendEmail = async ({sendTo, subject, text, html}: {
   sendTo: string;
   subject: string;
   text: string;
-  html: string;
+  html?: string;
 }) => {
   if (process.env.NODE_ENV === "development") {
     return;
@@ -25,5 +36,5 @@ export const sendEmail = async ({sendTo, subject, text, html}: {
 
   await transporter.verify();
   return await transporter.sendMail(
-    {from: EMAIL_FROM, to: sendTo, subject, text, html });
+    {from: EMAIL_FROM, to: sendTo, subject, text, html});
 };

@@ -25,3 +25,6 @@ export const isDirectory = (...spath: string[]) =>
 
 export const readPublicDir = (...spath: string[]): string[] =>
   fs.readdirSync(joinedPath(spath));
+
+export const readFile = (...spath: string[]): string =>
+  fs.readFileSync(joinedPath(spath), "utf-8");
