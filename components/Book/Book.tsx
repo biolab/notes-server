@@ -236,6 +236,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
             frontmatter.tocInHeader ? isChapterIndexVisible : []
           }
           showLinkToResults={isAdmin && hasQuestions}
+          onChangeGroup={userGroup ? () => { setUserGroup(null); setGroupRequired(true) } : undefined}
           onChangeShowAnswers={(isAdmin && hasQuestions) ? setShowAnswers : undefined}>
           <div className={`prose book ${marginClass}`}>
             {frontmatter.coverImg && (
