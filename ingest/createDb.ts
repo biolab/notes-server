@@ -102,8 +102,9 @@ export const rebuildDatabase = async () => {
             bookId  INTEGER NOT NULL REFERENCES books (id) ON DELETE CASCADE,
             groupId INTEGER DEFAULT NULL REFERENCES groups (id) ON DELETE SET NULL,
             tokenId INTEGER DEFAULT NULL REFERENCES tokens (id) ON DELETE SET NULL,
-            
-            UNIQUE (bookId, groupId, tokenId)
+            position INTEGER NOT NULL,
+            UNIQUE (bookId, groupId, tokenId),
+            UNIQUE (bookId, position)
         );
     `);
 

@@ -55,7 +55,8 @@ export const getBook = async (id: number): Promise<BookProps> => {
         FROM books_groups bg
         LEFT JOIN groups on groups.id = bg.groupId
         LEFT JOIN tokens on tokens.id = bg.tokenId
-        WHERE bg.bookId = ?`,
+        WHERE bg.bookId = ?
+        ORDER BY position`,
        [book.id])
     ) as { name: string, token: string }[]
   ).map(({ name, token }) => [name, token] as [string, string]);
@@ -80,7 +81,9 @@ export const getGroups = async (bookId: number): Promise<GroupList> =>
     `SELECT g.id, g.name
      FROM books_groups bg
      JOIN groups g on g.id = bg.groupId
-     WHERE bg.bookId = ?`,
+     WHERE bg.bookId = ?
+     ORDER BY position
+    `,
     [bookId]
   )) as {id: number, name: string}[];
 
