@@ -309,6 +309,7 @@ const insertBook = async (
     groups ? (Array.isArray(groups) ? groups : Object.entries(groups))
     : tokens ? tokens.map((t: string) => [null, t])
     : [];
+  let position = 1;
   for(const group_token of groups_tokens) {
     const [group, token] = typeof(group_token) === "string" ? [group_token] : group_token;
     if (group && allGroups[group] === undefined) {
@@ -322,10 +323,10 @@ const insertBook = async (
         [token])).id;
     }
     await db.run(`
-      INSERT INTO books_groups (bookId, groupId, tokenId)
-      VALUES (?, ?, ?)
+      INSERT INTO books_groups (bookId, groupId, tokenId, position)
+      VALUES (?, ?, ?, ?)
       ON CONFLICT DO NOTHING`,
-      [bookId, group && allGroups[group], token && allTokens[token]]);
+      [bookId, group && allGroups[group], token && allTokens[token], position++]);
   }
 
   await db.run(`DELETE FROM books_chapters WHERE bookId = ?`, [bookId]);
