@@ -7,6 +7,7 @@ import { load } from "js-yaml";
 import { getPaths } from "./md-helpers";
 import { updatePaths } from "./updatePaths";
 import { getFaviconPaths } from "./favicons";
+import { getLoginMails } from "@/ingest/mail";
 
 
 export const DB_PATH = path.join(process.cwd(), "db");
@@ -58,5 +59,6 @@ export async function updateDb(
   const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
   const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
   const faviconPaths = getFaviconPaths(prefix);
-  await updatePaths(bookPaths, collectionPaths, faviconPaths, db, buildId, prefix, moved, relaxed);
+  const mailPaths = getLoginMails(prefix);
+  await updatePaths(bookPaths, collectionPaths, faviconPaths, mailPaths, db, buildId, prefix, moved, relaxed);
 }

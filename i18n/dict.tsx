@@ -84,7 +84,7 @@ const dict: {[lang: string]: {[key: string]: any}} = {
       <p>To log in as a different user, please
         <a href="#" onClick={() => logOut()}>log out</a> first.</p>
     </>,
-    "login.email-subject": "Your sign-in link for Notes",
+    "login.email-subject": `Your sign-in link for {title}`,
     "login.send-email-fail": "Failed to send the email. Please try again later.",
     "login.page-title": "Login to Notes",
     "login.contains-questions": "This book contains questions. You need to log in to save your answers.",
@@ -183,10 +183,10 @@ const dict: {[lang: string]: {[key: string]: any}} = {
         <a href="#" onClick={() => logOut()}>odjavite</a>.
       </p>
     </>,
-    "login.email-subject": "Povezava za prijavo v Notes",
+    "login.email-subject": `Povezava za prijavo v {title}`,
     "login.send-email-fail": "Pošiljanje e-pošte ni uspelo. Poskusite znova pozneje.",
     "login.page-title": "Prijava v Notes",
-    "login.contains-questions": "Ta knjiga vsebuje vprašanja. Za shranjevanje svojih odgovorov se morate prijaviti.",
+    "login.contains-questions": "Ta knjiga vsebuje vprašanja. Da bodo vaši odgovori shranjeni po vašim imenom, se morate prijaviti. ",
     "login.instructions": "Obstoječi uporabniki lahko pridobijo povezavo za prijavo po e-pošti. Novi uporabniki se morajo identificirati z e-pošto in imenom.",
     "login.your-email-address": "Vaš e-poštni naslov",
     "login.existing-user-login": "Prijava kot obstoječi uporabnik",
@@ -222,20 +222,20 @@ const dict: {[lang: string]: {[key: string]: any}} = {
 
 /* Move this out of the way */
 
-dict["en"]["login.email-plain"] = (url: string) => `Hello,
+dict["en"]["login.email-plain"] = `Hello,
 
-Use the link below to sign in to Notes:
+Use the link below to sign in to {title}:
 
-${url}
+{url}
 
 This link will expire in 30 minutes. If you didn’t request this email, you can safely ignore it.
 
 – The Notes Team`;
 
-dict["en"]["login.email-html"] = (url: string) => `
+dict["en"]["login.email-html"] = `
     <p>Hello,</p>
-    <p>Use the button below to sign in to <strong>Notes</strong>:</p>
-    <p><a href="${url}" style="
+    <p>Use the button below to sign in to <strong>{title}</strong>:</p>
+    <p><a href="{url}" style="
       display:inline-block;
       padding:10px 20px;
       background-color:#2563eb;
@@ -247,20 +247,20 @@ dict["en"]["login.email-html"] = (url: string) => `
     <p>– The Notes Team</p>`;
 
 
-dict["sl"]["login.email-plain"] = (url: string) => `Pozdravljeni,
+dict["sl"]["login.email-plain"] = `Pozdravljeni,
 
-Uporabite spodnjo povezavo za prijavo v Notes:
+Uporabite spodnjo povezavo za prijavo v {title}:
 
-${url}
+{url}
 
 Povezava bo veljavna 30 minut. Če niste zahtevali tega e-poštnega sporočila, ga lahko varno prezrete.
 
 – Ekipa Notes`;
 
-dict["sl"]["login.email-html"] = (url: string) => `
+dict["sl"]["login.email-html"] = `
     <p>Pozdravljeni,</p>
-    <p>Uporabite spodnji gumb za prijavo v <strong>Notes</strong>:</p>
-    <p><a href="${url}" style="
+    <p>Uporabite spodnji gumb za prijavo v <strong>{title}</strong>:</p>
+    <p><a href="{url}" style="
       display:inline-block;
       padding:10px 20px;
       background-color:#2563eb;

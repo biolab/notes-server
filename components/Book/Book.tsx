@@ -11,7 +11,7 @@ import { LinkDesc } from "@/api/content";
 import { isAdminFor } from "@/api/user";
 
 import { logger } from "@/utils/logger";
-import { IntlContextProvider, useIntl } from "@/i18n";
+import { getT, IntlContextProvider } from "@/i18n";
 import { UserContext } from "@/context/UserContextProvider";
 import { AnswerWithQuestionId, QuizContextProvider } from "@/context/QuizContextProvider";
 import Layout from "../Layout/Layout";
@@ -42,7 +42,9 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     [chapters]
   );
 
-  const { t } = useIntl();
+  const t = useMemo(
+    () => getT(frontmatter.language || "en"),
+    [frontmatter.language]);
 
   const [allAnswers, setAllAnswers] = useState<AnswersInBook | false>(false);
 
@@ -201,6 +203,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
     return (
       <Login
         title={frontmatter.title}
+        slug={slug}
         bookId={bookId}
         requireEmail={frontmatter.requireLogin}
         groups={groupRequired ? frontmatter.groups : undefined}

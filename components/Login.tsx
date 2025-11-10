@@ -1,15 +1,16 @@
 import React, { useMemo } from "react";
 
 import { checkMailExists, setTemporaryData, setUserGroupAndToken } from "@/api/user";
-import { sendEmail } from "@/api/email";
+import { mailForPath, sendEmail } from "@/api/email";
 import { UserContext } from "@/context/UserContextProvider";
 import { useHasMounted } from "@/hooks/useHasMounted";
 
 
-function Login({title, bookId, requireEmail, redirect, groups, t}: {
+function Login({title, bookId, requireEmail, redirect, slug, groups, t}: {
   title?: string;
   bookId?: number;
   requireEmail: boolean;
+  slug?: string;
   redirect?: string;
   groups?: [string, string][];
   t: (key: string) => any;
@@ -82,12 +83,21 @@ function Login({title, bookId, requireEmail, redirect, groups, t}: {
         return;
       }
 
+      const { subject, plain, html} = {
+        subject: t("login.email-subject"),
+        plain: t("login.email-plain"),
+        html: t("login.email-html"),
+        ...(slug && await mailForPath(slug) || {})
+      }
+
+      const format = (s: string) =>
+        s.replaceAll("{title}", title || "Notes").replaceAll("{url}", url);
       try {
         await sendEmail({
           sendTo: email,
-          subject: t("login.email-subject"),
-          text: t("login.email-plain")(url),
-          html: t("login.email-html")(url)
+          subject: format(subject),
+          text: format(plain),
+          html: html && format(html)
         })
       } catch (error: any) {
         setMessage([
@@ -98,7 +108,7 @@ function Login({title, bookId, requireEmail, redirect, groups, t}: {
       }
       setMessage(["SENT"]);
     },
-    [t, email, name, surname, bookId, group, groups, token, user, askGroup, askToken, redirect]
+    [t, email, name, surname, bookId, group, groups, token, user, askGroup, askToken, redirect, slug, title]
   );
 
   if (!hasMounted || !user) {
