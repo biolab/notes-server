@@ -28,6 +28,7 @@ export default function LoginPage()  {
             <Login
               requireEmail={true}
               redirect={redirect ? decodeURIComponent(redirect) : "/"}
+              slug={redirect ? decodeURIComponent(redirect).slice(1) : undefined}
               t={t}/>
           )}
     </Layout>
