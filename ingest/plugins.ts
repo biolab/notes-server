@@ -28,6 +28,8 @@ export const replacer = ({language, extra_replacements}: {language: string, extr
 
 
 export const addRelativePath = ({relativePath}: {relativePath: string}) => () => (tree: Root) => {
+  const notAbsolute = (p: string) => !(p.startsWith("/") || /https?:\/\//.test(p));
+
   visit(
     tree,
     (node: any) => ["element", "mdxJsxFlowElement"].includes(node.type),
@@ -36,21 +38,17 @@ export const addRelativePath = ({relativePath}: {relativePath: string}) => () =>
         return;
       }
       if (node.type === "element") {
-        if (node.properties?.src
-          && !/https?:\/\//.test(node.properties.src)
-        ) {
+        if (node.properties?.src && notAbsolute(node.properties.src)) {
           node.properties.src = `/${relativePath}/${node.properties.src}`;
         }
-        if (node.properties?.href
-          && !/https?:\/\//.test(node.properties.href)
-        ) {
+        if (node.properties?.href && notAbsolute(node.properties.href)) {
           node.properties.href = `/${relativePath}/${node.properties.href}`;
         }
       }
       if (node.type === "mdxJsxFlowElement") {
         node.attributes.forEach((attr: {name: string, value: string}) => {
           if ((attr.name === "src" || attr.name === "href")
-              && !/https?:\/\//.test(attr.value)) {
+              && notAbsolute(attr.value)) {
             attr.value = `/${relativePath}/${attr.value}`;
           }
         });
