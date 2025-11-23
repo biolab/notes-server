@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, statSync } from "fs";
 import path from "path";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
@@ -8,14 +8,14 @@ import { getPaths } from "./md-helpers";
 import { updatePaths } from "./updatePaths";
 import { getFaviconPaths } from "./favicons";
 import { getLoginMails } from "@/ingest/mail";
+import { joinedPath, readPublicDir } from "@/ingest/paths";
 
 
 export const DB_PATH = path.join(process.cwd(), "db");
 export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
 export async function updateDb(
-  pathPrefix: string,
-  update=false,
+  prefix: string,
   check=false,
   exceptionsFile: string | null = null) {
   const db = await open({
@@ -23,15 +23,6 @@ export async function updateDb(
     driver: sqlite3.Database,
   });
   await db.exec("PRAGMA foreign_keys = ON");
-
-  const buildId =
-    check ? null
-    : update ? (await db.get(`SELECT MAX(id) as id FROM builds;`)).id
-    : (await db.get(`INSERT INTO builds (path) VALUES (?) RETURNING id`, [pathPrefix])).id;
-
-  const prefix =
-    update ? (await db.get(`SELECT path FROM builds WHERE id = ?;`, [buildId])).path
-    : pathPrefix;
 
   let moved: [string, string][] = [];
   let relaxed: string[] = [];
@@ -55,10 +46,30 @@ export async function updateDb(
     relaxed = (exceptions.relaxed || []).map(p);
   }
 
-  const paths: [string[], boolean][] = getPaths(prefix ? [prefix] : []);
-  const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
-  const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
-  const faviconPaths = getFaviconPaths(prefix);
-  const mailPaths = getLoginMails(prefix);
-  await updatePaths(bookPaths, collectionPaths, faviconPaths, mailPaths, db, buildId, prefix, moved, relaxed);
+  const prefixes = prefix ? [prefix]
+    : readPublicDir()
+      .filter((entry) => statSync(joinedPath(entry)).isDirectory());
+  for(const prefix of prefixes) {
+    const prevBuild = new Date(process.env.DEVELOPMENT &&
+      (await db.get(
+        `SELECT MAX(timestamp) as time, path FROM builds WHERE path = ?`,
+        [prefix])
+      )?.time
+      || 0);
+    const buildId =
+      check ? null
+      : (await db.get(
+          `INSERT INTO builds (path) VALUES (?) RETURNING id`,
+          [prefix])).id;
+
+    const paths: [string[], boolean][] = getPaths([prefix]);
+    if (paths.length === 0) {
+      continue;
+    }
+    const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
+    const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
+    const faviconPaths = getFaviconPaths(prefix);
+    const mailPaths = getLoginMails(prefix);
+    await updatePaths(bookPaths, collectionPaths, faviconPaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
+  }
 }

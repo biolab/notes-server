@@ -1,6 +1,5 @@
 import { Database } from "sqlite";
 
-import { QuestionDef } from "@/types";
 import { elide } from "@/utils/string";
 
 import { serializedContent } from "./md-helpers";
@@ -73,9 +72,11 @@ const checkBooks = async (
 
     // Check that chapters' content can be serialized
     for (const { mdxContent, chapterDir } of book.chapters) {
-      await catchErrors(chapterDir, async () =>
-        serializedContent(mdxContent, book.frontmatter.language, chapterDir)
-      );
+      if (mdxContent !== null) {
+        await catchErrors(chapterDir, async () =>
+          serializedContent(mdxContent, book.frontmatter.language, chapterDir)
+        );
+      }
     }
 
     /* Question-related checks
@@ -85,19 +86,39 @@ const checkBooks = async (
      */
 
     // Extract all questions in the book
-    type QuestionAndChapter = { chapter: string; question: QuestionDef };
-    const bookQuestions: QuestionAndChapter[] =
-      book.chapters.flatMap(({ questions, chapterDir }) =>
-        questions.map((question) => ({chapter: chapterDir, question}))
-      );
+    type QuestionAndChapter = { chapter: string; questionId: string };
+    const bookQuestions: QuestionAndChapter[] = [];
+    for (const {chapterDir, mdxContent, questions} of book.chapters) {
+      if (!mdxContent) {
+        bookQuestions.push(...
+          (
+            (await db.all(`
+              SELECT questionId
+              FROM questions
+              JOIN chapters ON questions.chapterId = chapters.id
+              WHERE chapters.path = ?`,
+              [chapterDir])
+            ) as { questionId: string }[]
+          ).map(({questionId}) => ({chapter: chapterDir, questionId}))
+        );
+      } else {
+        bookQuestions.push(...
+          questions.map((question) => ({
+              chapter: chapterDir,
+              questionId: question.questionId
+            })
+          )
+        );
+      }
+    }
 
     // Check that no questions within the same book have the same questionId
     const questionsByIds: Record<string, QuestionAndChapter[]> = {};
-    for (const { chapter, question } of bookQuestions) {
-      if (questionsByIds[question.questionId] === undefined) {
-        questionsByIds[question.questionId] = [];
+    for (const { chapter, questionId } of bookQuestions) {
+      if (questionsByIds[questionId] === undefined) {
+        questionsByIds[questionId] = [];
       }
-      questionsByIds[question.questionId].push({ question, chapter });
+      questionsByIds[questionId].push({ questionId, chapter });
     }
     for (const [questionId, questions] of Object.entries(questionsByIds)) {
       if (questions.length > 1) {
@@ -138,13 +159,13 @@ const checkBooks = async (
         });
         const knownIds = pastQuestions.map(({questionId}) => questionId);
         const extras = bookQuestions.filter(
-          ({question: {questionId}}) => !knownIds.includes(questionId)
+          ({questionId}) => !knownIds.includes(questionId)
         );
         if (extras.length > 0) {
           console.log(`Hint: if the above question(s) is an edit of an existing,
           set its 'id' to its original text.`
           );
-          extras.forEach(({chapter, question: {questionId}}) => {
+          extras.forEach(({chapter, questionId}) => {
             console.log(`- ${chapter} "${elide(questionId)}"`);
           });
           console.log();
@@ -205,6 +226,13 @@ const insertChapter = async (
   db: Database,
   buildId: number // use -1 to force
 ) => {
+  if (chapter.mdxContent === null) {
+    await db.get(
+      `UPDATE chapters SET lastBuildId = ? WHERE path = ?`,
+      [buildId, chapter.chapterDir]
+    );
+    return;
+  }
   const { chapterDir, mdxContent, questions,
           frontmatter: {title, omitAsChapter} } = chapter;
   if (await db.get(
@@ -548,6 +576,7 @@ export const updatePaths = async (
   mailPaths: MailPath[],
   db: Database,
   buildId: number | null,
+  prevBuild: Date,
   pathPrefix: string,
   moved: [string, string][],
   relaxed: string[],
@@ -555,7 +584,7 @@ export const updatePaths = async (
   const books = (await Promise.all(
     bookSlugs.map((book) => catchErrors(
       book.join("/"),
-      async () => await parseBook(book))))
+      async () => await parseBook(book, prevBuild))))
   ).filter(x => x) as RawBookDef[];
   const allBookSlugs = new Set(books.map(({ slug }) => slug));
   const collections = (await Promise.all(
