@@ -5,13 +5,11 @@ import traverse, { NodePath } from "@babel/traverse";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
-import { getImageSize } from "./getImageSize";
 import { QuestionDef } from "@/types";
 import { logError } from "./errors";
 
 
 import { determineQuestionType } from "@/utils/questions";
-import { addRelativePath } from "@/ingest/plugins";
 
 export const extractQuizzes = async (
   mdxContent: string,
