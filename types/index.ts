@@ -9,8 +9,8 @@ export type QuestionDef = {
   type: QuestionTypes;
   options: string[] | null;
   answer: string | null;
-  points: number | null;
-  attempts: number | null;
+  maxPoints: number | null;
+  maxAttempts: number | null;
 };
 
 
