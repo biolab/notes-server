@@ -1,6 +1,7 @@
 "use server";
 
 import db from "@/utils/db";
+import { LinkDesc } from "@/types";
 
 export type ItemDesc = {
   id: number;
@@ -14,8 +15,6 @@ export type ItemDef = {
   id: number;
   title: string;
 }
-
-export type LinkDesc = {href: string, title: string} | false;
 
 export type GroupList = {id: number, name: string}[];
 

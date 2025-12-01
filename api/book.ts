@@ -1,9 +1,8 @@
 "use server";
 
 import db from "@/utils/db";
-import { BookFrontmatter, ChapterDef } from "@/types";
-import { getPublicLink, GroupList, ItemDesc, LinkDesc } from "@/api/content";
-
+import { BookFrontmatter, ChapterDef, LinkDesc } from "@/types";
+import { getPublicLink, GroupList, ItemDesc } from "@/api/content";
 
 export type BookProps = {
   slug: string;
@@ -11,6 +10,8 @@ export type BookProps = {
   bookId: number;
   content: string;
   chapters: ChapterDef[];
+  next?: LinkDesc;
+  previous?: LinkDesc;
 };
 
 export const getBookSlug = async (id: number): Promise<string | null> => {
@@ -18,9 +19,41 @@ export const getBookSlug = async (id: number): Promise<string | null> => {
   return book ? book.path : null;
 }
 
-export const getBook = async (id: number): Promise<BookProps> => {
-  const book = await db.get(`SELECT * FROM books WHERE id = ?`, [id]);
+type PrevAndNext = {next?: LinkDesc, previous?: LinkDesc};
 
+const prevAndNext = async (bookId: number): Promise<PrevAndNext> => {
+  const collectionPositions = await db.all(
+    `SELECT collectionId, position FROM collections_books WHERE bookId = ?`,
+    [bookId]);
+  if (collectionPositions.length !== 1) {
+    return {};
+  }
+  const {collectionId, position} = collectionPositions[0];
+  if (!(await db.get(`
+        SELECT COUNT(DISTINCT collectionId) = 1 as single
+        FROM collections_books
+        WHERE bookId IN (
+          SELECT bookId FROM collections_books WHERE collectionId = ?
+        )`,
+        [collectionId])).single) {
+      return {};
+  }
+  return Object.fromEntries(await Promise.all(
+    [['previous', -1], ['next', 1]].map(([key, offset]) =>
+      db.get(`
+        SELECT b.path as href, b.title
+        FROM collections_books cb
+        JOIN books b on b.id = cb.bookId
+        WHERE cb.collectionId = ? AND cb.position = ?`,
+      [collectionId, position + offset]).then(result => [key, result]))
+  ));
+}
+
+export const getBook = async (id: number): Promise<BookProps> => {
+  const book = {
+    ...await db.get(`SELECT * FROM books WHERE id = ?`, [id]),
+    ...await prevAndNext(id)
+  };
   const chapters = [];
   const book_chapters = await db.all(
     `SELECT books_chapters.*, chapters.*
@@ -72,7 +105,9 @@ export const getBook = async (id: number): Promise<BookProps> => {
       tocInHeader: book.tocInHeader === 1, language: book.language,
     },
     chapters,
-    content: book.content
+    content: book.content,
+    previous: book.previous,
+    next: book.next,
   };
 };
 

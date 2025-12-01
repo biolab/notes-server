@@ -85,3 +85,5 @@ export const extraCollectionMatter = {
   collections: [] as string[],
   admins: [] as string[],
 } satisfies Record<string, unknown>;
+
+export type LinkDesc = { href: string, title: string } | false;

@@ -6,7 +6,7 @@ import Layout from "../Layout/Layout";
 import Image from "../Image";
 
 import { getPublicCollection, CollectionProps } from "@/api/collection";
-import { ItemDesc, LinkDesc } from "@/api/content";
+import { ItemDesc } from "@/api/content";
 import { CollectionStats, getCollectionHasQuestions, getUserCollectionStats } from "@/api/quiz";
 import { isAdminFor } from "@/api/user";
 import { getT, IntlContextProvider, useIntl } from "@/i18n";
@@ -14,6 +14,7 @@ import { UserContext } from "@/context/UserContextProvider";
 import { MdxContent } from "@/components/MdxContent";
 import { usePublicProvider } from "@/hooks/usePublicProvider";
 import { QuizProgressBar } from "@/components/Layout/QuizProgress";
+import { LinkDesc } from "@/types";
 
 
 const List = ({items, title, quizStats}: {
