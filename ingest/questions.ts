@@ -29,8 +29,6 @@ export const extractQuizzes = async (
       ],
       rehypePlugins: [
         rehypeKatex,
-        addRelativePath({ relativePath: slug }),
-        getImageSize
       ],
     }
   );
