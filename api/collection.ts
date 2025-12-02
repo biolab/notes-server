@@ -1,7 +1,7 @@
 "use server";
 
-import { CollectionFrontmatter } from "@/types";
-import { getPublicLink, ItemDesc, LinkDesc, GroupList } from "@/api/content";
+import { CollectionFrontmatter, LinkDesc } from "@/types";
+import { getPublicLink, ItemDesc, GroupList } from "@/api/content";
 import db from "@/utils/db";
 
 

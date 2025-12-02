@@ -1,10 +1,9 @@
 import React from "react";
 import Link from "next/link";
 import { IconContext } from "react-icons";
-import { ImHome, ImList2 } from "react-icons/im";
+import { ImHome, ImList2, ImArrowLeft, ImArrowRight } from "react-icons/im";
 
-import { ChapterDef } from "@/types";
-import { LinkDesc } from "@/api/content";
+import { ChapterDef, LinkDesc } from "@/types";
 import { useIntl } from "@/i18n";
 
 import { QuizProgressBar } from "@/components/Layout/QuizProgress";
@@ -26,6 +25,8 @@ export default function Layout({
   title = null,
   isAdmin = false,
   home = false,
+  previous = undefined,
+  next = undefined,
   collection = false,
   chapters = [],
   isChapterIndexVisible = {},
@@ -37,6 +38,8 @@ export default function Layout({
 }: {
   title: string | null;
   home?: LinkDesc;
+  previous?: LinkDesc;
+  next?: LinkDesc;
   collection?: LinkDesc,
   isAdmin?: boolean;
   chapters?: ChapterDef[];
@@ -96,13 +99,23 @@ export default function Layout({
               </div>
             }
           </div>
-          { collection &&
-            <div className="min-w-0 flex-1 text-right">
-              <a href={collection.href}
-                 title={collection.title}
-                 className="block truncate">{collection.title}</a>
+          {collection && (
+            <div className="min-w-0 text-right flex items-center whitespace-nowrap">
+              {titleLink && previous && (
+                <a href={`/${previous.href}`} className="mr-3 inline-flex items-center">
+                  <ImArrowLeft />
+                </a>
+              )}
+
+              <a
+                href={collection.href}
+                title={collection.title}
+                className="truncate inline-block max-w-full align-middle"
+              >
+                {collection.title}
+              </a>
             </div>
-          }
+          )}
         </div>
         <div className="justify-self-center">
           { collection ? "—" :
@@ -113,8 +126,13 @@ export default function Layout({
         </div>
         <div className={`flex ${collection && title ? "justify-between items-center min-w-0 gap-3" : "justify-end"}`}>
           {collection && titleLink &&
-            <div className="min-w-0 flex-1 truncate text-left">
-               {titleLink}
+            <div className="min-w-0 flex flex-1 truncate text-left flex-nowrap items-center">
+              <span className="inline-block min-w-0">{titleLink}</span>
+              { next &&
+                <a href={`/${next.href}`} className="ml-3 inline-flex">
+                    <ImArrowRight />
+                </a>
+              }
             </div>
           }
           <div className="flex flex-row gap-5">

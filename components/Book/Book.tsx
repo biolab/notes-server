@@ -7,7 +7,6 @@ import { toast } from "react-toastify";
 
 import { AnswersInBook, CorrectAnswers, getAnswers, getAnswersInBook } from "@/api/quiz";
 import { BookProps, getPublicCollection } from "@/api/book";
-import { LinkDesc } from "@/api/content";
 import { isAdminFor } from "@/api/user";
 
 import { logger } from "@/utils/logger";
@@ -23,9 +22,11 @@ import { Chapter } from "./Chapter";
 import { SidenoteContext } from "@/components/Book/Sidenote";
 import { useHasMounted } from "@/hooks/useHasMounted";
 import { usePublicProvider } from "@/hooks/usePublicProvider";
+import { LinkDesc } from "@/types";
 
 
-export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
+export const Book = (
+  { frontmatter, content, chapters, slug, bookId, previous, next }: BookProps
 ) => {
   const [isChapterIndexVisible, setIsChapterIndexVisible] = useState({});
   const relativePath = React.useMemo(() => `/${slug}`, [slug]);
@@ -142,7 +143,7 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
 
     setGroupRequired(true);
   },
-  [user, frontmatter, bookId, setUserGroup]);
+  [user, frontmatter, bookId, hasGroups, setUserGroup]);
 
   const pathname = usePathname();
   React.useEffect(() => {
@@ -235,6 +236,8 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
           home={provider || false}
           collection={publicCollection || false}
           chapters={frontmatter.tocInHeader ? chapters : []}
+          next={next}
+          previous={previous}
           isChapterIndexVisible={
             frontmatter.tocInHeader ? isChapterIndexVisible : []
           }
@@ -278,6 +281,9 @@ export const Book = ({ frontmatter, content, chapters, slug, bookId }: BookProps
                 allAnswers={showAnswers && allAnswers || undefined}
               />
             ))}
+            { !!next && <a href={`/${next.href}`} className="next-book-link">
+              Next book in this collection: {next.title}</a>
+              }
           </div>
         </Layout>
       </QuizContextProvider>
