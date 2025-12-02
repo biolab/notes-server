@@ -3,6 +3,7 @@ import path from "path";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import { load } from "js-yaml";
+import chokidar from "chokidar";
 
 import { getPaths } from "./md-helpers";
 import { updatePaths } from "./updatePaths";
@@ -17,7 +18,9 @@ export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 export async function updateDb(
   prefix: string,
   check=false,
-  exceptionsFile: string | null = null) {
+  exceptionsFile: string | null = null,
+  dev=false
+) {
   const db = await open({
     filename: path.join(DB_FILE),
     driver: sqlite3.Database,
@@ -50,7 +53,7 @@ export async function updateDb(
     : readPublicDir()
       .filter((entry) => statSync(joinedPath(entry)).isDirectory());
   for(const prefix of prefixes) {
-    const prevBuild = new Date(process.env.DEVELOPMENT &&
+    let prevBuild = new Date(process.env.DEVELOPMENT &&
       (await db.get(
         `SELECT MAX(timestamp) as time, path FROM builds WHERE path = ?`,
         [prefix])
@@ -66,10 +69,30 @@ export async function updateDb(
     if (paths.length === 0) {
       continue;
     }
+
     const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
     const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
     const faviconPaths = getFaviconPaths(prefix);
     const mailPaths = getLoginMails(prefix);
-    await updatePaths(bookPaths, collectionPaths, faviconPaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
+
+    const doUpdate = async () => {
+      await updatePaths(bookPaths, collectionPaths, faviconPaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
+      prevBuild = new Date();
+    }
+
+    await doUpdate();
+
+    if (dev) {
+      const path = joinedPath(prefix);
+      console.log(`Waiting for changes in ${path}...`);
+      chokidar.watch(joinedPath(prefix), {
+        persistent: true,
+        ignoreInitial: true,
+      }).on('all', async () => {
+        console.log(`${path} changed.`);
+        await doUpdate();
+        await db.run("UPDATE builds SET timestamp = CURRENT_TIMESTAMP WHERE id = ?", [buildId]);
+      });
+    }
   }
 }

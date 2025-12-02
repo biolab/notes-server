@@ -235,11 +235,12 @@ const insertChapter = async (
   }
   const { chapterDir, mdxContent, questions,
           frontmatter: {title, omitAsChapter} } = chapter;
+  /*
   if (await db.get(
       `SELECT 1 FROM chapters WHERE path = ? AND lastBuildId = ?`,
       [chapterDir, buildId])) {
     return;
-  }
+  }*/
   const content = await serializedContent(mdxContent, language, chapterDir);
   const chapterId = (
     await db.get(
@@ -594,7 +595,7 @@ export const updatePaths = async (
   ).filter(x => x) as RawCollectionDef[];
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
-  await checkMoved(moved);
+  checkMoved(moved);
   await checkBooks(books, allBookSlugs, db, pathPrefix, moved, relaxed);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   const redirections = gatherRedirections(pathPrefix);
