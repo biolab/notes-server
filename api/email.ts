@@ -12,7 +12,11 @@ const EMAIL_FROM = process.env.EMAIL_FROM;
 const transporter = nodemailer.createTransport({
   host: SMTP_SERVER_HOST,
   port: SMTP_PORT,
-  secure: SMTP_PORT === 465
+  secure: SMTP_PORT === 465,
+    tls: {
+    // do not fail on invalid certs
+    rejectUnauthorized: false,
+  },
 });
 
 export const mailForPath = async (path: string): Promise<MailPath | undefined> =>
