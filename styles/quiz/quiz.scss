@@ -172,8 +172,8 @@
 
 .quiz-progress-indicator-wrapper {
   position: relative;
-  height: 10px;
-  border: 1px solid black;
+  height: 13px;
+  border: 1.5px solid black;
   border-radius: 6px;
   overflow: hidden;
 
@@ -188,7 +188,7 @@
     position: absolute;
     top: 0;
     height: 100%;
-    width: 1px;
+    width: 2px;
     background: black;
   }
 }
