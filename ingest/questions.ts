@@ -208,8 +208,8 @@ export const extractQuizzes = async (
             type,
             options,
             answer: correctOptions?.[0] || answer,
-            attempts: attempts ?? 1,
-            points: ungraded ? 0 : (points ?? 1),
+            maxAttempts: attempts ?? 1,
+            maxPoints: ungraded ? 0 : (points ?? 1),
           });
         }
       }

@@ -228,7 +228,7 @@ const insertChapter = async (
   ).id;
 
   let position = 0;
-  for (const {questionId, question, type, options, answer, points, attempts} of questions) {
+  for (const {questionId, question, type, options, answer, maxPoints, maxAttempts} of questions) {
     await db.run(
       `
           INSERT INTO questions (chapterId, position, questionId, question, options, answer, maxPoints, maxAttempts, type, lastBuildId)
@@ -242,7 +242,7 @@ const insertChapter = async (
                                     type        = excluded.type,
                                     lastBuildId = excluded.lastBuildId`,
       [chapterId, position++, questionId, question, JSON.stringify(options),
-       answer, points, attempts, type, buildId]
+       answer, maxPoints, maxAttempts, type, buildId]
     );
   }
 };

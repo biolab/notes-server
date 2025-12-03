@@ -38,11 +38,11 @@ export interface QuizStateI {
 const getQuestionsFromChapters = (chapters: ChapterDef[]): Questions =>
   Object.fromEntries(
     chapters.flatMap((chapter, chapterIndex) =>
-      (chapter.questions || []).map(({questionId, points}) => [
+      (chapter.questions || []).map(({questionId, maxPoints}) => [
         questionId,
         {
           questionId,
-          maxPoints: points || 0,
+          maxPoints: maxPoints || 0,
           chapterIndex,
           answers: [],
         }
@@ -309,14 +309,14 @@ export const QuizContextProvider = ({
 
       correct: Object.values(quizState.questions)
         .filter((q) =>
-            !q.maxPoints
+            q.maxPoints
             && q.answers.length > 0
             && q.answers[q.answers.length - 1].isCorrect === true)
         .length,
 
       wrong: Object.values(quizState.questions)
         .filter((q) =>
-            !q.maxPoints
+            q.maxPoints
             && q.answers.length > 0
             && q.answers[q.answers.length - 1].isCorrect === false)
         .length,
