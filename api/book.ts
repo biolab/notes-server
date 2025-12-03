@@ -3,6 +3,7 @@
 import db from "@/utils/db";
 import { BookFrontmatter, ChapterDef, LinkDesc } from "@/types";
 import { getPublicLink, GroupList, ItemDesc } from "@/api/content";
+import { getCollection } from "@/api/collection";
 
 export type BookProps = {
   slug: string;
@@ -29,6 +30,9 @@ const prevAndNext = async (bookId: number): Promise<PrevAndNext> => {
     return {};
   }
   const {collectionId, position} = collectionPositions[0];
+  if (!(await getCollection(collectionId)).slug.includes("/")) {
+    return {};
+  }
   if (!(await db.get(`
         SELECT COUNT(DISTINCT collectionId) = 1 as single
         FROM collections_books

@@ -282,7 +282,7 @@ export const Book = (
               />
             ))}
             { !!next && <a href={`/${next.href}`} className="next-book-link">
-              Next book in this collection: {next.title}</a>
+              {t("book.next-in-collection")}{next.title}</a>
               }
           </div>
         </Layout>
