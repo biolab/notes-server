@@ -227,9 +227,13 @@ const insertChapter = async (
   buildId: number // use -1 to force
 ) => {
   if (chapter.mdxContent === null) {
-    await db.get(
-      `UPDATE chapters SET lastBuildId = ? WHERE path = ?`,
+    const chapterId = (await db.get(
+      `UPDATE chapters SET lastBuildId = ? WHERE path = ? RETURNING id`,
       [buildId, chapter.chapterDir]
+    )).id;
+    await db.get(
+      `UPDATE questions SET lastBuildId = ? WHERE chapterId=?`,
+      [buildId, chapterId]
     );
     return;
   }
