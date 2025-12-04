@@ -235,12 +235,6 @@ const insertChapter = async (
   }
   const { chapterDir, mdxContent, questions,
           frontmatter: {title, omitAsChapter} } = chapter;
-  /*
-  if (await db.get(
-      `SELECT 1 FROM chapters WHERE path = ? AND lastBuildId = ?`,
-      [chapterDir, buildId])) {
-    return;
-  }*/
   const content = await serializedContent(mdxContent, language, chapterDir);
   const chapterId = (
     await db.get(
@@ -281,10 +275,16 @@ const insertChapters = async (
   db: Database,
   buildId: number
 ) => {
-  for (const { chapters, frontmatter: {language}} of books) {
-    for (const chapter of chapters) {
+  // Assume that the same chapter doesn't appear in books with different languages
+  const uniqueChapters = Object.fromEntries(
+    books.flatMap(({chapters, frontmatter: {language}}) =>
+      chapters.map((chapter) =>
+        [chapter.chapterDir, [chapter, language] as [RawChapterDef, string]]
+      )
+    )
+  )
+  for (const [chapter, language] of Object.values(uniqueChapters)) {
       await insertChapter(chapter, language, db, buildId);
-    }
   }
 };
 
