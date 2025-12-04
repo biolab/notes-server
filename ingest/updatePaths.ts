@@ -610,6 +610,7 @@ export const updatePaths = async (
     return;
   }
 
+  await db.exec("BEGIN TRANSACTION");
   await movePaths(moved, db);
   await insertChapters(books, db, buildId);
   await insertBooks(books, db, buildId);
@@ -619,4 +620,5 @@ export const updatePaths = async (
   await updateRedirections(db, buildId, pathPrefix, redirections);
 
   await cleanup(db, pathPrefix, buildId);
+  await db.exec("COMMIT");
 };
