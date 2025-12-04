@@ -6,7 +6,7 @@ import { serializedContent } from "./md-helpers";
 import { parseCollection, RawCollectionDef } from "./collection";
 import { parseBook, RawBookDef, RawChapterDef } from "./book";
 import { gatherRedirections, updateRedirections } from "./redirections";
-import { catchErrors, hasError, logError } from "./errors";
+import { catchErrors, hasError, logError, resetError } from "./errors";
 import { MailPath } from "@/ingest/mail";
 
 const checkMoved = (moved: [string, string][]) => {
@@ -585,7 +585,8 @@ export const updatePaths = async (
   pathPrefix: string,
   moved: [string, string][],
   relaxed: string[],
-) => {
+): Promise<boolean> => {
+  resetError();
   const books = (await Promise.all(
     bookSlugs.map((book) => catchErrors(
       book.join("/"),
@@ -604,10 +605,10 @@ export const updatePaths = async (
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   const redirections = gatherRedirections(pathPrefix);
   if (hasError()) {
-    process.exit(1);
+    return false;
   }
   if (buildId === null) {
-    return;
+    return true;
   }
 
   await db.exec("BEGIN TRANSACTION");
@@ -621,4 +622,5 @@ export const updatePaths = async (
 
   await cleanup(db, pathPrefix, buildId);
   await db.exec("COMMIT");
+  return true;
 };

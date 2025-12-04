@@ -27,3 +27,7 @@ export function catchErrorsSync<T>(where: string, func: () => T): T | undefined 
 }
 
 export const hasError = () => error;
+
+export const resetError = () => {
+  error = false;
+}

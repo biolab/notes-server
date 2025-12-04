@@ -1,8 +1,10 @@
 import { readFileSync, statSync } from "fs";
 import path from "path";
 import sqlite3 from "sqlite3";
+import { Database } from "sqlite";
 import { open } from "sqlite";
 import { load } from "js-yaml";
+import { Mutex } from 'async-mutex';
 import chokidar from "chokidar";
 
 import { getPaths } from "./md-helpers";
@@ -11,9 +13,44 @@ import { getFaviconPaths } from "./favicons";
 import { getLoginMails } from "@/ingest/mail";
 import { joinedPath, readPublicDir } from "@/ingest/paths";
 
-
 export const DB_PATH = path.join(process.cwd(), "db");
 export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
+
+const updateMutex = new Mutex();
+
+const watchForChanges = (
+  path: string,
+  doUpdate: () => Promise<boolean>,
+  db: Database,
+  buildId: number
+) => {
+  let pending = false;
+
+  const triggerUpdate = async () => {
+    if (updateMutex.isLocked()) {
+      pending = true;
+      return;
+    }
+
+    await updateMutex.runExclusive(async () => {
+      do {
+        pending = false;
+        console.log("Running update...");
+        await doUpdate();
+        await db.run(
+          `UPDATE builds SET timestamp = CURRENT_TIMESTAMP WHERE id = ?`,
+          [buildId]
+        );
+      } while (pending);
+    });
+  };
+
+  console.log(`Waiting for changes in ${path}...`);
+  chokidar.watch(path, {
+    persistent: true,
+    ignoreInitial: true,
+  }).on('all', triggerUpdate);
+}
 
 export async function updateDb(
   prefix: string,
@@ -26,6 +63,7 @@ export async function updateDb(
     driver: sqlite3.Database,
   });
   await db.exec("PRAGMA foreign_keys = ON");
+  let anyErrors = false;
 
   let moved: [string, string][] = [];
   let relaxed: string[] = [];
@@ -76,23 +114,20 @@ export async function updateDb(
     const mailPaths = getLoginMails(prefix);
 
     const doUpdate = async () => {
-      await updatePaths(bookPaths, collectionPaths, faviconPaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
+      const res = await updatePaths(bookPaths, collectionPaths, faviconPaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
       prevBuild = new Date();
+      return res;
     }
 
-    await doUpdate();
+    anyErrors = anyErrors || !
+      await doUpdate();
 
     if (dev) {
-      const path = joinedPath(prefix);
-      console.log(`Waiting for changes in ${path}...`);
-      chokidar.watch(joinedPath(prefix), {
-        persistent: true,
-        ignoreInitial: true,
-      }).on('all', async () => {
-        console.log(`${path} changed.`);
-        await doUpdate();
-        await db.run("UPDATE builds SET timestamp = CURRENT_TIMESTAMP WHERE id = ?", [buildId]);
-      });
+      watchForChanges(joinedPath(prefix), doUpdate, db, buildId);
     }
+  }
+
+  if (anyErrors) {
+    process.exit(1);
   }
 }
