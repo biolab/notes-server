@@ -617,9 +617,13 @@ export const updatePaths = async (
   await insertCollections(collections, db, buildId);
   await insertFavicons(faviconPaths, db, buildId);
   await insertLoginMails(mailPaths, pathPrefix, db, buildId);
-  await updateRedirections(db, buildId, pathPrefix, redirections);
 
   await cleanup(db, pathPrefix, buildId);
   await db.exec("COMMIT");
+
+  // This will tell the server to update redirections, which requires it
+  // to access the database, hence it must come after the transaction to
+  // make sure the changes are committed and to avoid locking issues.
+  await updateRedirections(db, buildId, pathPrefix, redirections);
   return true;
 };
