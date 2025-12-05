@@ -53,7 +53,7 @@ const chapterMatter = (chapterMd: string, slug: string | null = null) =>
   checkedMatter(chapterMd, chapterFrontmatterDefaults, {}, slug);
 
 export interface RawChapterDef extends ChapterDefBase {
-  mdxContent: string;
+  mdxContent: string | null;
 }
 
 export type RawBookDef = {
@@ -63,7 +63,10 @@ export type RawBookDef = {
   chapters: RawChapterDef[];
 };
 
-export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
+export const parseBook = async (
+  pathParts: string[],
+  prevBuild: Date,
+): Promise<RawBookDef> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts)!, "utf-8");
   const { frontmatter, content } = bookMatter(indexMd);
@@ -86,6 +89,15 @@ export const parseBook = async (pathParts: string[]): Promise<RawBookDef> => {
     const errorPath = `${chapterDir} (in ${fullPath}):\n  `;
     if (!pathExists(chapterDir)) {
       logError(errorPath, `Chapter does not exist.`);
+      continue;
+    }
+
+    if (fs.statSync(getMdFile(chapterDir)!).mtime < prevBuild) {
+      chapters.push({
+        chapterDir,
+        mdxContent: null,
+        questions: [],
+        frontmatter: chapterFrontmatterDefaults});
       continue;
     }
 

@@ -41,6 +41,17 @@ export const gatherRedirections = (prefix: string): [string, string][] => {
       ]);
 }
 
+let warnedAboutRedirections = false;
+const warnRedirections = () => {
+  if (!warnedAboutRedirections) {
+    console.log(
+      "Server did not accept updated redirections (on port 3020); " +
+      "if it is not running, this is normal and harmless."
+    );
+    warnedAboutRedirections = true;
+  }
+}
+
 export const updateRedirections = async (
   db: Database,
   buildId: number | null,
@@ -62,15 +73,13 @@ export const updateRedirections = async (
     `, path, target, buildId);
   });
 
-  const err = "Server did not accept updated redirections (on port 3020); " +
-              "if it is not running, this is normal and harmless.";
   try {
     const res = await fetch("http://localhost:3020/api/updateRedirections");
     if (!res.ok) {
-      console.log(err);
+      warnRedirections();
     }
   }
   catch {
-    console.log(err);
+    warnRedirections();
   }
 }

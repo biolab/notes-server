@@ -5,18 +5,20 @@ import traverse, { NodePath } from "@babel/traverse";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
-import { getImageSize } from "./getImageSize";
 import { QuestionDef } from "@/types";
 import { logError } from "./errors";
 
 
 import { determineQuestionType } from "@/utils/questions";
-import { addRelativePath } from "@/ingest/plugins";
 
 export const extractQuizzes = async (
   mdxContent: string,
   slug: string
 ): Promise<QuestionDef[]> => {
+  const questions: QuestionDef[] = [];
+  if (!/<\s*Question[\s\/>]/.test(mdxContent)) {
+    return questions;
+  }
   const compiledMdx = await compile(
     // At some point I used mdxContent.replace(/[^\x00-\x7F]/g, "") to fix some problem.
     // Later it turned out it makes options non-unique (e.g. in `options={["Č", "Š", "Ž"]}`).
@@ -37,7 +39,6 @@ export const extractQuizzes = async (
     plugins: [],
   });
 
-  const questions: QuestionDef[] = [];
   traverse(ast, {
     CallExpression(path: NodePath<t.CallExpression>) {
       const args = path.node.arguments;

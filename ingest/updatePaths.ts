@@ -1,13 +1,12 @@
 import { Database } from "sqlite";
 
-import { QuestionDef } from "@/types";
 import { elide } from "@/utils/string";
 
 import { serializedContent } from "./md-helpers";
 import { parseCollection, RawCollectionDef } from "./collection";
 import { parseBook, RawBookDef, RawChapterDef } from "./book";
 import { gatherRedirections, updateRedirections } from "./redirections";
-import { catchErrors, hasError, logError } from "./errors";
+import { catchErrors, hasError, logError, resetError } from "./errors";
 import { MailPath } from "@/ingest/mail";
 
 const checkMoved = (moved: [string, string][]) => {
@@ -73,9 +72,11 @@ const checkBooks = async (
 
     // Check that chapters' content can be serialized
     for (const { mdxContent, chapterDir } of book.chapters) {
-      await catchErrors(chapterDir, async () =>
-        serializedContent(mdxContent, book.frontmatter.language, chapterDir)
-      );
+      if (mdxContent !== null) {
+        await catchErrors(chapterDir, async () =>
+          serializedContent(mdxContent, book.frontmatter.language, chapterDir)
+        );
+      }
     }
 
     /* Question-related checks
@@ -85,28 +86,45 @@ const checkBooks = async (
      */
 
     // Extract all questions in the book
-    type QuestionAndChapter = { chapter: string; question: QuestionDef };
-    const bookQuestions: QuestionAndChapter[] =
-      book.chapters.flatMap(({ questions, chapterDir }) =>
-        questions.map((question) => ({chapter: chapterDir, question}))
-      );
+    type QuestionAndChapter = { chapter: string; questionId: string };
+    const bookQuestions: QuestionAndChapter[] = [];
+    for (const {chapterDir, mdxContent, questions} of book.chapters) {
+      if (!mdxContent) {
+        bookQuestions.push(...
+          (
+            (await db.all(`
+              SELECT questionId
+              FROM questions
+              JOIN chapters ON questions.chapterId = chapters.id
+              WHERE chapters.path = ?`,
+              [chapterDir])
+            ) as { questionId: string }[]
+          ).map(({questionId}) => ({chapter: chapterDir, questionId}))
+        );
+      } else {
+        bookQuestions.push(...
+          questions.map((question) => ({
+              chapter: chapterDir,
+              questionId: question.questionId
+            })
+          )
+        );
+      }
+    }
 
     // Check that no questions within the same book have the same questionId
-    const questionsByIds: Record<string, QuestionAndChapter[]> = {};
-    for (const { chapter, question } of bookQuestions) {
-      if (questionsByIds[question.questionId] === undefined) {
-        questionsByIds[question.questionId] = [];
+    const questionsByChapters: {[questionId: string]: string[]} = {};
+    for (const { chapter, questionId } of bookQuestions) {
+      if (questionsByChapters[questionId] === undefined) {
+        questionsByChapters[questionId] = [];
       }
-      questionsByIds[question.questionId].push({ question, chapter });
+      questionsByChapters[questionId].push(`- ${chapter}`);
     }
-    for (const [questionId, questions] of Object.entries(questionsByIds)) {
-      if (questions.length > 1) {
+    for (const [questionId, chapters] of Object.entries(questionsByChapters)) {
+      if (chapters.length > 1) {
         logError(
           book.slug,
-          `Duplicate question "${elide(questionId)} (...)" in\n` +
-            questions
-              .map(({ chapter }) => `- ${chapter}`)
-              .join("\n")
+          `Duplicate question "${elide(questionId)} (...)" in\n${chapters.join("\n")}`
         );
       }
     }
@@ -127,7 +145,7 @@ const checkBooks = async (
         )) as { questionId: string, hasAnswer: boolean }[]
       );
       const missingQuestions = pastQuestions.filter(
-        ({questionId, hasAnswer}) => hasAnswer && !questionsByIds[questionId]
+        ({questionId, hasAnswer}) => hasAnswer && !questionsByChapters[questionId]
       );
       if (missingQuestions.length > 0) {
         missingQuestions.forEach(({questionId}) => {
@@ -138,13 +156,13 @@ const checkBooks = async (
         });
         const knownIds = pastQuestions.map(({questionId}) => questionId);
         const extras = bookQuestions.filter(
-          ({question: {questionId}}) => !knownIds.includes(questionId)
+          ({questionId}) => !knownIds.includes(questionId)
         );
         if (extras.length > 0) {
           console.log(`Hint: if the above question(s) is an edit of an existing,
           set its 'id' to its original text.`
           );
-          extras.forEach(({chapter, question: {questionId}}) => {
+          extras.forEach(({chapter, questionId}) => {
             console.log(`- ${chapter} "${elide(questionId)}"`);
           });
           console.log();
@@ -205,13 +223,19 @@ const insertChapter = async (
   db: Database,
   buildId: number // use -1 to force
 ) => {
-  const { chapterDir, mdxContent, questions,
-          frontmatter: {title, omitAsChapter} } = chapter;
-  if (await db.get(
-      `SELECT 1 FROM chapters WHERE path = ? AND lastBuildId = ?`,
-      [chapterDir, buildId])) {
+  if (chapter.mdxContent === null) {
+    const chapterId = (await db.get(
+      `UPDATE chapters SET lastBuildId = ? WHERE path = ? RETURNING id`,
+      [buildId, chapter.chapterDir]
+    )).id;
+    await db.get(
+      `UPDATE questions SET lastBuildId = ? WHERE chapterId=?`,
+      [buildId, chapterId]
+    );
     return;
   }
+  const { chapterDir, mdxContent, questions,
+          frontmatter: {title, omitAsChapter} } = chapter;
   const content = await serializedContent(mdxContent, language, chapterDir);
   const chapterId = (
     await db.get(
@@ -252,10 +276,18 @@ const insertChapters = async (
   db: Database,
   buildId: number
 ) => {
-  for (const { chapters, frontmatter: {language}} of books) {
-    for (const chapter of chapters) {
-      await insertChapter(chapter, language, db, buildId);
-    }
+  // When determining unique chapters (to not waste time by inserting the same
+  // chapter multiple times), we assume that the same chapter doesn't appear
+  // in books with different languages.
+  const uniqueChapters = Object.fromEntries(
+    books.flatMap(({chapters, frontmatter: {language}}) =>
+      chapters.map((chapter) =>
+        [chapter.chapterDir, [chapter, language] as [RawChapterDef, string]]
+      )
+    )
+  )
+  for (const [chapter, language] of Object.values(uniqueChapters)) {
+    await insertChapter(chapter, language, db, buildId);
   }
 };
 
@@ -548,14 +580,16 @@ export const updatePaths = async (
   mailPaths: MailPath[],
   db: Database,
   buildId: number | null,
+  prevBuild: Date,
   pathPrefix: string,
   moved: [string, string][],
   relaxed: string[],
-) => {
+): Promise<boolean> => {
+  resetError();
   const books = (await Promise.all(
     bookSlugs.map((book) => catchErrors(
       book.join("/"),
-      async () => await parseBook(book))))
+      async () => await parseBook(book, prevBuild))))
   ).filter(x => x) as RawBookDef[];
   const allBookSlugs = new Set(books.map(({ slug }) => slug));
   const collections = (await Promise.all(
@@ -565,24 +599,31 @@ export const updatePaths = async (
   ).filter(x => x) as RawCollectionDef[];
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
-  await checkMoved(moved);
+  checkMoved(moved);
   await checkBooks(books, allBookSlugs, db, pathPrefix, moved, relaxed);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   const redirections = gatherRedirections(pathPrefix);
   if (hasError()) {
-    process.exit(1);
+    return false;
   }
   if (buildId === null) {
-    return;
+    return true;
   }
 
+  await db.exec("BEGIN TRANSACTION");
   await movePaths(moved, db);
   await insertChapters(books, db, buildId);
   await insertBooks(books, db, buildId);
   await insertCollections(collections, db, buildId);
   await insertFavicons(faviconPaths, db, buildId);
   await insertLoginMails(mailPaths, pathPrefix, db, buildId);
-  await updateRedirections(db, buildId, pathPrefix, redirections);
 
   await cleanup(db, pathPrefix, buildId);
+  await db.exec("COMMIT");
+
+  // This will tell the server to update redirections, which requires it
+  // to access the database, hence it must come after the transaction to
+  // make sure the changes are committed and to avoid locking issues.
+  await updateRedirections(db, buildId, pathPrefix, redirections);
+  return true;
 };

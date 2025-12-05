@@ -11,22 +11,27 @@ import { setNotesPath } from "@/ingest/paths";
 
 program
   .option("-p, --path <path>", "Top-level subdirectory to update/check", "")
-  .option("-u, --update", "Update without increasing the build number", false)
+  .option("--dev", "Run in development mode", false)
   .option("--recreate", "Recreate the database from scratch", false)
   .option("-c, --check", "Check, but don't update the database", false)
   .option("-e, --exceptions <path>", "Yaml file with moved books and books with relaxed checks", "")
   .argument("[path]", "Path to the notes directory (default: from .env)", "");
 
 program.parse(process.argv);
-const { path: pathPrefix, update, recreate, check, exceptions } = program.opts();
+const { path: prefix, dev, recreate, check, exceptions } = program.opts();
 const [notesPath] = program.args;
 
-if (pathPrefix.includes("/") || pathPrefix.includes("\\")) {
+if (prefix.includes("/") || prefix.includes("\\")) {
   console.error("Error: The path may contain only a top-level directory name.");
   process.exit(1);
 }
-if (check && (update || recreate)) {
-  console.error("Error: --check cannot be used with --update or --recreate.");
+if (check && recreate) {
+  console.error("Error: --check cannot be used with --recreate.");
+  process.exit(1);
+}
+
+if (dev && (check || exceptions)) {
+  console.error("Error: --dev is incompatible with --check, and --exceptions.");
   process.exit(1);
 }
 
@@ -58,7 +63,7 @@ const ask = (question: string): Promise<string> => {
     await rebuildDatabase();
   }
 
-  await updateDb(pathPrefix, update, check, exceptions).catch((err) => {
+  await updateDb(prefix, check, exceptions, dev).catch((err) => {
     console.error("Error:", err);
     process.exit(1);
   });
