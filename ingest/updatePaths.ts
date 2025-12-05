@@ -113,21 +113,18 @@ const checkBooks = async (
     }
 
     // Check that no questions within the same book have the same questionId
-    const questionsByIds: Record<string, QuestionAndChapter[]> = {};
+    const questionsByChapters: {[questionId: string]: string[]} = {};
     for (const { chapter, questionId } of bookQuestions) {
-      if (questionsByIds[questionId] === undefined) {
-        questionsByIds[questionId] = [];
+      if (questionsByChapters[questionId] === undefined) {
+        questionsByChapters[questionId] = [];
       }
-      questionsByIds[questionId].push({ questionId, chapter });
+      questionsByChapters[questionId].push(`- ${chapter}`);
     }
-    for (const [questionId, questions] of Object.entries(questionsByIds)) {
-      if (questions.length > 1) {
+    for (const [questionId, chapters] of Object.entries(questionsByChapters)) {
+      if (chapters.length > 1) {
         logError(
           book.slug,
-          `Duplicate question "${elide(questionId)} (...)" in\n` +
-            questions
-              .map(({ chapter }) => `- ${chapter}`)
-              .join("\n")
+          `Duplicate question "${elide(questionId)} (...)" in\n${chapters.join("\n")}`
         );
       }
     }
@@ -148,7 +145,7 @@ const checkBooks = async (
         )) as { questionId: string, hasAnswer: boolean }[]
       );
       const missingQuestions = pastQuestions.filter(
-        ({questionId, hasAnswer}) => hasAnswer && !questionsByIds[questionId]
+        ({questionId, hasAnswer}) => hasAnswer && !questionsByChapters[questionId]
       );
       if (missingQuestions.length > 0) {
         missingQuestions.forEach(({questionId}) => {
@@ -279,7 +276,9 @@ const insertChapters = async (
   db: Database,
   buildId: number
 ) => {
-  // Assume that the same chapter doesn't appear in books with different languages
+  // When determining unique chapters (to not waste time by inserting the same
+  // chapter multiple times), we assume that the same chapter doesn't appear
+  // in books with different languages.
   const uniqueChapters = Object.fromEntries(
     books.flatMap(({chapters, frontmatter: {language}}) =>
       chapters.map((chapter) =>
@@ -288,7 +287,7 @@ const insertChapters = async (
     )
   )
   for (const [chapter, language] of Object.values(uniqueChapters)) {
-      await insertChapter(chapter, language, db, buildId);
+    await insertChapter(chapter, language, db, buildId);
   }
 };
 

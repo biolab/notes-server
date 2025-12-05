@@ -16,7 +16,7 @@ export const extractQuizzes = async (
   slug: string
 ): Promise<QuestionDef[]> => {
   const questions: QuestionDef[] = [];
-  if (!/<\s*Question\s/.test(mdxContent)) {
+  if (!/<\s*Question[\s\/>]/.test(mdxContent)) {
     return questions;
   }
   const compiledMdx = await compile(
