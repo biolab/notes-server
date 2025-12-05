@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
-import { IconContext } from "react-icons";
-import { ImHome, ImList2, ImArrowLeft, ImArrowRight } from "react-icons/im";
+import { IconContext, IconType } from "react-icons";
+import { ImList2, ImArrowLeft, ImArrowRight } from "react-icons/im";
 
 import { ChapterDef, LinkDesc } from "@/types";
 import { useIntl } from "@/i18n";
@@ -34,13 +34,36 @@ const useRefresh = () => {
   }, []);
 }
 
-export const HomeIcon = ({link}: {link: LinkDesc}) =>
+const Icon = ({icon, link, className}: {icon: IconType, link: LinkDesc, className?: string}) =>
   !!link &&
     <IconContext.Provider value={{ className: "home-icon" }}>
-      <Link href={link.href} passHref>
-        <ImHome title={link.title} />
+      <Link href={link.href}>
+        {icon({title: link.title, className})}
       </Link>
     </IconContext.Provider>
+
+export const HomeRoofIcon: IconType = ({ title, className }) => (
+  <svg
+    className={(className || "")+ " home-icon"}
+    width="1em"
+    height="1em"
+    viewBox="0 0 12 11"
+    xmlns="http://www.w3.org/2000/svg"
+    stroke="currentColor"
+    fill="currentColor"
+    strokeWidth="0"
+    aria-label={title}
+    role="img"
+  >
+    <g transform="matrix(1,0,0,1,0,-0.363)">
+      <g transform="matrix(0.75,0,0,0.75,0,0)">
+        <path
+          d="M16,9.226L8,3.016L0,9.226L0,6.694L8,0.484L16,6.694L16,9.226ZM14,9L14,15L2,15L2,9L8,4.5L14,9Z"
+        />
+      </g>
+    </g>
+  </svg>
+);
 
 export default function Layout({
   title = null,
@@ -98,7 +121,7 @@ export default function Layout({
       <header className="main-header">
         <div className="flex justify-between items-center min-w-0 gap-3">
           <div className="flex flex-row gap-5">
-            {home && <HomeIcon link={home}/> }
+            {home && <Icon icon={HomeRoofIcon} link={home}/> }
             { chapters.length > 1 &&
               <div className="header-content-index flex items-center">
                 <ImList2 />
@@ -123,12 +146,12 @@ export default function Layout({
           </div>
           {collection && (
             <div className="min-w-0 text-right flex items-center whitespace-nowrap">
-              {titleLink && previous && (
-                <a href={`/${previous.href}`} className="mr-3 inline-flex items-center">
-                  <ImArrowLeft />
-                </a>
-              )}
-
+              { titleLink && previous &&
+                <Icon
+                  icon={ImArrowLeft}
+                  link={previous}
+                  className="mr-3 inline-flex items-center"/>
+              }
               <a
                 href={collection.href}
                 title={collection.title}
@@ -140,7 +163,7 @@ export default function Layout({
           )}
         </div>
         <div className="justify-self-center">
-          { collection ? "—" :
+          { collection ? "/" :
            <span className="page-title">
              {titleLink}
            </span>
@@ -151,9 +174,7 @@ export default function Layout({
             <div className="min-w-0 flex flex-1 truncate text-left flex-nowrap items-center">
               <span className="inline-block min-w-0">{titleLink}</span>
               { next &&
-                <a href={`/${next.href}`} className="ml-3 inline-flex">
-                    <ImArrowRight />
-                </a>
+                <Icon icon={ImArrowRight} link={next} className="ml-3 inline-flex"/>
               }
             </div>
           }

@@ -76,7 +76,6 @@ export const Collection = ({
   },
   [user, collectionId]);
 
-  const provider = usePublicProvider(slug);
   const [publicCollection, setPublicCollection] = useState<LinkDesc | null>(null);
   React.useEffect(() => {
     getPublicCollection(collectionId).then(setPublicCollection);
@@ -90,11 +89,18 @@ export const Collection = ({
     getUserCollectionStats(user.accessToken, collectionId).then(setCollectionStats);
   }, [user, collectionId]);
 
+  const publicProvider = usePublicProvider(slug);
+  const homeLink = React.useMemo(() => (
+      publicCollection
+      || slug.includes("/") && publicProvider
+      || {href: "/", title: ""}),
+    [publicCollection, slug, publicProvider]);
+
   const loading = React.useMemo(() =>
       publicCollection === null // prevent showing it later -- looks weird
-      || provider === null
+      || publicProvider === null
       || collectionStats === null,
-    [collectionStats, publicCollection, provider]);
+    [collectionStats, publicCollection, publicProvider]);
 
   if (loading) {
     return (
@@ -109,7 +115,7 @@ export const Collection = ({
       title={frontmatter.title}
       showLinkToResults={isAdmin && !!hasQuestions}
       isAdmin={isAdmin}
-      home={provider || false}
+      home={homeLink}
       collection={publicCollection || false}
     >
       <div className="collection mx-auto">
