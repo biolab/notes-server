@@ -8,7 +8,7 @@ import { Mutex } from 'async-mutex';
 import chokidar from "chokidar";
 
 import { getPaths } from "./md-helpers";
-import { updatePaths } from "./updatePaths";
+import { updatePaths, updateRoot } from "./updatePaths";
 import { getFaviconPaths } from "./favicons";
 import { getLoginMails } from "@/ingest/mail";
 import { joinedPath, readPublicDir } from "@/ingest/paths";
@@ -51,6 +51,11 @@ const watchForChanges = (
     ignoreInitial: true,
   }).on('all', triggerUpdate);
 }
+
+const newBuildId = async (db: Database, prefix: string): Promise<number> =>
+  (await db.get(
+    `INSERT INTO builds (path) VALUES (?) RETURNING id`,
+    [prefix])).id;
 
 export async function updateDb(
   prefix: string,
@@ -97,11 +102,7 @@ export async function updateDb(
         [prefix])
       )?.time
       || 0);
-    const buildId =
-      check ? null
-      : (await db.get(
-          `INSERT INTO builds (path) VALUES (?) RETURNING id`,
-          [prefix])).id;
+    const buildId = check ? null : await newBuildId(db, prefix);
 
     const paths: [string[], boolean][] = getPaths([prefix]);
     if (paths.length === 0) {
@@ -123,8 +124,12 @@ export async function updateDb(
       await doUpdate();
 
     if (dev) {
-      watchForChanges(joinedPath(prefix), doUpdate, db, buildId);
+      watchForChanges(joinedPath(prefix), doUpdate, db, buildId!);
     }
+  }
+
+  if (!prefix && !check) {
+    await updateRoot(db, await newBuildId(db, ""));
   }
 
   if (anyErrors) {
