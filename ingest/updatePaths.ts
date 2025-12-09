@@ -50,7 +50,7 @@ const checkBooks = async (
       ...rest
     }});
   booksWithQuestions
-    .filter(({ path }) => !allBookSlugs.has(path))
+    .filter(({ path }) => !(allBookSlugs.has(path) || relaxed.includes(path)))
     .forEach(({ path }) =>
       logError(path, "Books that contain questions must not be removed.")
     );
