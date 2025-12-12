@@ -13,6 +13,22 @@ import { ContentIndex } from "./ContentIndex";
 import UserDropdown from "./UserDropdown";
 
 
+const useRefresh = () => {
+  React.useEffect(() => {
+    if (typeof window === "undefined" ||
+        window.location.hostname !== "localhost") {
+      return;
+    }
+    const ws = new WebSocket("ws://localhost:9999");
+    ws.onmessage = (msg) => {
+      if (msg.data === "reload") {
+        window.location.reload();
+      }
+    };
+    return () => ws.close();
+  }, []);
+}
+
 export const HomeIcon = ({link}: {link: LinkDesc}) =>
   !!link &&
     <IconContext.Provider value={{ className: "home-icon" }}>
@@ -52,6 +68,7 @@ export default function Layout({
 }) {
   const { t } = useIntl();
   const { user, userGroup } = React.useContext(UserContext);
+  useRefresh();
 
   const titleLink = React.useMemo(() => title &&
     <a
