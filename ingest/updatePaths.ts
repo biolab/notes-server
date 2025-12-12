@@ -63,19 +63,29 @@ const checkBooks = async (
       );
     }
 
-    // Check that book content can be serialized
-    await catchErrors(book.slug, async () =>
-      await serializedContent(
-        book.mdxContent, book.frontmatter.language, book.slug,
-        ["Question"])
-    );
+    if (!book.frontmatter.language) {
+      logError(
+        book.slug,
+        "Book language could not be determined. " +
+        "Please specify the 'language' field in the book frontmatter, " +
+        "or in the frontmatter of the parent collection."
+      );
+    }
+    else {
+      // Check that book content can be serialized
+      await catchErrors(book.slug, async () =>
+        await serializedContent(
+          book.mdxContent, book.frontmatter.language, book.slug,
+          ["Question"])
+      );
 
-    // Check that chapters' content can be serialized
-    for (const { mdxContent, chapterDir } of book.chapters) {
-      if (mdxContent !== null) {
-        await catchErrors(chapterDir, async () =>
-          serializedContent(mdxContent, book.frontmatter.language, chapterDir)
-        );
+      // Check that chapters' content can be serialized
+      for (const {mdxContent, chapterDir} of book.chapters) {
+        if (mdxContent !== null) {
+          await catchErrors(chapterDir, async () =>
+            serializedContent(mdxContent, book.frontmatter.language, chapterDir)
+          );
+        }
       }
     }
 
@@ -171,6 +181,66 @@ const checkBooks = async (
     }
   }
 };
+
+const buildCollectionParentMap = (collections: {[slug: string]: RawCollectionDef}
+): {[collection: string]: string} => {
+  const parentOf: {[collection: string]: string} = {};
+  // First, if a collection includes another collection,
+  // the former is a parent of the latter.
+  Object.values(collections).forEach(({slug, collections: subCollections}) => {
+    subCollections.forEach(({slug: subSlug}) => {
+      parentOf[subSlug] = slug;
+    });
+  });
+  // For others, we find the closest parent by slug prefix.
+  Object.values(collections).forEach(({slug}) => {
+    if (parentOf[slug] !== undefined) {
+      return;
+    }
+    const candidates = Object.keys(collections)
+      .filter((otherSlug) => slug.startsWith(otherSlug + "/"))
+      .sort((a, b) => b.length - a.length);
+    if (candidates.length > 0) {
+      parentOf[slug] = candidates[0];
+    }
+  });
+  return parentOf;
+}
+
+const assignLanguages = (
+  collections: RawCollectionDef[],
+  books: RawBookDef[]
+) => {
+  const collectionsBySlug = Object.fromEntries(
+    collections.map((collection) => [collection.slug, collection]));
+  const parentMap = buildCollectionParentMap(collectionsBySlug);
+
+  // A function that returns a language for a collection. If not assigned,
+  // a collection gets the language from the most specific parent (whose
+  // collection might need to be determined, recursively).
+  // If there is no parent collection, it defaults to "en".
+  const assignLanguage = (collection: RawCollectionDef): string =>
+    collection.frontmatter.language ||=
+      parentMap[collection.slug] === undefined ? "en"
+      : assignLanguage(collectionsBySlug[parentMap[collection.slug]]);
+  // Assign a language to each collection
+  collections.forEach(assignLanguage);
+
+  // Assign languages to books directly included in collections
+  collections.forEach(({books, frontmatter: {language} }) => {
+    books.forEach(({frontmatter}) => {
+      frontmatter.language ||= language;
+    });
+  });
+
+  // For other books, assign the language of the closest parent collection by slug.
+  books.forEach(({frontmatter, slug}) => {
+    frontmatter.language ||= collections
+      .filter(({slug: collSlug}) => slug.startsWith(collSlug + "/"))
+      .sort((a, b) => b.slug.length - a.slug.length)
+      [0]?.frontmatter.language || "en";
+  });
+}
 
 const checkCollections = async (
   collections: RawCollectionDef[],
@@ -600,6 +670,7 @@ export const updatePaths = async (
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
   checkMoved(moved);
+  assignLanguages(collections, books);
   await checkBooks(books, allBookSlugs, db, pathPrefix, moved, relaxed);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   const redirections = gatherRedirections(pathPrefix);
