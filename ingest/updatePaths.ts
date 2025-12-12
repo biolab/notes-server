@@ -627,3 +627,13 @@ export const updatePaths = async (
   await updateRedirections(db, buildId, pathPrefix, redirections);
   return true;
 };
+
+export const updateRoot = async (db: Database, buildId: number) => {
+  const rootCollection = await parseCollection([]);
+  if (rootCollection.frontmatter.public) {
+    await insertCollections([rootCollection], db, buildId);
+  }
+  else {
+    await db.run(`DELETE FROM collections WHERE path = ''`);
+  }
+}
