@@ -9,20 +9,9 @@ declare global {
 
 export function getDevWebSocketServer() {
   if (!global.__DEV_WSS__) {
-    const wss = new WebSocketServer({ port: 9999 });
-    global.__DEV_WSS__ = wss;
-    wss.on("connection", (ws) => {
-      ws.on("message", (msg) => {
-        if (msg.toString() === "reload") {
-          for (const client of wss.clients) {
-            try {
-              client.send("reload");
-            } catch (_) {
-            }
-          }
-        }
-      });
-    });
+    global.__DEV_WSS__ = new WebSocketServer(
+      { port: parseInt(process.env.NEXT_PUBLIC_WS_PORT || "3021") }
+    );
   }
   return global.__DEV_WSS__;
 }

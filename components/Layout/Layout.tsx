@@ -19,13 +19,18 @@ const useRefresh = () => {
         window.location.hostname !== "localhost") {
       return;
     }
-    const ws = new WebSocket("ws://localhost:9999");
-    ws.onmessage = (msg) => {
-      if (msg.data === "reload") {
-        window.location.reload();
-      }
-    };
-    return () => ws.close();
+    try {
+      const ws = new WebSocket(`ws://localhost:${process.env.NEXT_PUBLIC_WS_PORT || 3021}`);
+      ws.onmessage = (msg) => {
+        if (msg.data === "reload") {
+          window.location.reload();
+        }
+      };
+      return () => ws.close();
+    }
+    catch (e) {
+      console.error("Could not connect to dev WebSocket server:", e);
+    }
   }, []);
 }
 
