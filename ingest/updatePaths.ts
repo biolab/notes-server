@@ -2,7 +2,7 @@ import { Database } from "sqlite";
 
 import { elide } from "@/utils/string";
 
-import { serializedContent } from "./md-helpers";
+import { getMdFile, serializedContent } from "./md-helpers";
 import { parseCollection, RawCollectionDef } from "./collection";
 import { parseBook, RawBookDef, RawChapterDef } from "./book";
 import { gatherRedirections, updateRedirections } from "./redirections";
@@ -629,8 +629,9 @@ export const updatePaths = async (
 };
 
 export const updateRoot = async (db: Database, buildId: number) => {
-  const rootCollection = await parseCollection([]);
-  if (rootCollection.frontmatter.public) {
+  const rootCollection =
+    getMdFile([], "collection") ? await parseCollection([]) : null;
+  if (rootCollection?.frontmatter.public) {
     await insertCollections([rootCollection], db, buildId);
   }
   else {
