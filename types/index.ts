@@ -75,7 +75,7 @@ export const defaultCollectionFrontmatter: CollectionFrontmatter = {
   title: "",
   subTitle: "",
   public: true,
-  language: "en",
+  language: "",
   coverImg: "",
   recursiveContent: false,
 };

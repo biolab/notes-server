@@ -33,12 +33,13 @@ program
   .option("-p, --path <path>", "Top-level subdirectory to update/check", "")
   .option("--dev", "Run in development mode", false)
   .option("--recreate", "Recreate the database from scratch", false)
+  .option("-f, --force", "Force parsing of unchanged files", false)
   .option("-c, --check", "Check, but don't update the database", false)
   .option("-e, --exceptions <path>", "Yaml file with moved books and books with relaxed checks", "")
   .argument("[path]", "Path to the notes directory (default: from .env)", "");
 
 program.parse(process.argv);
-const { path: prefix, dev, recreate, check, exceptions } = program.opts();
+const { path: prefix, dev, recreate, force, check, exceptions } = program.opts();
 const [notesPath] = program.args;
 
 if (prefix.includes("/") || prefix.includes("\\")) {
@@ -83,7 +84,7 @@ const ask = (question: string): Promise<string> => {
     await rebuildDatabase();
   }
 
-  await updateDb(prefix, check, exceptions, dev).catch((err) => {
+  await updateDb(prefix, check, exceptions, force, dev).catch((err) => {
     console.error("Error:", err);
     process.exit(1);
   });

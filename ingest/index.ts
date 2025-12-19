@@ -62,6 +62,7 @@ export async function updateDb(
   prefix: string,
   check=false,
   exceptionsFile: string | null = null,
+  force=false,
   dev=false
 ) {
   const db = await open({
@@ -97,7 +98,7 @@ export async function updateDb(
     : readPublicDir()
       .filter((entry) => statSync(joinedPath(entry)).isDirectory());
   for(const prefix of prefixes) {
-    let prevBuild = new Date(process.env.NEXT_PUBLIC_DEVELOPMENT &&
+    let prevBuild = new Date(process.env.NEXT_PUBLIC_DEVELOPMENT && !force &&
       (await db.get(
         `SELECT MAX(timestamp) as time, path FROM builds WHERE path = ?`,
         [prefix])

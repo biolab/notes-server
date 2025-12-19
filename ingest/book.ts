@@ -18,7 +18,7 @@ const bookFrontmatterDefaults: RawBookFrontmatter = {
   title: "",
   subTitle: "",
   public: true,
-  language: "en",
+  language: "",
   tocInHeader: false,
   coverImg: "",
   requireLogin: false,
