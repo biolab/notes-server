@@ -45,7 +45,7 @@ const prevAndNext = async (bookId: number): Promise<PrevAndNext> => {
   return Object.fromEntries(await Promise.all(
     [['previous', -1], ['next', 1]].map(([key, offset]) =>
       db.get(`
-        SELECT b.path as href, b.title
+        SELECT '/' || b.path as href, b.title
         FROM collections_books cb
         JOIN books b on b.id = cb.bookId
         WHERE cb.collectionId = ? AND cb.position = ?`,

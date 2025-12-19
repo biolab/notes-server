@@ -164,14 +164,19 @@ export const Book = (
     getPublicCollection(bookId).then(setPublicCollection);
   }, [bookId]);
 
-  const provider = usePublicProvider(slug);
+  const publicProvider = usePublicProvider(slug);
+  const homeLink = React.useMemo(() => (
+    publicCollection
+    || slug.includes("/") && publicProvider
+    || {href: "/", title: ""}),
+    [publicCollection, slug, publicProvider]);
 
   const loading = React.useMemo(() =>
       !user
       || groupRequired === null
       || publicCollection === null // prevent showing it later -- looks weird
-      || provider === null,
-    [user, groupRequired, publicCollection, provider]);
+      || publicProvider === null,
+    [user, groupRequired, publicCollection, publicProvider]);
 
   const needsLogin = React.useMemo(() =>
     user && (frontmatter.requireLogin && !user.email || groupRequired),
@@ -233,7 +238,7 @@ export const Book = (
         <Layout
           title={frontmatter.title}
           isAdmin={isAdmin}
-          home={provider || false}
+          home={homeLink}
           collection={publicCollection || false}
           chapters={frontmatter.tocInHeader ? chapters : []}
           next={next}
@@ -281,7 +286,7 @@ export const Book = (
                 allAnswers={showAnswers && allAnswers || undefined}
               />
             ))}
-            { !!next && <a href={`/${next.href}`} className="next-book-link">
+            { !!next && <a href={next.href} className="next-book-link">
               {t("book.next-in-collection")}{next.title}</a>
               }
           </div>
