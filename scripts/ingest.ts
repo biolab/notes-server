@@ -18,10 +18,7 @@ const startNext = () => {
     {
       stdio: "inherit",
       shell: true,
-      env: {
-        ...process.env,
-//        NODE_ENV: "development",
-      },
+      env: process.env
     }
   );
 
@@ -77,7 +74,7 @@ const ask = (question: string): Promise<string> => {
 (async () => {
   if (recreate) {
     const answer =
-      process.env.DEVELOPMENT ? "y"
+      process.env.NEXT_PUBLIC_DEVELOPMENT ? "y"
       : await ask("" +
         "Are you sure you want to delete the database and start from scratch? (y/N) ");
     if (answer.toLowerCase() !== "y") {
