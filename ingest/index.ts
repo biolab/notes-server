@@ -12,6 +12,7 @@ import { updatePaths, updateRoot } from "./updatePaths";
 import { getFaviconPaths } from "./favicons";
 import { getLoginMails } from "@/ingest/mail";
 import { joinedPath, readPublicDir } from "@/ingest/paths";
+import { broadcastReload, getDevWebSocketServer } from "@/ingest/devWebSocket";
 
 export const DB_PATH = path.join(process.cwd(), "db");
 export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
@@ -35,12 +36,12 @@ const watchForChanges = (
     await updateMutex.runExclusive(async () => {
       do {
         pending = false;
-        console.log("Running update...");
         await doUpdate();
         await db.run(
           `UPDATE builds SET timestamp = CURRENT_TIMESTAMP WHERE id = ?`,
           [buildId]
         );
+        broadcastReload();
       } while (pending);
     });
   };
@@ -124,6 +125,7 @@ export async function updateDb(
       await doUpdate();
 
     if (dev) {
+      getDevWebSocketServer();
       watchForChanges(joinedPath(prefix), doUpdate, db, buildId!);
     }
   }

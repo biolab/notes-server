@@ -9,6 +9,29 @@ import { updateDb } from "@/ingest";
 import { rebuildDatabase } from "@/ingest/createDb";
 import { setNotesPath } from "@/ingest/paths";
 
+import { spawn } from "node:child_process";
+
+const startNext = () => {
+  const proc = spawn(
+    "yarn",
+    ["start"],
+    {
+      stdio: "inherit",
+      shell: true,
+      env: {
+        ...process.env,
+//        NODE_ENV: "development",
+      },
+    }
+  );
+
+  proc.on("exit", (code) => {
+    console.log(`Next.js exited with code ${code}`);
+  });
+  return proc;
+}
+
+
 program
   .option("-p, --path <path>", "Top-level subdirectory to update/check", "")
   .option("--dev", "Run in development mode", false)
@@ -67,4 +90,14 @@ const ask = (question: string): Promise<string> => {
     console.error("Error:", err);
     process.exit(1);
   });
+
+  if (dev) {
+    const nextProcess = startNext();
+    const shutdown = () => {
+      nextProcess.kill("SIGTERM");
+      process.exit(0);
+    };
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+  }
 })();
