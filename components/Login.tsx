@@ -78,7 +78,7 @@ function Login({title, bookId, requireEmail, redirect, slug, groups, t}: {
       const url = `${origin}${redirect || pathname}?token=${emailToken}${hash}`;
 
       // In development, we just show the link
-      if (process.env.NODE_ENV === "development") {
+      if (process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_DEVELOPMENT === "true") {
         setMessage(["LINK", url]);
         return;
       }
