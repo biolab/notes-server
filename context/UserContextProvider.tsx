@@ -20,12 +20,31 @@ export const UserContext = React.createContext<{
 });
 
 export const USER_LS_KEY = "lecture-notes::user";
+export const USER_REAL_KEY = "lecture-notes::real-user";
 
 export const retrieveAccessTokenFromLocalStorage = () =>
   localStorage.getItem(USER_LS_KEY);
 
 export const storeAccessTokenInLocalStorage = (token: string) => {
   localStorage.setItem(USER_LS_KEY, token);
+}
+
+export const impersonateUser = (token: string) => {
+  const realToken = retrieveAccessTokenFromLocalStorage();
+  localStorage.setItem(USER_REAL_KEY, realToken || "");
+  localStorage.setItem(USER_LS_KEY, token);
+}
+
+export const getRealAccessToken = () => {
+  return localStorage.getItem(USER_REAL_KEY);
+}
+
+export const stopImpersonatingUser = () => {
+  const realToken = getRealAccessToken();
+  if (realToken) {
+    localStorage.setItem(USER_LS_KEY, realToken);
+    localStorage.removeItem(USER_REAL_KEY);
+  }
 }
 
 export const removeAccessTokenFromLocalStorage = () => {
