@@ -36,10 +36,7 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const mimeType = mime.getType(segments[segments.length - 1]);
-  if (!mimeType) {
-    return NextResponse.json({ error: "Unknown mime type" }, { status: 415 });
-  }
+  const mimeType = mime.getType(segments[segments.length - 1]) || "application/octet-stream";
   return new NextResponse(
     new Blob([new Uint8Array(content)]),
     { headers: { "Content-Type": mimeType } }
