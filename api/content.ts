@@ -34,8 +34,8 @@ export const getMetadata = async (path: string):
     WHERE id = ?`, [item.id]);
   const iconPath = await db.get(`
     SELECT path
-    FROM faviconpaths
-    WHERE ? LIKE path || '%'
+    FROM inheritables
+    WHERE type = 'favicon' AND ? LIKE path || '%'
     ORDER BY LENGTH(path) DESC
     LIMIT 1;`, [path])
   return {

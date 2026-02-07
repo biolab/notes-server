@@ -576,8 +576,8 @@ const insertFavicons = async (
   await Promise.all(
     paths.map((path) => {
       db.run(`
-        INSERT INTO faviconpaths (path, lastBuildId)
-        VALUES (?, ?)
+        INSERT INTO inheritables (path, type, lastBuildId)
+        VALUES (?, 'favicon', ?)
         ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
       `,
       [path, buildId]);

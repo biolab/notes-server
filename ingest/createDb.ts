@@ -249,11 +249,13 @@ export const rebuildDatabase = async () => {
         );
     `);
 
-    await handle("faviconpaths");
+    await handle("inheritables");
     await run(`
-        CREATE TABLE faviconpaths
+        CREATE TABLE inheritables
         (
             path        TEXT NOT NULL,
+            type        TEXT NOT NULL,
+            extra_data  TEXT,
             ${LAST_BUILD_ID},
             UNIQUE (path)
         )
