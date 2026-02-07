@@ -22,6 +22,16 @@ export const getItem = async (path: string): Promise<ItemDef | undefined> =>
   await db.get(`SELECT 'book' as type, id, title FROM books WHERE path = ?`, [path])
   || await db.get(`SELECT 'collection' as type, id, title FROM collections WHERE path = ?`, [path]);
 
+export const getCss = async (path: string): Promise<string | undefined> => {
+  const cssPath = await db.get(`
+    SELECT path
+    FROM inheritables
+    WHERE type = 'css' AND ? LIKE path || '%'
+    ORDER BY LENGTH(path) DESC
+    LIMIT 1;`, [path]);
+  return cssPath && `/${cssPath.path}/style.css`;
+}
+
 export const getMetadata = async (path: string):
   Promise<{title?: string, description?: string, icons?: {icon: string}} | undefined> => {
   const item = await getItem(path);
