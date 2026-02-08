@@ -5,6 +5,8 @@ import matter from "gray-matter";
 import { compile } from "@mdx-js/mdx";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import rehypeExpressiveCode from "rehype-expressive-code";
+import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 
 import { addRelativePath, forbiddenComponents, rewriteQuestions, replacer, constructReplacer } from "./plugins";
 import { getImageSize } from "./getImageSize";
@@ -120,6 +122,10 @@ export const isListOfStrings = (value: unknown) =>
   (!Array.isArray(value) || value.some((x) => typeof(x) !== "string"))
   && "'tokens' must be a list of strings (don't forget the leading dashes)"
 
+const rehypeExpressiveCodeOptions = {
+  plugins: [pluginCollapsibleSections()],
+}
+
 export const serializedContent = async (
   source: string, language: string, relativePath: string,
   forbidden: string[] = []
@@ -139,6 +145,7 @@ export const serializedContent = async (
       addRelativePath( { relativePath }),
       getImageSize,
       rewriteQuestions,
+      [rehypeExpressiveCode, rehypeExpressiveCodeOptions]
     ],
   });
   return compiled.value as string;
