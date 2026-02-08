@@ -13,7 +13,7 @@ export const zipResponse = async (zip: JSZip, fileName: string) => {
       .on("end", () => resolve(Buffer.concat(chunks)));
   });
   const zipFilename = encodeURIComponent(fileName);
-  return new Response(zipBuffer, {
+  return new Response(new Uint8Array(zipBuffer), {
     status: 200,
     headers: {
       'Content-Type':
