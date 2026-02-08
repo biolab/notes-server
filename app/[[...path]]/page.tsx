@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { getRedirections } from "@/utils/redirections";
 import { getBook } from "@/api/book";
 import { getCollection } from "@/api/collection";
-import { getItem, getMetadata } from "@/api/content";
+import { getCss, getItem, getMetadata } from "@/api/content";
 import { Book } from "@/components/Book/Book";
 import { Collection } from "@/components/Collection/Collection";
 import { BookResults, CollectionResults } from "@/components/Quiz/Results";
@@ -39,15 +39,22 @@ export default async function CollectionOrBookPage(
   if (!item) {
     notFound();
   }
+  const css = await getCss(path);
   if (item.type === "book") {
     const book = await getBook(item.id);
     return results
       ? <BookResults {...book} />
-      : <Book {...book} />;
-  } else {
-    const collection = await getCollection(item.id);
+      : <>
+          {css && <link rel="stylesheet" href={css} precedence="high"/> }
+          <Book {...book} />
+        </>;
+    } else {
+               const collection = await getCollection(item.id);
     return results
       ? <CollectionResults {...collection} />
-      : <Collection {...collection} />
+      : <>
+        {css && <link rel="stylesheet" href={css} precedence="high"/> }
+        <Collection {...collection} />
+      </>
   }
 }

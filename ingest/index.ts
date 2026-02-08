@@ -9,7 +9,7 @@ import chokidar from "chokidar";
 
 import { getPaths } from "./md-helpers";
 import { updatePaths, updateRoot } from "./updatePaths";
-import { getFaviconPaths } from "./favicons";
+import { getInheritableResources } from "./inheritables";
 import { getLoginMails } from "@/ingest/mail";
 import { joinedPath, readPublicDir } from "@/ingest/paths";
 import { broadcastReload, getDevWebSocketServer } from "@/ingest/devWebSocket";
@@ -113,11 +113,11 @@ export async function updateDb(
 
     const bookPaths = paths.filter(([, isBook]) => isBook).map(([path]) => path);
     const collectionPaths = paths.filter(([, isBook]) => !isBook).map(([path]) => path);
-    const faviconPaths = getFaviconPaths(prefix);
+    const resourcePaths = getInheritableResources(prefix);
     const mailPaths = getLoginMails(prefix);
 
     const doUpdate = async () => {
-      const res = await updatePaths(bookPaths, collectionPaths, faviconPaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
+      const res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
       prevBuild = new Date();
       return res;
     }

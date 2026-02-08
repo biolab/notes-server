@@ -8,6 +8,7 @@ import { parseBook, RawBookDef, RawChapterDef } from "./book";
 import { gatherRedirections, updateRedirections } from "./redirections";
 import { catchErrors, hasError, logError, resetError } from "./errors";
 import { MailPath } from "@/ingest/mail";
+import { InheritableResources } from "@/ingest/inheritables";
 
 const checkMoved = (moved: [string, string][]) => {
   moved.forEach(([from]) => {
@@ -568,19 +569,19 @@ const insertCollections = async (
   }
 };
 
-const insertFavicons = async (
-  paths: string[],
+const insertResourcePaths = async (
+  paths: InheritableResources,
   db: Database,
   buildId: number
 ) => {
   await Promise.all(
-    paths.map((path) => {
+    paths.map(({path, type}) => {
       db.run(`
-        INSERT INTO faviconpaths (path, lastBuildId)
-        VALUES (?, ?)
+        INSERT INTO inheritables (path, type, lastBuildId)
+        VALUES (?, ?, ?)
         ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId
       `,
-      [path, buildId]);
+      [path, type, buildId]);
     }));
 }
 
@@ -609,7 +610,7 @@ const movePaths = async (
   db: Database
 ) => {
   for(const [from, to] of Object.entries(moved)) {
-    for(const table of ["books", "collections", "chapters", "faviconpaths"]) {
+    for(const table of ["books", "collections", "chapters", "inheritables"]) {
       await db.run(
         `UPDATE ${table}
          SET path = ? || substr(path, ?)
@@ -625,7 +626,7 @@ const cleanup = async (
   buildId: number
 ) => {
   await Promise.all(
-    ["chapters", "books", "collections", "faviconpaths", "loginmails"].map((table) =>
+    ["chapters", "books", "collections", "inheritables", "loginmails"].map((table) =>
       db.run(
         `DELETE FROM ${table}
          WHERE path LIKE ? || '%' AND lastBuildId <> ?`,
@@ -646,7 +647,7 @@ const cleanup = async (
 export const updatePaths = async (
   bookSlugs: string[][],
   collectionSlugs: string[][],
-  faviconPaths: string[],
+  resourcePaths: InheritableResources,
   mailPaths: MailPath[],
   db: Database,
   buildId: number | null,
@@ -686,7 +687,7 @@ export const updatePaths = async (
   await insertChapters(books, db, buildId);
   await insertBooks(books, db, buildId);
   await insertCollections(collections, db, buildId);
-  await insertFavicons(faviconPaths, db, buildId);
+  await insertResourcePaths(resourcePaths, db, buildId);
   await insertLoginMails(mailPaths, pathPrefix, db, buildId);
 
   await cleanup(db, pathPrefix, buildId);
