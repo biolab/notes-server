@@ -55,6 +55,23 @@ export const getUser = async (accessToken: string) => {
   return user;
 };
 
+export type UserList = {accessToken: string; name: string}[];
+
+export const getUsers = async (accessToken: string): Promise<UserList> => {
+  if (!(await db.get(
+    `SELECT 1 FROM users WHERE accessToken = ? AND admin = 1`,
+    [accessToken]
+  ))) {
+    return [];
+  }
+
+  return (await db.all(
+    `SELECT accessToken, CONCAT(surname, ', ', name) as name FROM users
+     WHERE surname IS NOT NULL AND surname != ''
+     ORDER BY surname, name`,
+  )) as UserList;
+}
+
 export const isAdminFor = async ({accessToken, bookId, collectionId}:
   { accessToken: string;
     bookId?: number;

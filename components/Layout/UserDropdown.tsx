@@ -7,7 +7,7 @@ import { Modal } from "antd";
 
 import { deleteUser } from "@/api/user";
 import { logger } from "@/utils/logger";
-import { UserContext } from "@/context/UserContextProvider";
+import { getRealAccessToken, stopImpersonatingUser, UserContext } from "@/context/UserContextProvider";
 import { useIntl } from "@/i18n";
 
 
@@ -32,7 +32,7 @@ const UserDropdown = (
   {showLinkToResults=false, returnLink, onChangeGroup, onChangeShowAnswers}: {
   showLinkToResults?: boolean;
   returnLink?: string;
-  isAdmin?: boolean
+  isAdmin?: boolean;
   onChangeGroup?: () => void;
   onChangeShowAnswers?: (show: boolean) => void;
 }) => {
@@ -70,6 +70,7 @@ const UserDropdown = (
   if (!user) {
     return null;
   }
+  const realAccessToken = getRealAccessToken();
 
   const toResults = () =>
     { window.location.assign("?results"); }
@@ -79,6 +80,13 @@ const UserDropdown = (
     { const currentPath = encodeURIComponent(window.location.pathname);
       window.location.assign(`/login?redirect=${currentPath}`);
     }
+  const toImpersonate = () => {
+    window.location.assign("/login/impersonate");
+  }
+  const toStopImpersonation = () => {
+    stopImpersonatingUser();
+    window.location.reload();
+  }
   const toLogout = () =>
     { logOut(); window.location.reload(); }
   const changeShowUsersAnswers = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,6 +124,16 @@ const UserDropdown = (
                 { onChangeGroup &&
                   <li onClick={onChangeGroup}>
                     { t("user.change-group") }
+                  </li>
+                }
+                { user.admin &&
+                  <li onClick={toImpersonate}>
+                    { t("user.impersonate") }
+                  </li>
+                }
+                { realAccessToken &&
+                  <li onClick={toStopImpersonation}>
+                    { t("user.stop-impersonation") }
                   </li>
                 }
                 <li onClick={toLogout}>
