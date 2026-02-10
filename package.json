@@ -28,7 +28,7 @@
     "markdown-it": "^12.3.2",
     "mime": "^4.0.7",
     "mime-types": "^3.0.1",
-    "next": "15.3.2",
+    "next": "15.5.10",
     "nodemailer": "^7.0.4",
     "probe-image-size": "^7.2.3",
     "react": "^19.0.0",
