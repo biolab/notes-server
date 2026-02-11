@@ -3,6 +3,9 @@
 import db from "@/utils/db";
 import { getUserId } from "@/utils/user";
 import { isAdminFor } from "@/api/user";
+import { getUploadDir } from "@/utils/zip";
+import path from "path";
+import fs from "fs";
 
 /* Functions in this module get user's accessToken rather than id
    because id's can be faked.
@@ -30,6 +33,7 @@ export type PostAnswerResult =
  { status: "error",
    message: string} |
  { status: "ok",
+   storedAnswer: string,
    isCorrect: boolean | undefined;
    points: number,
    correctAnswer?: string };
@@ -59,14 +63,17 @@ export const postAnswer = async (
   if (!question) {
     return {status: "error", message: "Question id and book id don't match"};
   }
-  const nPastAnswers = (await db.get(`
-    SELECT COUNT(*) as count FROM answers
+  const pastAnswers = await db.all(`
+    SELECT answer FROM answers
     WHERE userId = ? AND bookId = ? AND groupId IS ?
       AND questionId = ?
-    `, [userId, bookId, groupId, question.id])).count;
-  if (question.maxAttempts && nPastAnswers >= question.maxAttempts) {
+    `, [userId, bookId, groupId, question.id]);
+  if (question.maxAttempts && pastAnswers.length >= question.maxAttempts) {
     return {status: "error", message: "Maximum number of attempts reached"};
   }
+
+  const pastFiles = question.type !== "uploads" || !pastAnswers.length ? []
+                    : pastAnswers[pastAnswers.length - 1].answer.split(":");
 
   /* If we have the answer in the database, we check the submitted answer
      and assign points. Otherwise, we trust the received isCorrect and points.
@@ -79,18 +86,23 @@ export const postAnswer = async (
     !question.answer ? points
     : actCorrect && question.maxPoints || 0;
 
+  const actAnswer = !pastFiles.length
+                    ? answer
+                    : [...pastFiles, ...answer.split(":").filter((f) => !pastFiles.includes(f))]
+                      .join(":");
   await db.run(
     `INSERT INTO answers (userId, bookId, groupId, questionId, answer, isCorrect, points)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, bookId, groupId, question.id, answer, actCorrect, actPoints]
+    [userId, bookId, groupId, question.id, actAnswer, actCorrect, actPoints]
   );
 
   const shownAnswer =
     (question.maxAttempts
-     && nPastAnswers + 1 >= question.maxAttempts
+     && pastAnswers.length + 1 >= question.maxAttempts
      && question.answer) ? { correctAnswer: question.answer } : {};
   return {
     status: "ok",
+    storedAnswer: actAnswer,
     isCorrect: actCorrect,
     points: actPoints,
     ...shownAnswer};
@@ -295,6 +307,52 @@ export const getUserFilesInBook = async (
       [userId, bookId, ...(groupId ? [groupId] : []), ...(qId ? [qId] : [])]
     )) as (Omit<UserFileAnswersInBook, "fileNames"> & {answer: string})[]
   ).map(({answer, ...rest}) => ({fileNames: answer.split(":"), ...rest}));
+
+export const removeUserFile = async (
+  {accessToken, bookId, groupId, questionId, fileName}:
+{
+  accessToken: string;
+  bookId: number;
+  groupId: number | null;
+  questionId: string;
+  fileName: string;
+  }): Promise<string | null> => {
+  const lastAnswer = (await db.get(`
+    SELECT a.id, a.answer FROM answers a
+    JOIN questions q ON a.questionId = q.id
+    JOIN books_chapters bc ON q.chapterId = bc.chapterId
+    JOIN users ON a.userId = users.id 
+    WHERE users.accessToken = ? AND groupId IS ? 
+          AND q.questionId = ? AND bc.bookId = ? AND q.type LIKE 'upload%'
+    ORDER BY a.createdAt DESC
+    LIMIT 1;
+    `, [accessToken, groupId, questionId, bookId]
+  )) as ({id: number, answer: string} | undefined);
+  if (!lastAnswer) {
+    return null;
+  }
+  const answers = lastAnswer.answer.split(":");
+  if (!answers.includes(fileName)) {
+    return null;
+  }
+
+  const {dir, error} = await getUploadDir(
+    {accessToken, bookId, groupId, qId: questionId});
+  if (dir && !error) {
+    const fname = path.join(dir, fileName);
+    if (fs.existsSync(fname)) {
+      fs.rmSync(fname);
+    }
+  }
+  const newAnswers = answers.filter((f) => f !== fileName).join(":");
+  await db.run(`
+    UPDATE answers
+    SET answer = ?
+    WHERE id = ?`,
+    [newAnswers, lastAnswer.id]
+  );
+  return newAnswers;
+}
 
 export type UsersPoints = {
   [bookId: number]: number

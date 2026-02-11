@@ -14,7 +14,7 @@ export const FileQuestion = ({id, submitDisabled, setSubmitted, accept, multiple
   ref?: React.RefObject<FileDropFunction | null>;
 }) => {
   const {t} = useIntl();
-  const {answer, uploadFiles} = useLastAnswer(id);
+  const {answer, uploadFiles, removeFile} = useLastAnswer(id);
   const [files, setFiles] = React.useState<File[]>([]);
 
   const onSubmitFiles = React.useCallback(async (e: React.MouseEvent) => {
@@ -69,14 +69,34 @@ export const FileQuestion = ({id, submitDisabled, setSubmitted, accept, multiple
 
   React.useImperativeHandle(ref, () => onFileDrop, [onFileDrop]);
 
+  const onRemoveUploadedFile = React.useCallback(async (file: string) => {
+    await removeFile(file);
+  }, [removeFile]);
+
   return <>
-    { answer &&
+    { answer && submitDisabled &&
       <div className="mb-4">
         { `${t("quiz.uploaded-file")} ${answer.replaceAll(":", ", ")}.` }
       </div>
     }
     { !submitDisabled &&
       <>
+        { answer &&
+          <div className="mb-1 flex flex-row gap-2">
+            {t("quiz.uploaded-file")}:&nbsp;
+            { answer.split(":").map((file, i) =>
+              <div key={i} className="flex flex-row">
+                {file}
+                <RiDeleteBin2Line
+                  onClick={() => onRemoveUploadedFile(file)}
+                  style={{cursor: "pointer"}}
+                  className="hover:text-red-700"
+                />
+              </div>
+              )
+            }
+          </div>
+        }
         <div className="flex flex-col gap-1 my-4 border-dashed border-1 rounded p-3"
         >
           <div className="grid gap-x-5 px-1 mb-3 items-center"
@@ -92,7 +112,7 @@ export const FileQuestion = ({id, submitDisabled, setSubmitted, accept, multiple
                   />
                 }
               </React.Fragment>
-          )}
+            )}
           </div>
           <div className="flex items-center  justify-between">
             <input id="file" type="file" multiple={multiple} onChange={onFileChange}
@@ -101,7 +121,7 @@ export const FileQuestion = ({id, submitDisabled, setSubmitted, accept, multiple
               htmlFor="file"
               className={`px-10 mr-4 submit-quiz-popup-button border border-black rounded cursor-pointer transition inline-block`}
             >
-              {t("quiz.select-files")(files.length, multiple)}
+              {t("quiz.select-files")(files.length || answer, multiple)}
             </label>
 
             <small className="form-text text-muted" style={{lineHeight: "1.4"}}>
@@ -117,20 +137,20 @@ export const FileQuestion = ({id, submitDisabled, setSubmitted, accept, multiple
           <button onClick={onSubmitFiles} disabled={!files.length}>
             {t(`quiz.submit-button`)}
           </button>
-          { !!files.length &&
-            <div className="flex flex-col" style={{lineHeight: "1.4"}}>
+          {!!files.length &&
+            <div className="flex flex-col text-red-500" style={{lineHeight: "1.4"}}>
               <small className="form-text text-muted">
-                { t("quiz.dont-forget-to-submit-file")(files.length) }
+                {t("quiz.dont-forget-to-submit-file")(files.length)}
               </small>
-            {!!answer &&
-              <small className="form-text text-muted">
-                {t("quiz.submit-will-replace")(files.length)}
-              </small>
-            }
+              {!!answer && !multiple &&
+                <small className="form-text text-muted">
+                  {t("quiz.submit-will-replace")(files.length)}
+                </small>
+              }
             </div>
           }
         </div>
       </>
-      }
-    </>
-  }
+    }
+  </>
+}

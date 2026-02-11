@@ -192,7 +192,7 @@ export default function Question({
                 options={options} answer={usersAnswers ? "" : answer} onSubmit={onSubmit} /> }
             { isUpload && <FileQuestion
               id={id}
-              submitDisabled={submitDisabled} /* TODO: is this needed? */
+              submitDisabled={submitDisabled}
               setSubmitted={setSubmitted}
               ref={onFileDropRef}
               accept={accept}

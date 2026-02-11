@@ -1,5 +1,5 @@
 import path from "path";
-import { existsSync, rmSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { NextResponse } from "next/server";
 import { getUploadDir } from "@/utils/zip";
 
@@ -27,10 +27,9 @@ export async function POST(req: Request) {
         { status: 500 });
     }
 
-    if (existsSync(dir)) {
-      rmSync(dir, { force: true, recursive: true });
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
     }
-    mkdirSync(dir, { recursive: true });
 
     for (const file of files) {
       const bytes = await file.arrayBuffer();
