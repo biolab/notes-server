@@ -651,16 +651,25 @@ export const updatePaths = async (
   mailPaths: MailPath[],
   db: Database,
   buildId: number | null,
-  prevBuild: Date,
+  skipUnchanged: boolean,
   pathPrefix: string,
   moved: [string, string][],
   relaxed: string[],
 ): Promise<boolean> => {
   resetError();
+  // TODO: This may be costly. Can we move it outside and update it in insertChapter?
+  const chapterBuilds = skipUnchanged ? Object.fromEntries(
+    ((await db.all(
+    `SELECT chapters.path, timestamp
+     FROM chapters
+     JOIN builds ON chapters.lastBuildId = builds.id`)
+     ) as {path: string, timestamp: string}[])
+    .map(({path, timestamp}) => [path, new Date(timestamp)] as [string, Date])
+  ) : {};
   const books = (await Promise.all(
     bookSlugs.map((book) => catchErrors(
       book.join("/"),
-      async () => await parseBook(book, prevBuild))))
+      async () => await parseBook(book, chapterBuilds))))
   ).filter(x => x) as RawBookDef[];
   const allBookSlugs = new Set(books.map(({ slug }) => slug));
   const collections = (await Promise.all(

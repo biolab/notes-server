@@ -65,7 +65,7 @@ export type RawBookDef = {
 
 export const parseBook = async (
   pathParts: string[],
-  prevBuild: Date,
+  chapterBuilds: Record<string, Date>
 ): Promise<RawBookDef> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts)!, "utf-8");
@@ -92,7 +92,8 @@ export const parseBook = async (
       continue;
     }
 
-    if (fs.statSync(getMdFile(chapterDir)!).mtime < prevBuild) {
+    if (chapterBuilds[chapterDir] !== undefined
+        && fs.statSync(getMdFile(chapterDir)!).mtime < chapterBuilds[chapterDir]) {
       chapters.push({
         chapterDir,
         mdxContent: null,

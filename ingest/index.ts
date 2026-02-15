@@ -98,14 +98,7 @@ export async function updateDb(
     : readPublicDir()
       .filter((entry) => statSync(joinedPath(entry)).isDirectory());
   for(const prefix of prefixes) {
-    let prevBuild = new Date(process.env.NEXT_PUBLIC_DEVELOPMENT && !force &&
-      (await db.get(
-        `SELECT MAX(timestamp) as time, path FROM builds WHERE path = ?`,
-        [prefix])
-      )?.time
-      || 0);
     const buildId = check ? null : await newBuildId(db, prefix);
-
     const paths: [string[], boolean][] = getPaths([prefix]);
     if (paths.length === 0) {
       continue;
@@ -116,14 +109,13 @@ export async function updateDb(
     const resourcePaths = getInheritableResources(prefix);
     const mailPaths = getLoginMails(prefix);
 
-    const doUpdate = async () => {
-      const res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
-      prevBuild = new Date();
+    const doUpdate = async (skipUnchanged=true) => {
+      const res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, skipUnchanged, prefix, moved, relaxed);
       return res;
     }
 
-    anyErrors = anyErrors || !
-      await doUpdate();
+    anyErrors = anyErrors ||
+      !await doUpdate(!!process.env.NEXT_PUBLIC_DEVELOPMENT && !force);
 
     if (dev) {
       getDevWebSocketServer();
