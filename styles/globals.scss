@@ -337,6 +337,16 @@ h3 {
     padding: 8px;
     box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   }
+
+  ul {
+    list-style-type: disc;
+    padding-left: 20px;
+  }
+
+  ol {
+    list-style-type: decimal;
+    padding-left: 20px;
+  }
 }
 
 ///////
