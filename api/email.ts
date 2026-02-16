@@ -3,11 +3,12 @@
 import nodemailer from "nodemailer";
 import db from "@/utils/db";
 import { MailPath } from "@/ingest/mail";
+import { CONFIG } from "@/utils/config";
 
 
-const SMTP_SERVER_HOST = process.env.SMTP_SERVER_HOST;
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || "25");
-const EMAIL_FROM = process.env.EMAIL_FROM;
+const SMTP_SERVER_HOST = CONFIG.SMTPHost;
+const SMTP_PORT = CONFIG.SMTPPort;
+const EMAIL_FROM = CONFIG.emailFrom;
 
 const transporter = nodemailer.createTransport({
   host: SMTP_SERVER_HOST,

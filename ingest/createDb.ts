@@ -3,16 +3,15 @@ import fs from "fs";
 import path from "path";
 
 import { promisify } from "util";
+import { CONFIG } from "@/utils/config";
 
 
-const DB_PATH = path.join(process.cwd(), "db");
-const DB_FILE = path.join(DB_PATH, "notes.sqlite");
 
 export const rebuildDatabase = async () => {
-  if (!fs.existsSync(DB_PATH)) {
-    fs.mkdirSync(DB_PATH);
+  if (!fs.existsSync(CONFIG.dbPath)) {
+    fs.mkdirSync(CONFIG.dbPath);
   }
-  const conn = new sqlite3.Database(DB_FILE);
+  const conn = new sqlite3.Database(path.resolve(CONFIG.dbPath, "notes.sqlite"));
   const run = promisify(conn.run.bind(conn));
 
   const LAST_BUILD_ID =  "lastBuildId INTEGER NOT NULL REFERENCES builds (id) ON DELETE RESTRICT"

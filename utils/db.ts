@@ -1,15 +1,13 @@
 import sqlite3 from "sqlite3";
 import path from "node:path";
 import { open, Database } from "sqlite";
+import { CONFIG } from "@/utils/config";
 
 let db: Database;
 
 if (!process.env.CI) {
-  const DB_PATH = path.join(process.cwd(), "db");
-  const DB_FILE = path.join(DB_PATH, "notes.sqlite");
-
   db = await open({
-    filename: DB_FILE,
+    filename: path.resolve(CONFIG.dbPath, "notes.sqlite"),
     driver: sqlite3.Database,
   });
 

@@ -1,12 +1,8 @@
 import path from "path";
 import fs from "fs";
+import { CONFIG } from "@/utils/config";
 
-const maybeNotesPath = !process.env.CI ? process.env.NEXT_NOTES_PATH : "/tmp/notes";
-if (!maybeNotesPath) {
-  throw new Error("Set NEXT_NOTES_PATH (e.g. /Users/janez/notes) in .env")
-}
-
-let notesPath = maybeNotesPath.replace(/\/$/, "");
+let notesPath = CONFIG.notesPath.replace(/\/$/, "");
 
 export const setNotesPath = (newPath: string) => {
   notesPath = newPath.replace(/\/$/, "");

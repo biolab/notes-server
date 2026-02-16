@@ -13,9 +13,7 @@ import { getInheritableResources } from "./inheritables";
 import { getLoginMails } from "@/ingest/mail";
 import { joinedPath, readPublicDir } from "@/ingest/paths";
 import { broadcastReload, getDevWebSocketServer } from "@/ingest/devWebSocket";
-
-export const DB_PATH = path.join(process.cwd(), "db");
-export const DB_FILE = path.join(DB_PATH, "notes.sqlite");
+import { CONFIG } from "@/utils/config";
 
 const updateMutex = new Mutex();
 
@@ -66,7 +64,7 @@ export async function updateDb(
   dev=false
 ) {
   const db = await open({
-    filename: path.join(DB_FILE),
+    filename: path.resolve(CONFIG.dbPath, "notes.sqlite"),
     driver: sqlite3.Database,
   });
   await db.exec("PRAGMA foreign_keys = ON");

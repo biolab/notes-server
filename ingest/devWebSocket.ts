@@ -1,4 +1,5 @@
 import { WebSocketServer } from "ws";
+import { CONFIG } from "@/utils/config";
 
 declare global {
   // Avoid reinitializing during hot reload
@@ -10,7 +11,7 @@ declare global {
 export function getDevWebSocketServer() {
   if (!global.__DEV_WSS__) {
     global.__DEV_WSS__ = new WebSocketServer(
-      { port: parseInt(process.env.NEXT_PUBLIC_WS_PORT || "3021") }
+      { port: CONFIG.wsPort }
     );
   }
   return global.__DEV_WSS__;
