@@ -683,6 +683,10 @@ export const updatePaths = async (
   }
 
   await db.exec("BEGIN TRANSACTION");
+  await db.run(
+    `UPDATE builds SET timestamp = CURRENT_TIMESTAMP WHERE id = ?`,
+    [buildId]
+  );
   await movePaths(moved, db);
   await insertChapters(books, db, buildId);
   await insertBooks(books, db, buildId);
@@ -700,10 +704,14 @@ export const updatePaths = async (
   return true;
 };
 
-export const updateRoot = async (db: Database, buildId: number) => {
+export const updateRoot = async (db: Database) => {
   const rootCollection =
     getMdFile([], "collection") ? await parseCollection([]) : null;
   if (rootCollection?.frontmatter.public) {
+    const buildId = (await db.get(
+      `INSERT INTO builds (path) VALUES (?) RETURNING id`,
+      [""])
+    ).id;
     await insertCollections([rootCollection], db, buildId);
   }
   else {
