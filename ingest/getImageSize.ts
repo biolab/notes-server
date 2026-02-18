@@ -3,7 +3,7 @@ import probe, { ProbeResult } from "probe-image-size";
 import { readFileSync } from "fs";
 import type { Root } from "hast";
 
-import { getNotesPath } from "./paths";
+import { joinedPath } from "@/ingest/paths";
 
 
 export const getImageSize = () => (tree: Root) => {
@@ -21,7 +21,7 @@ export const getImageSize = () => (tree: Root) => {
     let size: ProbeResult | undefined | null;
 
     try {
-      img = readFileSync(`${getNotesPath()}/${imgSrc}`);
+      img = readFileSync(joinedPath(imgSrc));
     } catch (e) {
       console.log(`Error reading file: ${imgSrc}`);
       throw e;

@@ -94,7 +94,10 @@ export async function updateDb(
 
   const prefixes = prefix ? [prefix]
     : readPublicDir()
-      .filter((entry) => statSync(joinedPath(entry)).isDirectory());
+      .filter((entry) =>
+        !CONFIG.ignorePrefixes.includes(entry)
+        && statSync(joinedPath(entry)).isDirectory()
+      );
   for(const prefix of prefixes) {
     let prevBuild = new Date(process.env.NEXT_PUBLIC_DEVELOPMENT && !force &&
       (await db.get(

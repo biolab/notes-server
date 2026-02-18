@@ -4,10 +4,15 @@ import mime from 'mime';
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { getNotesPath } from "@/ingest/paths";
+import { CONFIG } from "@/utils/config";
 
-
-const publicDir = path.join(process.cwd(), "public");
+// Notes static files take precedence over Next.js public files.
+// In production, static files are copied, e.g. to /var/www/<name>;
+// while in development they are served from the repository.
+// This location is thus defined by CONFIG.staticPath (in production),
+// and defaults to CONFIG.notesPath (for development).
+const notesStaticDir = CONFIG.staticPath || CONFIG.notesPath;
+const nextPublicDir = path.join(process.cwd(), "public");
 
 const tryServe = async (base: string, segments: string[]) => {
   const filePath = path.join(base, ...segments);
@@ -30,8 +35,8 @@ export async function GET(
   const segments = (await params).path;
 
   const content =
-    await tryServe(getNotesPath(), segments)
-    || await tryServe(publicDir, segments);
+    await tryServe(notesStaticDir, segments)
+    || await tryServe(nextPublicDir, segments);
   if (!content) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

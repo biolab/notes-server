@@ -7,7 +7,6 @@ import fs from "fs";
 
 import { updateDb } from "@/ingest";
 import { rebuildDatabase } from "@/ingest/createDb";
-import { setNotesPath } from "@/ingest/paths";
 
 import { spawn } from "node:child_process";
 
@@ -36,11 +35,9 @@ program
   .option("-f, --force", "Force parsing of unchanged files", false)
   .option("-c, --check", "Check, but don't update the database", false)
   .option("-e, --exceptions <path>", "Yaml file with moved books and books with relaxed checks", "")
-  .argument("[path]", "Path to the notes directory (default: from .env)", "");
 
 program.parse(process.argv);
 const { path: prefix, dev, recreate, force, check, exceptions } = program.opts();
-const [notesPath] = program.args;
 
 if (prefix.includes("/") || prefix.includes("\\")) {
   console.error("Error: The path may contain only a top-level directory name.");
@@ -54,14 +51,6 @@ if (check && recreate) {
 if (dev && (check || exceptions)) {
   console.error("Error: --dev is incompatible with --check, and --exceptions.");
   process.exit(1);
-}
-
-if (notesPath) {
-  if (!fs.existsSync(notesPath)) {
-    console.error(`Error: Path ${notesPath} does not exist.`);
-    process.exit(1);
-  }
-  setNotesPath(notesPath);
 }
 
 const ask = (question: string): Promise<string> => {

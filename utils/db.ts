@@ -5,7 +5,7 @@ import { CONFIG } from "@/utils/config";
 
 let db: Database;
 
-if (!process.env.CI) {
+if (!(process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI)) {
   db = await open({
     filename: path.resolve(CONFIG.dbPath, "notes.sqlite"),
     driver: sqlite3.Database,

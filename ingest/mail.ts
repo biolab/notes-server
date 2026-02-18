@@ -1,4 +1,4 @@
-import { getNotesPath, isDirectory, joinedPath, pathExists, readFile, readPublicDir } from "./paths";
+import { isDirectory, pathExists, readFile, readPublicDir } from "./paths";
 
 
 const subjectAndText = (s: string) => {
@@ -18,7 +18,7 @@ export type MailPath = {
 
 export const getLoginMails = (prefix: string): MailPath[] =>
 [ ...pathExists(prefix, "login-mail.txt")
-     ? [{path: joinedPath([prefix]).replace(new RegExp(`^\/?${getNotesPath()}\/?`), ""),
+     ? [{path: prefix,
          ...subjectAndText(readFile(prefix, "login-mail.txt")),
          html: pathExists(prefix, "login-mail.html")
                ? readFile(prefix, "login-mail.html")
