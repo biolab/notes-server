@@ -22,8 +22,6 @@ const updateMutex = new Mutex();
 const watchForChanges = (
   path: string,
   doUpdate: () => Promise<boolean>,
-  db: Database,
-  buildId: number
 ) => {
   let pending = false;
 
@@ -37,10 +35,6 @@ const watchForChanges = (
       do {
         pending = false;
         await doUpdate();
-        await db.run(
-          `UPDATE builds SET timestamp = CURRENT_TIMESTAMP WHERE id = ?`,
-          [buildId]
-        );
         broadcastReload();
       } while (pending);
     });
@@ -52,11 +46,6 @@ const watchForChanges = (
     ignoreInitial: true,
   }).on('all', triggerUpdate);
 }
-
-const newBuildId = async (db: Database, prefix: string): Promise<number> =>
-  (await db.get(
-    `INSERT INTO builds (path) VALUES (?) RETURNING id`,
-    [prefix])).id;
 
 export async function updateDb(
   prefix: string,
@@ -104,7 +93,7 @@ export async function updateDb(
         [prefix])
       )?.time
       || 0);
-    const buildId = check ? null : await newBuildId(db, prefix);
+    let buildId: number | null | "new" = check ? null : "new";
 
     const paths: [string[], boolean][] = getPaths([prefix]);
     if (paths.length === 0) {
@@ -118,8 +107,13 @@ export async function updateDb(
 
     const doUpdate = async () => {
       const res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
-      prevBuild = new Date();
-      return res;
+      if (res !== false) {
+        prevBuild = new Date();
+      }
+      if (typeof res === "number") {
+        buildId = res;
+      }
+      return res !== false;
     }
 
     anyErrors = anyErrors || !
@@ -127,12 +121,12 @@ export async function updateDb(
 
     if (dev) {
       getDevWebSocketServer();
-      watchForChanges(joinedPath(prefix), doUpdate, db, buildId!);
+      watchForChanges(joinedPath(prefix), doUpdate);
     }
   }
 
   if (!prefix && !check) {
-    await updateRoot(db, await newBuildId(db, ""));
+    await updateRoot(db);
   }
 
   if (anyErrors) {

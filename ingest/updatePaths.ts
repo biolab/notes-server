@@ -650,12 +650,12 @@ export const updatePaths = async (
   resourcePaths: InheritableResources,
   mailPaths: MailPath[],
   db: Database,
-  buildId: number | null,
+  buildId_: number | null | "new",
   prevBuild: Date,
   pathPrefix: string,
   moved: [string, string][],
   relaxed: string[],
-): Promise<boolean> => {
+): Promise<boolean | number> => {
   resetError();
   const books = (await Promise.all(
     bookSlugs.map((book) => catchErrors(
@@ -678,11 +678,27 @@ export const updatePaths = async (
   if (hasError()) {
     return false;
   }
-  if (buildId === null) {
+  if (buildId_ === null) {
     return true;
   }
 
   await db.exec("BEGIN TRANSACTION");
+  let buildId: number;
+  if (buildId_ === "new") {
+    buildId = (await db.get(
+      `INSERT INTO builds (path) VALUES (?) RETURNING id`,
+      [pathPrefix || ""]
+    )).id;
+  }
+  else {
+    await db.run(
+      `UPDATE builds
+       SET timestamp = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [buildId_]
+    );
+    buildId = buildId_;
+  }
   await movePaths(moved, db);
   await insertChapters(books, db, buildId);
   await insertBooks(books, db, buildId);
@@ -697,13 +713,17 @@ export const updatePaths = async (
   // to access the database, hence it must come after the transaction to
   // make sure the changes are committed and to avoid locking issues.
   await updateRedirections(db, buildId, pathPrefix, redirections);
-  return true;
+  return buildId;
 };
 
-export const updateRoot = async (db: Database, buildId: number) => {
+export const updateRoot = async (db: Database) => {
   const rootCollection =
     getMdFile([], "collection") ? await parseCollection([]) : null;
   if (rootCollection?.frontmatter.public) {
+    const buildId = (await db.get(
+      `INSERT INTO builds (path) VALUES (?) RETURNING id`,
+      [""])
+    ).id;
     await insertCollections([rootCollection], db, buildId);
   }
   else {

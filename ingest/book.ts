@@ -68,7 +68,8 @@ export const parseBook = async (
   prevBuild: Date,
 ): Promise<RawBookDef> => {
   const fullPath = pathParts.join("/");
-  const indexMd = fs.readFileSync(getMdFile(pathParts)!, "utf-8");
+  const bookFile = getMdFile(pathParts)!;
+  const indexMd = fs.readFileSync(bookFile!, "utf-8");
   const { frontmatter, content } = bookMatter(indexMd);
   const mdxContent = parseMd(content);
 
@@ -92,7 +93,8 @@ export const parseBook = async (
       continue;
     }
 
-    if (fs.statSync(getMdFile(chapterDir)!).mtime < prevBuild) {
+    if (fs.statSync(bookFile).mtime < prevBuild
+        && fs.statSync(getMdFile(chapterDir)!).mtime < prevBuild) {
       chapters.push({
         chapterDir,
         mdxContent: null,
