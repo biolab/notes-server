@@ -1,11 +1,12 @@
 import React from "react";
 
-import { getQId, postAnswer, PostAnswerResult, CorrectAnswers } from "@/api/quiz";
+import {getQId, postAnswer, PostAnswerResult, CorrectAnswers, postFileAnswer} from "@/api/quiz";
 import { ChapterDef } from "@/types";
 import { logger } from "@/utils/logger";
 import { UserContext } from "@/context/UserContextProvider";
 import { useIntl } from "@/i18n";
 import { getGroupId } from "@/api/book";
+import { removeFiles as removeFilesFromServer} from "@/utils/zip";
 
 
 export type Answer = {
@@ -81,6 +82,7 @@ const getQuizState = ({
 
 type ActionType =
   { type: "ANSWER", value: AnswerWithQuestionId & { correctAnswer?: string; } } |
+  { type: "REMOVEORADDFILES", value: {questionId: string, remove?: string[] | boolean, add?: string[]} } |
   { type: "ERROR",  value: {questionId: string, error?: string}
 }
 
@@ -88,6 +90,7 @@ const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
   const { questionId, correctAnswer, ...data }
     = {correctAnswer: undefined, ...action.value};
   const prev = state.questions[questionId];
+
   switch (action.type) {
     case "ANSWER": {
       const questions = {
@@ -97,6 +100,25 @@ const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
           correctAnswer,
           submissionErrored: false,
           answers: [...prev?.answers ?? ([] as Answer[]), data as Answer]
+        }
+      }
+      return {
+        ...state,
+        questions,
+      }
+    }
+    case "REMOVEORADDFILES": {
+      const {remove, add} = action.value;
+      const prevAnswers = prev?.answers ?? ([] as Answer[]);
+      const prevFiles = prevAnswers.length ? prevAnswers[prevAnswers.length - 1].answer.split(":") : [];
+      const toRemove = ["", ...(remove === true || !remove ? [] : remove), ...(add ?? [])];
+      const filteredFiles = remove === true ? [] : prevFiles.filter((n) => !toRemove.includes(n));
+      const questions = {
+        ...state.questions,
+        [questionId]: {
+          ...prev,
+          submissionErrored: false,
+          answers: [...prevAnswers, {answer: [...filteredFiles, ...action.value.add ?? []].join(":"), points: 0}] as Answer[]
         }
       }
       return {
@@ -124,7 +146,10 @@ export const QuizContext = React.createContext<{
   threshold: number | null;
   answerQuestion: (value: AnswerWithQuestionId) => Promise<boolean>;
   uploadFiles: (questionId: string, files: File[]) => Promise<boolean>;
+  addFiles: (questionId: string, filed: File[]) => Promise<boolean>;
+  removeFile: (questionId: string, fileName: string) => Promise<boolean>;
   getAnswers: (questionId: string) => Answer[];
+  getLastAnswer: (questionId: string) => Answer | null;
   getCorrectAnswer: (questionId: string) => string | undefined;
   submissionErrored: (questionId: string) => boolean | string;
   chapterStats: (chapterIndex: number) => {
@@ -145,7 +170,10 @@ export const QuizContext = React.createContext<{
   threshold: null,
   answerQuestion: async () => false,
   uploadFiles: async () => false,
+  addFiles: async () => false,
+  removeFile: async () => false,
   getAnswers: () => [],
+  getLastAnswer: () => null,
   getCorrectAnswer: () => undefined,
   submissionErrored: () => false,
   chapterStats: () => ({ nQuestions: 0, answered: 0, correct: 0, wrong: 0,
@@ -176,19 +204,26 @@ export const QuizContextProvider = ({
       getQuizState({ quizThreshold, answers, correctAnswers, chapters })
     );
 
+  const checkUser = React.useCallback((questionId: string): boolean => {
+    if (!user) {
+      quizReducer({
+        type: "ERROR",
+        value: {questionId, error: t("quiz.not-logged-in")}});
+      return false;
+    }
+    return true;
+  }, [user, quizReducer, t]);
+
   const answerQuestion = React.useCallback(
     async ({questionId, answer, isCorrect, points}: AnswerWithQuestionId
     ): Promise<boolean> => {
-      if (!user) {
-        quizReducer({
-          type: "ERROR",
-          value: {questionId, error: t("quiz.not-logged-in")}});
+      if (!checkUser(questionId)) {
         return false;
       }
       let postResult: PostAnswerResult | undefined;
       try {
         postResult = await postAnswer({
-          accessToken: user.accessToken, group: userGroup, bookId,
+          accessToken: user!.accessToken, group: userGroup, bookId,
           questionId, answer, isCorrect, points});
       } catch (error: any) {
         quizReducer({ type: "ERROR", value: {questionId}});
@@ -205,63 +240,121 @@ export const QuizContextProvider = ({
         value: {
           questionId,
           answer,
-          ...postResult
+          ...postResult as Extract<PostAnswerResult, { status: "ok" }>
         }
       });
       return true;
     },
-    [user, bookId, quizReducer, userGroup, t]
+    [user, checkUser, bookId, quizReducer, userGroup]
   );
 
-  const uploadFiles = React.useCallback(
-    async(questionId: string, files: File[]): Promise<boolean> => {
-      if (!user) {
-        quizReducer({
-          type: "ERROR",
-          value: {questionId, error: t("quiz.not-logged-in")}});
+  const getAnswers = React.useCallback(
+    (questionId: string) => quizState.questions[questionId]?.answers ?? [],
+    [quizState]);
+
+  const getLastAnswer = React.useCallback(
+    (questionId: string) => {
+      const answers = getAnswers(questionId);
+      return answers.length ? answers[answers.length - 1] : null;
+    },
+    [getAnswers]
+  );
+
+  const addRemoveFiles = React.useCallback(
+    async(questionId: string, addFiles: File[], removeFiles: string[] | boolean = false): Promise<boolean> => {
+      if (!checkUser(questionId)) {
         return false;
       }
-      const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+      const totalSize = addFiles.reduce((acc, file) => acc + file.size, 0);
       if (totalSize > 50 * 1024 * 1024) {
+        quizReducer({
+          type: "ERROR",
+          value: {questionId, error: t("quiz.files-too-large")}});
+        return false;
+      }
+
+      if (addFiles.some((file) => file.size > 9.9 * 1024 * 1024)) {
         quizReducer({
           type: "ERROR",
           value: {questionId, error: t("quiz.file-too-large")}});
         return false;
       }
-      const groupId = userGroup !== null ? await getGroupId(userGroup, bookId) : null;
+
+      const groupId = userGroup ? await getGroupId(userGroup, bookId) : null;
       if (userGroup && groupId === null) {
         quizReducer({
           type: "ERROR",
-          value: {questionId, error: t("quiz.invalid-group")}});
+          value: {questionId, error: t("quiz.invalid-group")}
+        });
         return false;
       }
 
-      const formData = new FormData();
-      files.forEach((file) => formData.append("files", file));
-      formData.append("accessToken", user?.accessToken || "");
-      formData.append("bookId", bookId.toString());
-      formData.append("qId",
-        (await getQId(bookId, questionId)).toString());
-      if (groupId) {
-        formData.append("groupId", groupId.toString());
+      if (removeFiles !== false) {
+        const error = await removeFilesFromServer(
+          removeFiles,
+          {bookId, groupId, questionId, accessToken: user!.accessToken}
+        );
+        if (error) {
+          quizReducer({
+            type: "ERROR",
+            value: {questionId, error: t("quiz.cant-remove-file")}
+          });
+          return false;
+        }
       }
-      const res = await fetch("/api/upload-answer", {
-        method: "POST",
-        body: formData,
+
+      for(const file of addFiles) {
+        const formData = new FormData();
+        formData.append("files", file);
+        formData.append("accessToken", user?.accessToken || "");
+        formData.append("bookId", bookId.toString());
+        formData.append("qId",
+          (await getQId(bookId, questionId)).toString());
+        if (groupId) {
+          formData.append("groupId", groupId.toString());
+        }
+        const res = await fetch("/api/upload-answer", {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) {
+          quizReducer({type: "ERROR", value: {questionId}});
+          return false;
+        }
+      }
+
+      const fileNames = addFiles.map(({name}) => name);
+      try {
+        const postResult = await postFileAnswer({
+          accessToken: user!.accessToken, group: userGroup, bookId,
+          questionId, addFiles: fileNames, removeFiles});
+        if (postResult) {
+          quizReducer({ type: "ERROR", value: {questionId, error: postResult}});
+        }
+      } catch (error: any) {
+        quizReducer({ type: "ERROR", value: {questionId}});
+        return false;
+      }
+
+      quizReducer({
+        type: "REMOVEORADDFILES",
+        value: {
+          questionId,
+          add: fileNames,
+          remove: removeFiles
+        }
       });
-      if (!res.ok) {
-        quizReducer({type: "ERROR", value: {questionId}});
-        return false;
-      }
-
-      return answerQuestion({
-        questionId,
-        answer: files.map(({name}) => name).join(":"),
-        isCorrect: undefined,
-        points: 0
-      })
+      return true;
     },
-    [user, bookId, quizReducer, answerQuestion, userGroup, t]);
+    [user, userGroup, bookId, quizReducer, t, checkUser]);
+
+  const addFiles = React.useCallback((questionId: string, files: File[]) => {
+    return addRemoveFiles(questionId, files, false);
+  }, [addRemoveFiles]);
+
+  const removeFile = React.useCallback(async (questionId: string, fileName: string) => {
+    return addRemoveFiles(questionId, [], [fileName]);
+  }, [addRemoveFiles]);
 
   const {
     nQuestions,
@@ -343,16 +436,21 @@ export const QuizContextProvider = ({
       wrong,
       threshold: quizThreshold,
       answerQuestion,
-      uploadFiles,
+      uploadFiles: addRemoveFiles,
+      addFiles,
+      removeFile,
       chapterStats,
       getCorrectAnswer: (questionId: string) => quizState.questions[questionId]?.correctAnswer,
-      getAnswers: (questionId: string) => quizState.questions[questionId]?.answers ?? [],
+      getAnswers,
+      getLastAnswer,
       submissionErrored: (questionId: string) => quizState.questions[questionId]?.submissionErrored || false
     }),
     [
       quizState,
       answerQuestion,
-      uploadFiles,
+      addRemoveFiles,
+      addFiles,
+      removeFile,
       nQuestions,
       quizThreshold,
       achievedPoints,
@@ -396,4 +494,16 @@ export const useLastAnswer = (questionId: string) => {
       points: null}
   }
   return {...value, ...answers[answers.length - 1] }
+}
+
+export const useFileAnswer = (questionId: string) => {
+  const { getLastAnswer, submissionErrored, addFiles, removeFile } = React.useContext(QuizContext);
+  const fileNames = getLastAnswer(questionId)?.answer;
+  const files = fileNames ? fileNames.split(":") : [];
+  return {
+    files,
+    submissionErrored: submissionErrored(questionId),
+    addFiles: async (files: File[]) => await addFiles(questionId, files),
+    removeFile: async (fileName: string) => await removeFile(questionId, fileName)
+  }
 }

@@ -10,6 +10,7 @@ import { useLastAnswer } from "@/context/QuizContextProvider";
 import { FileDropFunction, FileQuestion } from "./UploadQuestion";
 import { LongTextQuestion, TextQuestion } from "./TextQuestions";
 import { SingleChoiceQuestion } from "./SingleChoiceQuestion";
+import {FileDockQuestion} from "@/components/Quiz/FileDockQuestion";
 
 
 export interface QuizPropsBase {
@@ -190,14 +191,23 @@ export default function Question({
             { type === "long-text" && <LongTextQuestion {...textProps} /> }
             { type === "singlechoice" && <SingleChoiceQuestion
                 options={options} answer={usersAnswers ? "" : answer} onSubmit={onSubmit} /> }
-            { isUpload && <FileQuestion
-              id={id}
-              submitDisabled={submitDisabled} /* TODO: is this needed? */
-              setSubmitted={setSubmitted}
-              ref={onFileDropRef}
-              accept={accept}
-              multiple={type === "uploads"}
-            /> }
+            { isUpload && (
+              type === "uploads" && maxAttempts !== 1 ?
+                <FileDockQuestion
+                  id={id}
+                  accept={accept}
+                  ref={onFileDropRef}
+                />
+              :
+                <FileQuestion
+                id={id}
+                submitDisabled={submitDisabled} /* TODO: is this needed? */
+                setSubmitted={setSubmitted}
+                ref={onFileDropRef}
+                accept={accept}
+                multiple={type === "uploads"}
+              />
+            )}
           </fieldset>
 
           { !usersAnswers &&
