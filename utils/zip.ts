@@ -3,6 +3,7 @@ import crypto from "crypto";
 import JSZip from "jszip";
 import { getBookSlug, getGroupName } from "@/api/book";
 import { getQuestionIdFromId } from "@/api/quiz";
+import { CONFIG } from "@/utils/config";
 
 export const zipResponse = async (zip: JSZip, fileName: string) => {
   const zipBuffer: Buffer = await new Promise((resolve, reject) => {
@@ -49,8 +50,8 @@ export const getUploadDir = async ({bookId, groupId, qId, accessToken}: {
     return {error: "invalid groupId"};
   }
 
-  return {dir: path.join(process.cwd(),
-    "uploads",
+  return {dir: path.resolve(
+    CONFIG.uploadsPath,
     ...[bookSlug, group || "no-group", questionId].map(hash24),
     accessToken)};
 }

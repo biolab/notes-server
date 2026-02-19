@@ -6,6 +6,8 @@ import React, { Suspense } from "react";
 
 import { UserContextProvider } from "@/context/UserContextProvider";
 import { SidenoteProvider } from "@/components/Book/Sidenote";
+import { CONFIG } from "@/utils/config";
+import { DevRefreshHandler } from "@/components/DevRefreshHandler";
 
 
 export const metadata: Metadata = {
@@ -21,6 +23,7 @@ export default function RootLayout({ children }: Readonly<{
   return (
     <html>
       <body>
+        <DevRefreshHandler wsPort={CONFIG.wsPort} />
         <Suspense>
           <UserContextProvider>
             <SidenoteProvider>

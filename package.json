@@ -4,9 +4,9 @@
   "license": "Polyform-Noncommercial-1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3020",
+    "dev": "next dev -p ${PORT:-3020}",
     "build": "next build",
-    "start": "next start -p 3020",
+    "start": "next start -p ${PORT:-3020}",
     "lint": "next lint",
     "ingest": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/ingest.ts",
     "check-translations": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/check-translations.ts"
@@ -47,7 +47,8 @@
     "unist-util-visit": "^5.0.0",
     "uuid": "^11.1.0",
     "uuid-by-string": "^4.0.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

@@ -1,4 +1,4 @@
-import { getNotesPath, isDirectory, joinedPath, pathExists, readPublicDir } from "./paths";
+import { isDirectory, pathExists, readPublicDir } from "./paths";
 
 
 const resources = [
@@ -16,7 +16,7 @@ export const getInheritableResources = (prefix: string): InheritableResources =>
     .filter(({file}) => pathExists(prefix, file))
     .map(({type}) => ({
       type,
-      path: joinedPath([prefix]).replace(new RegExp(`^\/?${getNotesPath()}\/?`), "")
+      path: prefix
     })),
   ...readPublicDir(prefix)
     .map((subdir) => `${prefix}/${subdir}`)
