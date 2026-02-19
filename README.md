@@ -1,36 +1,13 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Notes
 
-## Getting Started
+`Notes` is sofware for creating sites with books consisting of chapters and organized into hierarchical collections. Books have an opinionated (but somewhat adaptable, if you dare to be `!important`) format, and can contain questions and answers with explanations. Reader's answers are recorded so the software is also somewhat useful for questionnaires and take-home exams.
 
-First, run the development server:
+The software is stable in the sense that it can be carefully used in production, but unstable in the sense that new features may require changing the database schema, which is a pain in the neck with sqlite.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Instructions (still under development, like software) are currently published at https://notes.biolab.si/documentation.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## License
+This project is licensed under the **Polyform Noncommercial License 1.0.0**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Individual, academic, and non-profit use is permitted.
+**Commercial use is prohibited.** For commercial licensing inquiries, please contact @janezd.
