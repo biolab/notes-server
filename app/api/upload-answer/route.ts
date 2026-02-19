@@ -1,5 +1,5 @@
 import path from "path";
-import { existsSync, rmSync, mkdirSync, writeFileSync } from "fs";
+import fs, { mkdirSync, writeFileSync } from "fs";
 import { NextResponse } from "next/server";
 import { getUploadDir } from "@/utils/zip";
 
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     // This is checked on the front-end, but let us prevent jokers
     // from calling this manually and uploading huge files
     const totalSize = files.reduce((acc, file) => acc + file.size, 0);
-    if (totalSize > 50 * 1024 * 1024) {
+    if (totalSize > 10 * 1024 * 1024) {
       return NextResponse.json(
         { error: "Upload failed: total file size is too large" },
         { status: 500 });
@@ -27,10 +27,17 @@ export async function POST(req: Request) {
         { status: 500 });
     }
 
-    if (existsSync(dir)) {
-      rmSync(dir, { force: true, recursive: true });
-    }
     mkdirSync(dir, { recursive: true });
+
+    const existingSize = fs.readdirSync(dir).reduce((acc, file) => {
+      const stats = fs.statSync(path.join(dir, file));
+      return acc + stats.size;
+    }, 0);
+    if (existingSize + totalSize > 100 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "Upload failed: total file size exceeds limit" },
+        { status: 500 });
+    }
 
     for (const file of files) {
       const bytes = await file.arrayBuffer();

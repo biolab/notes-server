@@ -96,6 +96,62 @@ export const postAnswer = async (
     ...shownAnswer};
 };
 
+export const postFileAnswer = async (
+  { accessToken, group, bookId, questionId, addFiles, removeFiles}: {
+  accessToken: string;
+  group: string | null;
+  bookId: number;
+  questionId: string;
+  addFiles: string[];
+  removeFiles: string[] | boolean;
+}): Promise<string | null> => {
+  const userId = await getUserId(accessToken);
+  const groupId = group ? (await db.get(
+    `SELECT id FROM groups WHERE name = ?`,
+    [group]
+  ))?.id : null;
+
+  const question = await db.get(`
+    SELECT id, type FROM questions q
+    JOIN books_chapters bc ON q.chapterId = bc.chapterId
+    WHERE questionId = ? AND bc.bookId = ?
+    `, [questionId, bookId]
+  );
+  if (!question) {
+    return "Question id and book id don't match";
+  }
+  if (!question.type.startsWith("upload")) {
+    return "Question is not of upload type";
+  }
+  const qId = question.id;
+  try {
+    await db.run("BEGIN IMMEDIATE");
+    const prevFiles = removeFiles === true ? [] :
+      ((await db.get(`
+        SELECT answer FROM answers
+        WHERE userId = ? AND bookId = ? AND groupId IS ? AND questionId = ?
+        ORDER BY createdAt DESC
+        LIMIT 1
+        `, [userId, bookId, groupId, qId]
+       )) as { answer: string } | undefined)?.answer
+        .split(":")
+        .filter((f) => f && !addFiles.includes(f) && (!removeFiles || !removeFiles.includes(f)))
+      || [];
+    const newFiles = [...prevFiles, ...addFiles].join(":");
+    await db.run(
+      `INSERT INTO answers (userId, bookId, groupId, questionId, answer)
+       VALUES (?, ?, ?, ?, ?)`,
+      [userId, bookId, groupId, qId, newFiles]
+    );
+    await db.run("COMMIT");
+  }
+  catch (e) {
+    await db.run("ROLLBACK");
+    return "Database error";
+  }
+  return null;
+};
+
 export type CorrectAnswers = { questionId: string, answer: string }[];
 
 export const getAnswers = async ({ accessToken, bookId, group }: {
