@@ -17,7 +17,7 @@ export interface User {
   admin: boolean;
 }
 
-export const getUser = async (accessToken: string) => {
+export const getUser = async (accessToken: string): Promise<User | null> => {
   const user = await db.get(
     `SELECT * FROM users WHERE accessToken = ?`,
     [accessToken]
@@ -141,7 +141,7 @@ export const createUser = async (): Promise<User> => {
   const accessToken = v4();
   await db.get(`INSERT INTO users (accessToken)
                 VALUES (?)`, [accessToken]);
-  return getUser(accessToken);
+  return (await getUser(accessToken))!;
 }
 
 export const applyTemporaryToken = async (token: string): Promise<User> => {

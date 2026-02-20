@@ -6,7 +6,7 @@ import { UserDesc } from "@/api/quiz";
 import { QuestionTypes } from "@/types";
 import { corrColor, corrSym } from "@/utils/questions";
 import { useIntl } from "@/i18n";
-import { useLastAnswer } from "@/context/QuizContextProvider";
+import {useFileAnswer, useLastAnswer} from "@/context/QuizContextProvider";
 import { FileDropFunction, FileQuestion } from "./UploadQuestion";
 import { LongTextQuestion, TextQuestion } from "./TextQuestions";
 import { SingleChoiceQuestion } from "./SingleChoiceQuestion";
@@ -38,10 +38,12 @@ interface IQuestion extends QuizPropsBase {
   )[];
 }
 
-export default function Question({
-  type, id, question, options = [], checker, scorer,
-  maxPoints = 0, maxAttempts = 1, accept, children, usersAnswers }: IQuestion)
-{
+export default function Question(props: IQuestion) {
+  return props.type.startsWith("upload") ? UploadQuestion(props) : ValueQuestion(props);
+}
+
+function ValueQuestion({type, id, question, options = [], checker, scorer,
+                        maxPoints = 0, maxAttempts = 1, children, usersAnswers}: IQuestion) {
   const { t } = useIntl();
   const [answer, setAnswer] = React.useState<null | string>(null);
   const [submitted, setSubmitted] = React.useState(false);
@@ -120,33 +122,11 @@ export default function Question({
 
   const icon = React.useMemo(() =>
     submissionErrored ? <RiAlertLine />
-    : ["long-text", "upload", "uploads"].includes(type) ? (submitted ? <RiRecordCircleLine /> : null)
+    : type === "long-text" ? (submitted ? <RiRecordCircleLine /> : null)
     : isCorrect === true ? <RiCheckboxCircleFill />
     : isCorrect === false ? <RiCloseCircleLine />
     : null,
   [submissionErrored, isCorrect, submitted, type]);
-
-  const isUpload = React.useMemo(() => type === "upload" || type === "uploads", [type]);
-  const [isDragging, setIsDragging] = React.useState(false);
-  const onDragOver = React.useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const onDragLeave = React.useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    // Only deactivate when actually leaving the container, not child elements
-    if (e.currentTarget.contains(e.relatedTarget as Node)) {
-      return;
-    }
-    setIsDragging(false);
-  }, []);
-
-  const onFileDropRef = React.useRef<FileDropFunction | null>(null);
-  const onDrop = React.useCallback((e:  React.DragEvent<HTMLElement>) => {
-    setIsDragging(false);
-    onFileDropRef.current?.(e);
-  },
-  [setIsDragging])
 
   const childrenWithProps: any = React.Children.map(children, (child) => {
     if (
@@ -171,13 +151,7 @@ export default function Question({
     <a id={`question-${id}`} />
       <div
         className={`quiz ${usersAnswers ? "" : correctnessClass}`}
-        onDrop={isUpload ? onDrop : undefined}
-        onDragOver={isUpload ? onDragOver : undefined}
-        onDragLeave={isUpload ? onDragLeave : undefined}
       >
-        {isDragging &&
-          <div className="absolute inset-0 bg-blue-200/40 border-2 border-blue-400 rounded-md flex items-center justify-center pointer-events-none" />
-        }
         <div className="quiz-question">
           <h3>
             {question} {!!maxPoints && <span>({maxPoints}pt.)</span>}
@@ -191,23 +165,6 @@ export default function Question({
             { type === "long-text" && <LongTextQuestion {...textProps} /> }
             { type === "singlechoice" && <SingleChoiceQuestion
                 options={options} answer={usersAnswers ? "" : answer} onSubmit={onSubmit} /> }
-            { isUpload && (
-              type === "uploads" && maxAttempts !== 1 ?
-                <FileDockQuestion
-                  id={id}
-                  accept={accept}
-                  ref={onFileDropRef}
-                />
-              :
-                <FileQuestion
-                id={id}
-                submitDisabled={submitDisabled} /* TODO: is this needed? */
-                setSubmitted={setSubmitted}
-                ref={onFileDropRef}
-                accept={accept}
-                multiple={type === "uploads"}
-              />
-            )}
           </fieldset>
 
           { !usersAnswers &&
@@ -250,5 +207,80 @@ export default function Question({
           </div>
         )}
       </div>
+  </>;
+}
+
+
+function UploadQuestion({type, id, question, maxAttempts = 1, accept}: IQuestion) {
+  const { t } = useIntl();
+  const { files, submissionErrored } = useFileAnswer(id);
+
+  const submitDisabled = React.useMemo(
+    () => maxAttempts === 1 && files.length !== 0,
+    [maxAttempts, files]);
+
+  const icon = React.useMemo(() =>
+      submissionErrored ? <RiAlertLine />
+        : files.length ? <RiRecordCircleLine /> : null,
+    [submissionErrored, files]);
+
+  const [isDragging, setIsDragging] = React.useState(false);
+  const onDragOver = React.useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const onDragLeave = React.useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    // Only deactivate when actually leaving the container, not child elements
+    if (e.currentTarget.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    setIsDragging(false);
+  }, []);
+
+  const onFileDropRef = React.useRef<FileDropFunction | null>(null);
+  const onDrop = React.useCallback((e:  React.DragEvent<HTMLElement>) => {
+      setIsDragging(false);
+      onFileDropRef.current?.(e);
+    },
+    [setIsDragging])
+
+  return <>
+    <a id={`question-${id}`} />
+    <div
+      className="quiz"
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+    >
+      {isDragging &&
+        <div className="absolute inset-0 bg-blue-200/40 border-2 border-blue-400 rounded-md flex items-center justify-center pointer-events-none" />
+      }
+      <div className="quiz-question">
+        <h3>
+          {question}
+        </h3>
+        {icon}
+      </div>
+
+      <form>
+        <fieldset disabled={submitDisabled}>
+          { maxAttempts === 1
+            ? <FileQuestion id={id} ref={onFileDropRef} accept={accept} multiple={type === "uploads"} />
+            : <FileDockQuestion id={id} ref={onFileDropRef} accept={accept} multiple={type === "uploads"} />
+          }
+        </fieldset>
+        { submissionErrored &&
+          <div
+            className="bg-red-100 border-red-500 text-red-700 mt-2 p-1 pl-4 rounded"
+            role="alert"
+          >
+            <p>
+              { typeof submissionErrored === "string" ? submissionErrored : t("quiz.submission-error") }
+            </p>
+          </div>
+        }
+      </form>
+    </div>
   </>;
 }

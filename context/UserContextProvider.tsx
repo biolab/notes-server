@@ -103,9 +103,14 @@ export const UserContextProvider = ({ children }: {
     if (accessToken) {
       getUser(accessToken)
         .then((user) => {
-          logger(user ? "Fetched user: " + JSON.stringify(user)
-                      : "User not found, creating anonymous user");
-          onUserLogin(user);
+          if (user) {
+            logger("Fetched user: " + JSON.stringify(user))
+            onUserLogin(user);
+          }
+          else {
+            logger("User not found, creating anonymous user");
+            createAnonymousUser();
+          }
         })
         .catch((error) => {
           logger("Error fetching user:", error);
@@ -115,6 +120,7 @@ export const UserContextProvider = ({ children }: {
       return;
     }
 
+    logger("No access token, creating anonymous user");
     createAnonymousUser();
   },
   [onUserLogin, accessTokenFromQuery, createAnonymousUser, init, pathname]);

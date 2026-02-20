@@ -4,9 +4,10 @@ import path from "path";
 import crypto from "crypto";
 import JSZip from "jszip";
 import { getBookSlug, getGroupName } from "@/api/book";
-import {getQId, getQuestionIdFromId} from "@/api/quiz";
+import {getPostAnswerData, getQuestionIdFromId} from "@/api/quiz";
 import { CONFIG } from "@/utils/config";
 import fs from "fs";
+import db from "@/utils/db";
 
 export const zipResponse = async (zip: JSZip, fileName: string) => {
   const zipBuffer: Buffer = await new Promise((resolve, reject) => {
@@ -59,42 +60,43 @@ export const getUploadDir = async ({bookId, groupId, qId, accessToken}: {
     accessToken)};
 }
 
-export const removeFiles = async (
-  files: string[] | true,
+export const removeFile = async (
+  file: string | undefined,
   {bookId, groupId, questionId, accessToken}: {
     bookId: number,
     groupId: number | null,
     questionId: string,
     accessToken: string}) => {
-  const qId = await getQId(bookId, questionId);
-  const {dir, error} = await getUploadDir({bookId, groupId, qId, accessToken});
-  if (error) {
-    return error;
+  let qData: Awaited<ReturnType<typeof getPostAnswerData>>;
+  try { qData = await getPostAnswerData({accessToken, group: groupId, bookId, questionId}); }
+  catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : String(error)};
   }
-  if (files === true) {
+  const {question, lastAttemptId} = qData;
+  if (!question.type.startsWith("upload")) {
+    return { status: "error", message: "Question is not of upload type" };
+  }
+  if (!lastAttemptId) {
+    return { status: "error", message: "No answer attempt found for this question" };
+  }
+  const {dir, error} = await getUploadDir({bookId, groupId, qId: question.id!, accessToken});
+  if (error) {
+    return { status: "error", message: error};
+  }
+
+  if (!file) {
     // Remove whole directory
-    try {
-      await fs.promises.rm(dir!, {force: true, recursive: true});
-    }
-    catch (err) {
-      return `Failed to remove directory: ${err instanceof Error ? err.message : String(err)}`;
-    }
+    await fs.promises.rm(dir!, {force: true, recursive: true});
+    await db.run(`DELETE FROM uploads WHERE answerId = ?`, [lastAttemptId]);
   }
   else {
-    const errors = [];
-    for (const file of files) {
-      try {
-        const safeFile = path.basename(file);
-        await fs.promises.rm(path.join(dir!, safeFile), {force: true});
-      }
-      catch (err) {
-        const errorMessage = `Failed to remove file ${file}: ${err instanceof Error ? err.message : String(err)}`;
-        console.error(errorMessage);
-        errors.push(errorMessage);
-      }
+    try {
+      const safeFile = path.basename(file);
+      await fs.promises.rm(path.join(dir!, safeFile), {force: true});
+      await db.run(`DELETE FROM uploads WHERE answerId = ? AND filename = ?`, [lastAttemptId, safeFile]);
     }
-    if (errors.length) {
-      return errors.join("; ");
+    catch (err) {
+      return { status: "error", message: `Failed to remove file ${file}: ${err instanceof Error ? err.message : String(err)}`};
     }
   }
   return null;

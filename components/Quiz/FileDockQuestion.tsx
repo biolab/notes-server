@@ -5,20 +5,26 @@ import { RiDeleteBin2Line } from "react-icons/ri";
 
 export type FileDropFunction = (event: React.DragEvent<HTMLElement>) => void;
 
-export const FileDockQuestion = ({id, accept, ref}: {
+export const FileDockQuestion = ({id, multiple, accept, ref}: {
   id: string;
   accept?: string[];
+  multiple: boolean;
   ref?: React.RefObject<FileDropFunction | null>;
 }) => {
   const {t} = useIntl();
-  const {files, addFiles, removeFile} = useFileAnswer(id);
+  const {files, addFiles, removeFile, removeFiles} = useFileAnswer(id);
 
   const onFilesAdd = React.useCallback(async (newFiles: File[]) => {
     const accepted = newFiles.filter(({name}) =>
       !accept?.length
       || accept.includes("." + (name.toLocaleLowerCase().split('.').pop() || "")));
-    await addFiles(accepted);
-  }, [accept, addFiles]);
+    if (multiple) {
+      await addFiles(accepted);
+    } else {
+      await removeFiles();
+      await addFiles([accepted[0]]);
+    }
+  }, [accept, multiple, addFiles, removeFiles]);
 
   const onRemoveFile = React.useCallback(async (name: string) => {
     await removeFile(name);
@@ -44,7 +50,7 @@ export const FileDockQuestion = ({id, accept, ref}: {
   React.useImperativeHandle(ref, () => onFileDrop, [onFileDrop]);
 
   return <>
-      <div className="flex flex-col gap-1 my-4 border-dashed border-1 rounded p-3"
+      <div className="flex flex-col gap-1 my-4 border-dashed border rounded p-3"
       >
         <div className="flex flex-col gap-2 mb-4">
           {files.map((f) =>
@@ -59,22 +65,21 @@ export const FileDockQuestion = ({id, accept, ref}: {
         )}
         </div>
         <div className="flex items-center justify-between">
-          <input
-            id="file"
-            type="file"
-            accept={accept?.join(",")}
-            multiple
-            onChange={onFileChange}
-            style={{display: 'none'}}/>
           <label
-            htmlFor="file"
             className={`px-10 mr-4 submit-quiz-popup-button border border-black rounded cursor-pointer transition inline-block`}
           >
-            {t("quiz.select-files")(files.length, true)}
+            <input
+              type="file"
+              accept={accept?.join(",")}
+              multiple={multiple}
+              onChange={onFileChange}
+              style={{display: 'none'}}
+            />
+            {t("quiz.select-files")(files.length, multiple)}
           </label>
 
           <small className="form-text text-muted" style={{lineHeight: "1.4"}}>
-            {t(`quiz.upload-desc`)(true)}
+            {t(`quiz.upload-desc`)(multiple)}
             {accept && <>
               <br/>
               {t("quiz.upload-allowed-extensions")} {accept.join(", ")}

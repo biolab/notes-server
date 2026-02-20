@@ -126,8 +126,11 @@ export const getGroups = async (bookId: number): Promise<GroupList> =>
     [bookId]
   )) as {id: number, name: string}[];
 
-export const getGroupId = async (groupName: string, bookId: number | undefined
+export const getGroupId = async (groupName: string | undefined | null, bookId: number | undefined
 ): Promise<number | null> => {
+  if (!groupName) {
+    return null;
+  }
   /* JOIN on books_groups checks that the group exists for the given book */
   const row = bookId
   ? (await db.get(
