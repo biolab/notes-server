@@ -271,14 +271,21 @@ export const getAnswersInBook = async (
              u.name,
              u.surname,
              u.email,
-             a.answer,
+             CASE
+                 WHEN q.type LIKE 'upload%'
+                     THEN IFNULL(group_concat(up.filename, ", "), "")
+                 ELSE a.answer
+             END AS answer,
              a.isCorrect,
              a.points,
              q.questionId
       FROM answers a
       JOIN users u ON a.userId = u.id
       JOIN questions q ON a.questionId = q.id
+      LEFT JOIN uploads up ON up.answerId = a.id
       WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
+      GROUP BY a.id
+      HAVING (q.type NOT LIKE 'upload%') OR (q.type LIKE 'upload%' AND count(up.answerId) > 0)
       ORDER BY a.userId, a.groupId, a.createdAt`,
       [bookId, ...(groupId ? [groupId] : [])]
     )) as (AnswerRecord & UserDesc & {
@@ -325,7 +332,7 @@ export const getAnswersFilesInBook = async (
         SELECT a.groupId,
                q.id as qId,
                u.accessToken,
-               a.answer,
+               group_concat(up.filename, "\n") as answer,
                g.name as "group",
                u.id as userId,
                u.name,
@@ -337,6 +344,8 @@ export const getAnswersFilesInBook = async (
         JOIN users u ON a.userId = u.id
         JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
         LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
+        JOIN uploads up ON up.answerId = a.id
+        GROUP BY a.id
         WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
       )
       WHERE rn = 1; 
@@ -344,7 +353,7 @@ export const getAnswersFilesInBook = async (
       [bookId, ...(groupId ? [groupId] : [])]
     )) as (Omit<FileAnswersInBook, "fileNames"> & {answer: string})[]
   )
-  .map(({answer, ...rest}) => ({fileNames: answer.split(":"), ...rest}));
+  .map(({answer, ...rest}) => ({fileNames: answer.split("\n"), ...rest}));
 
 type UserFileAnswersInBook = {
   questionId: string;
@@ -372,7 +381,7 @@ export const getUserFilesInBook = async (
           a.groupId,
           q.id as qId,
           u.accessToken,
-          a.answer,
+          group_concat(up.filename, ":") as answer,
           g.name as "group",
           q.questionId,
           ROW_NUMBER() OVER (PARTITION BY q.id ORDER BY a.createdAt DESC) AS rn
@@ -380,9 +389,11 @@ export const getUserFilesInBook = async (
           JOIN users u ON u.id = ? AND a.userId = u.id
           JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
           LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
+          JOIN uploads up ON up.answerId = a.id
           WHERE a.bookId = ?
                 ${groupId ? "AND a.groupId = ?" : ""}
                 ${qId ? "AND q.id = ?" : ""}
+          GROUP BY a.id
           )
       WHERE rn = 1;
       `,

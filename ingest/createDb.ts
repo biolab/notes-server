@@ -259,6 +259,9 @@ export const rebuildDatabase = async () => {
             UNIQUE (answerId, filename)
         );
     `);
+    await run(`
+        CREATE INDEX IF NOT EXISTS idx_uploads_answerId ON uploads(answerId);
+    `);
 
     await handle("inheritables");
     await run(`

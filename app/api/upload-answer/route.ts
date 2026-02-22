@@ -66,7 +66,8 @@ export async function POST(req: Request) {
 
     await db.run(
       `INSERT INTO uploads (answerId, filename, size) VALUES (?, ?, ?)
-       ON CONFLICT (answerId, filename) DO UPDATE SET size = excluded.size, createdAt = CURRENT_TIMESTAMP
+       ON CONFLICT (answerId, filename) DO
+           UPDATE SET size = excluded.size, createdAt = CURRENT_TIMESTAMP
       `,
       [answerId, fileName, file.size]);
 

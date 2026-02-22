@@ -19,12 +19,15 @@ SELECT
     a.answer,
     a.createdAt,
     a.isCorrect,
-    a.points
+    a.points,
+    group_concat(COALLESCE(up.filename, ""), "\n") AS uploadPaths
 FROM answers a
          JOIN users     u ON a.userId     = u.id
          JOIN books     b ON a.bookId     = b.id
          LEFT JOIN groups    g ON a.groupId    = g.id
-         JOIN questions q ON a.questionId = q.id;
+         JOIN questions q ON a.questionId = q.id
+         LEFT JOIN uploads up ON a.id = up.answerId
+         GROUP BY a.id
 
 .output $STEM-users.csv
 SELECT
