@@ -15,6 +15,14 @@ import { isDirectory, joinedPath, readPublicDir } from "./paths";
 
 export const getMdFile = (spath: string | string[], base = "index") => {
   const bpath = joinedPath(spath);
+  if (!fs.existsSync(bpath)) {
+    return null;
+  }
+
+  if (bpath.endsWith(".md") || bpath.endsWith(".mdx")) {
+    return bpath;
+  }
+
   // Don't be smart and call the above isDirectory function;
   // you'll add another `notesPath` to the path
   if (!fs.statSync(bpath).isDirectory()) {
@@ -39,7 +47,7 @@ export const getMdFile = (spath: string | string[], base = "index") => {
 export const readPublicDirMd = (spath: string | string[], base = "index") => {
   const bpath = typeof spath == "string" ? [spath] : spath;
   return readPublicDir(...bpath).filter(
-    (dir) => !!getMdFile([...bpath, dir], base),
+    (dir) => isDirectory(...bpath, dir) && !!getMdFile([...bpath, dir], base),
   );
 };
 
