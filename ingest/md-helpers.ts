@@ -8,7 +8,7 @@ import rehypeKatex from "rehype-katex";
 import rehypeExpressiveCode from "rehype-expressive-code";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 
-import { addRelativePath, forbiddenComponents, rewriteQuestions, replacer, constructReplacer } from "./plugins";
+import { addRelativeDir, forbiddenComponents, rewriteQuestions, replacer, constructReplacer } from "./plugins";
 import { getImageSize } from "./getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "./paths";
 
@@ -138,6 +138,7 @@ export const serializedContent = async (
   source: string, language: string, relativePath: string,
   forbidden: string[] = []
 ) => {
+  const relativeDir = /.*\.mdx?$/.test(relativePath) ? path.dirname(relativePath) : relativePath;
   const compiled = await compile(source, {
     outputFormat: 'function-body',
     providerImportSource: '@mdx-js/react',
@@ -150,7 +151,7 @@ export const serializedContent = async (
     ],
     rehypePlugins: [
       rehypeKatex,
-      addRelativePath( { relativePath }),
+      addRelativeDir( { relativeDir }),
       getImageSize,
       rewriteQuestions,
       [rehypeExpressiveCode, rehypeExpressiveCodeOptions]

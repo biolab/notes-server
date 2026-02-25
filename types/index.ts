@@ -22,7 +22,7 @@ export interface ChapterFrontmatter {
 }
 
 export interface ChapterDefBase {
-  chapterDir: string;
+  chapterPath: string;
   frontmatter: ChapterFrontmatter;
   questions: QuestionDef[];
 }

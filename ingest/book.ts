@@ -73,7 +73,7 @@ export const parseBook = async (
   const { frontmatter, content } = bookMatter(indexMd);
   const mdxContent = parseMd(content);
 
-  const chapterDirs =
+  const chapterPaths =
     frontmatter.chapters?.map((_slug) =>
       _slug.startsWith("/") ? path.posix.join(pathParts[0], _slug.slice(1))
       : _slug.startsWith(".") ? path.posix.join(...pathParts, _slug)
@@ -81,42 +81,42 @@ export const parseBook = async (
       : path.posix.join(pathParts[0], "_chapters", _slug)
     ) ||
     readPublicDirMd(pathParts)
-      .map((chapterDir) => path.posix.join(...pathParts, chapterDir))
+      .map((chapterPath) => path.posix.join(...pathParts, chapterPath))
       .sort();
 
   const chapters = [];
-  for (const chapterDir of chapterDirs) {
-    const errorPath = `${chapterDir} (in ${fullPath}):\n  `;
-    if (!pathExists(chapterDir)) {
+  for (const chapterPath of chapterPaths) {
+    const errorPath = `${chapterPath} (in ${fullPath}):\n  `;
+    if (!pathExists(chapterPath)) {
       logError(errorPath, `Chapter does not exist.`);
       continue;
     }
 
     if (fs.statSync(bookFile).mtime < prevBuild
-        && fs.statSync(getMdFile(chapterDir)!).mtime < prevBuild) {
+        && fs.statSync(getMdFile(chapterPath)!).mtime < prevBuild) {
       chapters.push({
-        chapterDir,
+        chapterPath,
         mdxContent: null,
         questions: [],
         frontmatter: chapterFrontmatterDefaults});
       continue;
     }
 
-    const index = catchErrorsSync(errorPath, () => getMdFile(chapterDir));
+    const index = catchErrorsSync(errorPath, () => getMdFile(chapterPath));
     if (!index) { continue; }
 
     const chapterMd = fs.readFileSync(index, "utf-8");
-    const parsedMatter = catchErrorsSync(errorPath, () => chapterMatter(chapterMd, chapterDir));
+    const parsedMatter = catchErrorsSync(errorPath, () => chapterMatter(chapterMd, chapterPath));
     if (!parsedMatter) { continue; }
 
     const mdxContent = catchErrorsSync(errorPath, () => parseMd(parsedMatter.content));
     if (!mdxContent) { continue; }
 
-    const questions = await catchErrors(errorPath, () => extractQuizzes(mdxContent, chapterDir));
+    const questions = await catchErrors(errorPath, () => extractQuizzes(mdxContent, chapterPath));
     if (!questions) { continue; }
 
     chapters.push({
-      chapterDir,
+      chapterPath,
       frontmatter: parsedMatter.frontmatter,
       mdxContent,
       questions,

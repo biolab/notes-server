@@ -81,10 +81,10 @@ const checkBooks = async (
       );
 
       // Check that chapters' content can be serialized
-      for (const {mdxContent, chapterDir} of book.chapters) {
+      for (const {mdxContent, chapterPath} of book.chapters) {
         if (mdxContent !== null) {
-          await catchErrors(chapterDir, async () =>
-            serializedContent(mdxContent, book.frontmatter.language, chapterDir)
+          await catchErrors(chapterPath, async () =>
+            serializedContent(mdxContent, book.frontmatter.language, chapterPath)
           );
         }
       }
@@ -99,7 +99,7 @@ const checkBooks = async (
     // Extract all questions in the book
     type QuestionAndChapter = { chapter: string; questionId: string };
     const bookQuestions: QuestionAndChapter[] = [];
-    for (const {chapterDir, mdxContent, questions} of book.chapters) {
+    for (const {chapterPath, mdxContent, questions} of book.chapters) {
       if (!mdxContent) {
         bookQuestions.push(...
           (
@@ -108,14 +108,14 @@ const checkBooks = async (
               FROM questions
               JOIN chapters ON questions.chapterId = chapters.id
               WHERE chapters.path = ?`,
-              [chapterDir])
+              [chapterPath])
             ) as { questionId: string }[]
-          ).map(({questionId}) => ({chapter: chapterDir, questionId}))
+          ).map(({questionId}) => ({chapter: chapterPath, questionId}))
         );
       } else {
         bookQuestions.push(...
           questions.map((question) => ({
-              chapter: chapterDir,
+              chapter: chapterPath,
               questionId: question.questionId
             })
           )
@@ -297,7 +297,7 @@ const insertChapter = async (
   if (chapter.mdxContent === null) {
     const chapterId = (await db.get(
       `UPDATE chapters SET lastBuildId = ? WHERE path = ? RETURNING id`,
-      [buildId, chapter.chapterDir]
+      [buildId, chapter.chapterPath]
     )).id;
     await db.get(
       `UPDATE questions SET lastBuildId = ? WHERE chapterId=?`,
@@ -305,9 +305,9 @@ const insertChapter = async (
     );
     return;
   }
-  const { chapterDir, mdxContent, questions,
+  const { chapterPath, mdxContent, questions,
           frontmatter: {title, omitAsChapter} } = chapter;
-  const content = await serializedContent(mdxContent, language, chapterDir);
+  const content = await serializedContent(mdxContent, language, chapterPath);
   const chapterId = (
     await db.get(
       `
@@ -318,7 +318,7 @@ const insertChapter = async (
                                           content       = excluded.content,
                                           omitAsChapter = excluded.omitAsChapter
           RETURNING id`,
-      [buildId, chapterDir, title, omitAsChapter, content]
+      [buildId, chapterPath, title, omitAsChapter, content]
     )
   ).id;
 
@@ -353,7 +353,7 @@ const insertChapters = async (
   const uniqueChapters = Object.fromEntries(
     books.flatMap(({chapters, frontmatter: {language}}) =>
       chapters.map((chapter) =>
-        [chapter.chapterDir, [chapter, language] as [RawChapterDef, string]]
+        [chapter.chapterPath, [chapter, language] as [RawChapterDef, string]]
       )
     )
   )
@@ -434,7 +434,7 @@ const insertBook = async (
 
   await db.run(`DELETE FROM books_chapters WHERE bookId = ?`, [bookId]);
   await Promise.all(
-    chapters.map(({ chapterDir }, position) =>
+    chapters.map(({ chapterPath }, position) =>
       db.run(
         `
             INSERT INTO books_chapters (bookId, chapterId, position, lastBuildId)
@@ -444,7 +444,7 @@ const insertBook = async (
             ON CONFLICT DO UPDATE SET lastBuildId = excluded.lastBuildId,
                                       position = excluded.position
         `,
-        [bookId, position, buildId, chapterDir]
+        [bookId, position, buildId, chapterPath]
       )
     )
   );
