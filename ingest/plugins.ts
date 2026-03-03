@@ -32,6 +32,7 @@ export const addRelativePath = ({relativePath}: {relativePath: string}) => () =>
   const pubStart = `/${publisher}/`;
   const updatedLink = (url: string) =>
     /https?:\/\//.test(url) || url.startsWith(pubStart) ? url
+    : url.startsWith("//") ? url.slice(1)
     : url.startsWith("/") ? `/${publisher}${url}`
     : `/${relativePath}/${url}`;
 
