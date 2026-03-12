@@ -28,13 +28,11 @@ $max-size: 140;
   --aside-width: 260px;
   --prose-width: 940px;
   --gap: 32px;
-  --max-size: 140;
 
   @media (max-width: 680px) {
     --aside-width: 0;
-    --prose-width: 100vw;
+    --prose-width: 100vw;  // Using 100% allows some elements to expand
     --gap: 0;
-    --max-size: 100;
   }
 }
 
@@ -59,7 +57,7 @@ $gap: var(--gap);
 .full-width {
   width: calc(100% + $aside-width + $gap);
   max-width: calc(100% + $aside-width + $gap);
-  margin-left: (-$aside-width - $gap) !important;
+  margin-left: calc(-1 * $aside-width - $gap) !important;
 }
 
 [data-retina] + p img,
@@ -203,13 +201,13 @@ $gap: var(--gap);
   .expressive-code  {
     max-width: $prose-width !important;
     width: $prose-width !important;
-    overflow: clip;
+    overflow-x: auto;
   }
 
   .expressive-code, .expressive-code pre > code  {
     max-width: calc($prose-width - 30px) !important;
     width: calc($prose-width - 30px) !important;
-    overflow: clip;
+    overflow-x: auto;
   }
 }
 
@@ -221,12 +219,12 @@ $gap: var(--gap);
 
   .aside {
     width: $aside-width;
-    margin-right: 32px;
+    margin-right: $gap;
   }
 
   .right-column {
     margin-left: auto;
-    width: calc(100% - $aside-width - 32px);
+    width: calc(100% - $aside-width - $gap);
   }
 }
 
