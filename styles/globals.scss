@@ -82,102 +82,102 @@ $gap: var(--gap);
 }
 
 @media ( min-width: 681px ) {
-[data-float-aside] + p, [data-float-aside] + div, div.float-aside, div.expanding-side-img {
-  margin: 0 !important;
-  position: absolute;
-  width: $aside-width;
-  font-weight: 400 !important;
-  transform: translateX(calc(-100% - $gap));
-
-  img {
-    margin-top: 8px !important;
-    margin-bottom: 8px !important;
-  }
-
-  .widget-iframe {
-    width: $aside-width !important;
-  }
-
-  p {
+  [data-float-aside] + p, [data-float-aside] + div, div.float-aside, div.expanding-side-img {
+    margin: 0 !important;
+    position: absolute;
+    width: $aside-width;
     font-weight: 400 !important;
-  }
-}
-
-.mx-l320 {
-  margin-left: clamp(
-          calc($aside-width + 60px),              /* minimum margin */
-          calc((100vw - $prose-width - $gap) / 2),/* preferred (centered) */
-          calc((100vw - $prose-width - $gap) / 2) /* max = same as preferred */
-  ) !important;
-  margin-right: auto;
-}
-
-div.expanding-side-img {
-  transform-origin: top left;
-  position: relative;
-  animation: toAbsolute 0.5s forwards;
-  max-width: $aside-width;
-  padding: 0;
-  object-fit: contain;
-
-  @keyframes toAbsolute {
-    0% { position: relative; }
-    100% { position: absolute; }
-  }
-
-  img {
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-  }
-
-  img.retina {
-    zoom: 0.5;
-  }
-
-  .children {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;   // number of lines
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &:hover {
-    position: relative;
-    width: $prose-width;
-    max-width: min($prose-width, calc(100vw - 4rem));
-    transform-origin: top left;
-    animation: none;
-    transition:
-            width 0.5s,
-            max-width 0.5s;
-    z-index: 100;
-    transform: translateX(calc(0px - $aside-width - $gap));
-    background-color: #eee;
-    border-radius: 4px;
+    transform: translateX(calc(-100% - $gap));
 
     img {
-      max-width: $prose-width;
-      transition: all 0.5s;
+      margin-top: 8px !important;
+      margin-bottom: 8px !important;
     }
 
-    .caption.no-children, .children {
-      padding: 16px;
+    .widget-iframe {
+      width: $aside-width !important;
     }
 
-    .caption.with-children {
-      padding: 16px 16px 0 16px;
-      font-weight: 800 !important;
+    p {
+      font-weight: 400 !important;
+    }
+  }
+
+  .mx-l320 {
+    margin-left: clamp(
+            calc($aside-width + 60px),              /* minimum margin */
+            calc((100vw - $prose-width - $gap) / 2),/* preferred (centered) */
+            calc((100vw - $prose-width - $gap) / 2) /* max = same as preferred */
+    ) !important;
+    margin-right: auto;
+  }
+
+  div.expanding-side-img {
+    transform-origin: top left;
+    position: relative;
+    animation: toAbsolute 0.5s forwards;
+    max-width: $aside-width;
+    padding: 0;
+    object-fit: contain;
+
+    @keyframes toAbsolute {
+      0% { position: relative; }
+      100% { position: absolute; }
+    }
+
+    img {
+      border-top-left-radius: 4px;
+      border-top-right-radius: 4px;
+    }
+
+    img.retina {
+      zoom: 0.5;
     }
 
     .children {
-      -webkit-line-clamp: unset;
-      overflow: visible;
-      text-overflow: unset;
-      display: block; // or whatever layout you need
+      display: -webkit-box;
+      -webkit-line-clamp: 2;   // number of lines
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &:hover {
+      position: relative;
+      width: $prose-width;
+      max-width: min($prose-width, calc(100vw - 4rem));
+      transform-origin: top left;
+      animation: none;
+      transition:
+              width 0.5s,
+              max-width 0.5s;
+      z-index: 100;
+      transform: translateX(calc(0px - $aside-width - $gap));
+      background-color: #eee;
+      border-radius: 4px;
+
+      img {
+        max-width: $prose-width;
+        transition: all 0.5s;
+      }
+
+      .caption.no-children, .children {
+        padding: 16px;
+      }
+
+      .caption.with-children {
+        padding: 16px 16px 0 16px;
+        font-weight: 800 !important;
+      }
+
+      .children {
+        -webkit-line-clamp: unset;
+        overflow: visible;
+        text-overflow: unset;
+        display: block; // or whatever layout you need
+      }
     }
   }
-}
 }
 
 @media ( max-width: 680px ) {
