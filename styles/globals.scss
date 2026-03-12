@@ -22,10 +22,25 @@ html {
 }
 
 $img-margin: 8px;
-$aside-width: 260px;
-$prose-width: 940px;
-$gap: 32px;
 $max-size: 140;
+
+:root {
+  --aside-width: 260px;
+  --prose-width: 940px;
+  --gap: 32px;
+  --max-size: 140;
+
+  @media (max-width: 680px) {
+    --aside-width: 0;
+    --prose-width: 100vw;
+    --gap: 0;
+    --max-size: 100;
+  }
+}
+
+$aside-width: var(--aside-width);
+$prose-width: var(--prose-width);
+$gap: var(--gap);
 
 /*
  * Commands that are used in MD
@@ -66,6 +81,7 @@ $max-size: 140;
   }
 }
 
+@media ( min-width: 681px ) {
 [data-float-aside] + p, [data-float-aside] + div, div.float-aside, div.expanding-side-img {
   margin: 0 !important;
   position: absolute;
@@ -162,6 +178,41 @@ div.expanding-side-img {
     }
   }
 }
+}
+
+@media ( max-width: 680px ) {
+  img, div.expanding-side-img {
+    max-width: $prose-width;
+    height: auto;
+    overflow: clip;
+  }
+
+  img:has(+ .caption) {
+    margin-bottom: 12px;
+  }
+
+  .expanding-side-img:has(.caption) {
+    margin-bottom: 42px;
+  }
+
+  .caption.no-children, .caption.with-children, .children {
+    font-weight: 400 !important;
+    font-style: italic;
+  }
+
+  .expressive-code  {
+    max-width: $prose-width !important;
+    width: $prose-width !important;
+    overflow: clip;
+  }
+
+  .expressive-code, .expressive-code pre > code  {
+    max-width: calc($prose-width - 30px) !important;
+    width: calc($prose-width - 30px) !important;
+    overflow: clip;
+  }
+}
+
 /*
  * Layout
  */
@@ -349,6 +400,11 @@ h3 {
   }
 }
 
+@media ( max-width: 680px ) {
+  .container {
+    padding: 0 8px;
+  }
+}
 ///////
 // Nav
 ///////
