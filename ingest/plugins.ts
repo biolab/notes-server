@@ -38,7 +38,7 @@ export const addRelativePath = ({relativePath}: {relativePath: string}) => () =>
 
   visit(
     tree,
-    (node: any) => ["element", "mdxJsxFlowElement"].includes(node.type),
+    (node: any) => ["element", "mdxJsxFlowElement", "mdxJsxTextElement"].includes(node.type),
     (node: any) => {
       if (!relativePath) {
         return;
@@ -51,8 +51,8 @@ export const addRelativePath = ({relativePath}: {relativePath: string}) => () =>
           node.properties.href = updatedLink(node.properties.href);
         }
       }
-      if (node.type === "mdxJsxFlowElement") {
-        node.attributes.forEach((attr: {name: string, value: string}) => {
+      if (node.type === "mdxJsxFlowElement" || node.type === "mdxJsxTextElement") {
+        node.attributes?.forEach((attr: any) => {
           if (attr.name === "src" || attr.name === "href") {
             attr.value = updatedLink(attr.value);
           }
