@@ -256,7 +256,7 @@ export const rebuildDatabase = async () => {
             type        TEXT NOT NULL,
             extra_data  TEXT,
             ${LAST_BUILD_ID},
-            UNIQUE (path)
+            UNIQUE (path, type)
         )
     `);
 
