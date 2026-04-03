@@ -70,15 +70,12 @@ export const forbiddenComponents = ({forbidden}: {
       if (forbidden.includes(node.name)) {
         throw new Error(`<${node.name}> component is invalid here (or everywhere).`);
       }
-      if (node.name == "Quiz") {
-        throw new Error("Replace <Quiz> with <Question>." );
-      }
     });
   };
 };
 
 export const rewriteQuestions = () => (tree: Root) => {
-  visit(tree, ["mdxJsxFlowElement"], (node: any) => {
+  visit(tree, "mdxJsxFlowElement", (node: any) => {
     if (node.name == "Explanation") {
       node.attributes = node.attributes
         .map((attr: { name: string, value: any }) => {

@@ -6,7 +6,8 @@ import { AnswersInBook } from "@/api/quiz";
 import { determineQuestionType } from "@/utils/questions";
 import { Explanation, IExplanation } from "@/components/Quiz/Explanation";
 
-import Question, { QuizPropsBase } from "./Quiz/Quiz";
+import Question, { QuizPropsBase } from "./Quiz/Question";
+import { Quiz } from "@/components/Quiz/Quiz";
 import Image from "./Image";
 import { ExpandingSideImg, Sidenote } from "@/components/Book/Sidenote";
 
@@ -65,6 +66,7 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
     },
 
     Explanation: (props: IExplanation) => <Explanation {...props} />,
+    Quiz,
 
     Sidenote,
     SideNote: Sidenote,

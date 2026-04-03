@@ -199,11 +199,16 @@ export const QuizContext = React.createContext<{
   correct: number;
   wrong: number;
   threshold: number | null;
+  batchSubmission?: boolean;
   answerQuestion: ({questionId, answer, isCorrect, points}: AnswerValueData & { questionId: string }) => Promise<boolean>;
   addFiles: (questionId: string, files: File[]) => Promise<boolean>;
   removeFile: (questionId: string, fileName: string) => Promise<boolean>;
+  sendAnswer: (questionId: string) => Promise<AnswerValueData & { questionId: string } | false>;
+  recordAnswerLocally: (value: AnswerValueData & { questionId: string, correctAnswer?: string }) => void;
   getAnswers: (questionId: string) => Answer[];
   getLastAnswer: (questionId: string) => Answer | null;
+  displayedAnswer: (questionId: string) => string | null;
+  getAttempts: (questionId: string) => number;
   getCorrectAnswer: (questionId: string) => string | undefined;
   submissionErrored: (questionId: string) => boolean | string;
   getQuestionSettings: (questionId: string) => { maxPoints: number, maxAttempts: number };
@@ -226,8 +231,13 @@ export const QuizContext = React.createContext<{
   answerQuestion: async () => false,
   addFiles: async () => false,
   removeFile: async () => false,
+  sendAnswer: async () => false,
+  recordAnswerLocally: () => {},
+  batchSubmission: false,
   getAnswers: () => [],
   getLastAnswer: () => null,
+  displayedAnswer: () => null,
+  getAttempts: () => 0,
   getCorrectAnswer: () => undefined,
   submissionErrored: () => false,
   getQuestionSettings: () => ({ maxPoints: 1, maxAttempts: 0 }),
@@ -242,13 +252,15 @@ export const QuizContextProvider = ({
   answers,
   correctAnswers,
   bookId,
+  batchSubmission,
 }: {
   children: React.ReactNode;
   quizThreshold: number;
   chapters: ChapterDef[];
   bookId: number;
   answers: AnswerWithQuestionId[] | null;
-  correctAnswers: { questionId: string, answer: string}[]
+  correctAnswers: { questionId: string, answer: string}[];
+  batchSubmission?: boolean;
 }) => {
   const { user, userGroup } = React.useContext(UserContext);
   const { t } = useIntl();
@@ -269,38 +281,73 @@ export const QuizContextProvider = ({
     return true;
   }, [user, quizReducer, t]);
 
-  const answerQuestion = React.useCallback(async (
-    {questionId, answer, isCorrect, points}: AnswerValueData & { questionId: string }
-  ): Promise<boolean> => {
-    if (!checkUser(questionId)) {
-      return false;
-    }
-    let postResult: PostAnswerResult | undefined;
-    try {
-      postResult = await postAnswer({
-        accessToken: user!.accessToken, group: userGroup, bookId,
-        questionId, answer, isCorrect, points});
-    } catch (error: any) {
-      quizReducer({ type: "ERROR", value: {questionId}});
-      return false;
-    }
-    if (postResult.status === "error") {
+  const sendAnswer = React.useCallback(async (answer: AnswerValueData & { questionId: string }): Promise<PostAnswerResult> => {
+    const sendResult: PostAnswerResult = await (async () => {
+      if (!user) {
+        return {status: "error", message: t("quiz.not-logged-in")};
+      }
+      try {
+        return await postAnswer({
+          accessToken: user.accessToken, group: userGroup, bookId,
+          ...answer});
+      } catch (error: any) {
+        return {status: "error", message: t("quiz.submission-error")};
+      }
+      })();
+    if (sendResult.status === "error") {
       quizReducer({
         type: "ERROR",
-        value: {questionId, error: postResult.message}});
+        value: {questionId: answer.questionId, error: sendResult.message}});
+    }
+    return sendResult;
+  }, [user, bookId, userGroup, t]);
+
+  const sendAnswerById = React.useCallback(async (questionId: string): Promise<AnswerValueData & { questionId: string } | false> => {
+    const answers = quizState.questions[questionId]?.answers;
+    if (!answers || answers.length === 0) {
+      quizReducer({type: "ERROR", value: {questionId, error: t("quiz.no-answer-to-submit")}});
       return false;
     }
-    quizReducer({
-      type: "ANSWER",
-      value: {
-        questionId,
-        answer,
-        ...postResult as Extract<PostAnswerResult, { status: "ok" }>
+
+    // Upload questions cannot appear in batch submission, so we can cast to AnswerValueData safely
+    const lastAnswer = answers[answers.length - 1] as AnswerValueData;
+
+    const answerToSend: AnswerValueData & { questionId: string } = {
+      questionId,
+      answer: lastAnswer.answer,
+      isCorrect: lastAnswer.isCorrect,
+      points: lastAnswer.points
+    };
+    const sendResult = await sendAnswer(answerToSend);
+    if (sendResult.status === "ok") {
+      return {
+        ...answerToSend,
+        isCorrect: sendResult.isCorrect,
+        points: sendResult.points
       }
-    });
-    return true;
-  },
-  [user, checkUser, bookId, quizReducer, userGroup]
+    }
+    else {
+      return false;
+    }
+  }, [quizState, sendAnswer, t]);
+
+  const recordAnswerLocally = React.useCallback(
+    (answer: AnswerValueData & { questionId: string, correctAnswer?: string }) => {
+      quizReducer({type: "ANSWER", value: answer});
+    }, [quizReducer]);
+
+  const answerQuestion = React.useCallback(
+    async (answer: AnswerValueData & { questionId: string}): Promise<boolean> => {
+      const postResult = await sendAnswer(answer);
+      if (postResult.status == "ok") {
+        recordAnswerLocally({...answer, ...postResult});
+        return true;
+      }
+      else {
+        return false;
+      }
+    },
+    [sendAnswer, recordAnswerLocally]
   );
 
   const getAnswers = React.useCallback(
@@ -516,11 +563,19 @@ export const QuizContextProvider = ({
       answerQuestion,
       addFiles,
       removeFile,
+      sendAnswer: sendAnswerById,
+      recordAnswerLocally,
+      batchSubmission,
       chapterStats,
       getCorrectAnswer: (questionId: string) => quizState.questions[questionId]?.correctAnswer,
       getAnswers,
       getLastAnswer,
       getQuestionSettings,
+      displayedAnswer: (questionId: string) => {
+        const answers = quizState.questions[questionId]?.answers ?? [];
+        return answers.length ? (answers[answers.length - 1] as AnswerValue).answer : null;
+      },
+      getAttempts: (questionId: string) => quizState.questions[questionId]?.answers.length ?? 0,
       submissionErrored: (questionId: string) => quizState.questions[questionId]?.submissionErrored || false
     }),
     [
@@ -531,6 +586,9 @@ export const QuizContextProvider = ({
       getQuestionSettings,
       addFiles,
       removeFile,
+      sendAnswerById,
+      recordAnswerLocally,
+      batchSubmission,
       nQuestions,
       quizThreshold,
       achievedPoints,
@@ -551,13 +609,14 @@ export const QuizContextProvider = ({
 export const useLastAnswer = (questionId: string) => {
   const {
     getAnswers,
+    getAttempts,
     submissionErrored,
     answerQuestion: aq,
     getCorrectAnswer,
   } = React.useContext(QuizContext);
   const answers = (getAnswers(questionId) || []) as AnswerValueData[];
   const value = {
-    attempts: answers.length,
+    attempts: getAttempts(questionId),
     submissionErrored: submissionErrored(questionId),
     answerQuestion: async (value: AnswerValueData) => await aq({questionId, ...value}),
     correctAnswer: getCorrectAnswer(questionId)
@@ -585,4 +644,9 @@ export const useFileAnswer = (questionId: string) => {
     removeFile: async (fileName: string) => await removeFile(questionId, fileName),
     removeFiles: async () => await removeFile(questionId, "*")
   }
+}
+
+export const useBatchSubmission = () => {
+  const { batchSubmission } = React.useContext(QuizContext);
+  return batchSubmission;
 }
