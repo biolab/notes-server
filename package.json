@@ -29,7 +29,7 @@
     "markdown-it": "^12.3.2",
     "mime": "^4.0.7",
     "mime-types": "^3.0.1",
-    "next": "^16.1.7",
+    "next": "^16.2.3",
     "nodemailer": "^8.0.5",
     "probe-image-size": "^7.2.3",
     "react": "^19.2.4",
