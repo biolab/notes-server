@@ -91,7 +91,11 @@ const dict: {[lang: string]: {[key: string]: any}} = {
     "login.send-email-fail": "Failed to send the email. Please try again later.",
     "login.page-title": "Login to Notes",
     "login.contains-questions": "This book contains questions. You need to log in to save your answers.",
-    "login.instructions": "Existing users can get a login link by email. New users must identify with an email and name.",
+    "login.instructions": <>
+        <p>Existing users can get a login link by email. New users must identify with an email and name
+          (<a href="https://fri.uni-lj.si/en/privacy-policy">privacy policy</a>).
+        </p>
+        </>,
     "login.your-email-address": "Your email address",
     "login.existing-user-login": "Login as existing user",
     "login.unknown-email": "Unknown email address. Check your email or login as a new user.",
@@ -192,8 +196,13 @@ const dict: {[lang: string]: {[key: string]: any}} = {
     "login.email-subject": `Povezava za prijavo v {title}`,
     "login.send-email-fail": "Pošiljanje e-pošte ni uspelo. Poskusite znova pozneje.",
     "login.page-title": "Prijava v Notes",
-    "login.contains-questions": "Ta knjiga vsebuje vprašanja. Da bodo vaši odgovori shranjeni po vašim imenom, se morate prijaviti. ",
-    "login.instructions": "Obstoječi uporabniki lahko pridobijo povezavo za prijavo po e-pošti. Novi uporabniki se morajo identificirati z e-pošto in imenom.",
+    "login.contains-questions": "Ta knjiga vsebuje vprašanja. Da bodo vaši odgovori shranjeni po vašim imenom, se morate prijaviti.",
+    "login.instructions":
+      <>
+        <p>Obstoječi uporabniki lahko pridobijo povezavo za prijavo po e-pošti.
+          Novi uporabniki se morajo identificirati z e-pošto in imenom (<a href="https://fri.uni-lj.si/sl/politika-zasebnosti">politika zasebnosti</a>).
+        </p>
+      </>,
     "login.your-email-address": "Vaš e-poštni naslov",
     "login.existing-user-login": "Prijava kot obstoječi uporabnik",
     "login.unknown-email": "Neznan e-poštni naslov. Preverite svoj e-poštni naslov ali se prijavite kot nov uporabnik.",
