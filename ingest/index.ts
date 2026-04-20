@@ -5,7 +5,6 @@ import { Database } from "sqlite";
 import { open } from "sqlite";
 import { load } from "js-yaml";
 import { Mutex } from 'async-mutex';
-import chokidar from "chokidar";
 
 import { getPaths } from "./md-helpers";
 import { updatePaths, updateRoot } from "./updatePaths";
@@ -17,10 +16,11 @@ import { CONFIG } from "@/utils/config";
 
 const updateMutex = new Mutex();
 
-const watchForChanges = (
+const watchForChanges = async (
   path: string,
   doUpdate: () => Promise<boolean>,
 ) => {
+  const chokidar = (await import("chokidar")).default;
   let pending = false;
 
   const triggerUpdate = async () => {
@@ -122,7 +122,7 @@ export async function updateDb(
 
     if (dev) {
       getDevWebSocketServer();
-      watchForChanges(joinedPath(prefix), doUpdate);
+      await watchForChanges(joinedPath(prefix), doUpdate);
     }
   }
 

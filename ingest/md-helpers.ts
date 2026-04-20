@@ -2,11 +2,6 @@ import fs from "fs";
 import path from "path";
 
 import matter from "gray-matter";
-import { compile } from "@mdx-js/mdx";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import rehypeExpressiveCode from "rehype-expressive-code";
-import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 
 import { addRelativePath, forbiddenComponents, rewriteQuestions, replacer, constructReplacer } from "./plugins";
 import { getImageSize } from "./getImageSize";
@@ -122,14 +117,43 @@ export const isListOfStrings = (value: unknown) =>
   (!Array.isArray(value) || value.some((x) => typeof(x) !== "string"))
   && "'tokens' must be a list of strings (don't forget the leading dashes)"
 
-const rehypeExpressiveCodeOptions = {
-  plugins: [pluginCollapsibleSections()],
+const getMdxTooling = async () => {
+  const [
+    { compile },
+    { default: remarkMath },
+    { default: rehypeKatex },
+    { default: rehypeExpressiveCode },
+    { pluginCollapsibleSections },
+  ] = await Promise.all([
+    import("@mdx-js/mdx"),
+    import("remark-math"),
+    import("rehype-katex"),
+    import("rehype-expressive-code"),
+    import("@expressive-code/plugin-collapsible-sections"),
+  ]);
+
+  return {
+    compile,
+    remarkMath,
+    rehypeKatex,
+    rehypeExpressiveCode,
+    rehypeExpressiveCodeOptions: {
+      plugins: [pluginCollapsibleSections()],
+    },
+  };
 }
 
 export const serializedContent = async (
   source: string, language: string, relativePath: string,
   forbidden: string[] = []
 ) => {
+  const {
+    compile,
+    remarkMath,
+    rehypeKatex,
+    rehypeExpressiveCode,
+    rehypeExpressiveCodeOptions,
+  } = await getMdxTooling();
   const compiled = await compile(source, {
     outputFormat: 'function-body',
     providerImportSource: '@mdx-js/react',

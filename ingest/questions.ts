@@ -1,15 +1,26 @@
-import { compile } from "@mdx-js/mdx";
 import * as babelParser from "@babel/parser";
 import * as t from "@babel/types";
 import traverse, { NodePath } from "@babel/traverse";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
 
 import { QuestionDef } from "@/types";
 import { logError } from "./errors";
 
 
 import { determineQuestionType } from "@/utils/questions";
+
+const getMdxTooling = async () => {
+  const [
+    { compile },
+    { default: remarkMath },
+    { default: rehypeKatex },
+  ] = await Promise.all([
+    import("@mdx-js/mdx"),
+    import("remark-math"),
+    import("rehype-katex"),
+  ]);
+
+  return { compile, remarkMath, rehypeKatex };
+}
 
 export const extractQuizzes = async (
   mdxContent: string,
@@ -19,6 +30,7 @@ export const extractQuizzes = async (
   if (!/<\s*Question[\s\/>]/.test(mdxContent)) {
     return questions;
   }
+  const { compile, remarkMath, rehypeKatex } = await getMdxTooling();
   const compiledMdx = await compile(
     // At some point I used mdxContent.replace(/[^\x00-\x7F]/g, "") to fix some problem.
     // Later it turned out it makes options non-unique (e.g. in `options={["Č", "Š", "Ž"]}`).
