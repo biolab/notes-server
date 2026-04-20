@@ -48,7 +48,7 @@ const ConfigSchema = z.object({
     const subPath = (subdir: string) => path.join(base, subdir);
     const tts = (str: string) => str.replace(/\/$/, "");
 
-    const notesPath = tts(data.notesPath ?? data.base ? subPath("repos") : base);
+    const notesPath = tts(data.notesPath ?? (data.base ? subPath("repos") : base));
     const staticPath = tts(data.staticPath ?? notesPath);
     const dbPath = tts(data.dbPath ?? subPath("__db"));
     const uploadsPath = tts(data.uploadsPath ?? subPath("__uploads"));
