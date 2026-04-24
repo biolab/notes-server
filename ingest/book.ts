@@ -76,13 +76,13 @@ export const parseBook = async (
   const chapterDirs =
     frontmatter.chapters?.map((_slug) =>
       _slug.startsWith("/")
-        ? path.join(pathParts[0], _slug.slice(1))
+        ? path.posix.join(pathParts[0], _slug.slice(1))
         : _slug.startsWith(".")
-        ? path.join(...pathParts, _slug)
-        : path.join(pathParts[0], "_chapters", _slug)
+        ? path.posix.join(...pathParts, _slug)
+        : path.posix.join(pathParts[0], "_chapters", _slug)
     ) ||
     readPublicDirMd(pathParts)
-      .map((chapterDir) => path.join(...pathParts, chapterDir))
+      .map((chapterDir) => path.posix.join(...pathParts, chapterDir))
       .sort();
 
   const chapters = [];

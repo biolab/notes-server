@@ -21,8 +21,8 @@ export const getMdFile = (spath: string | string[], base = "index") => {
     return null;
   }
 
-  const fname = path.join(bpath, `${base}.md`);
-  const fnamex = path.join(bpath, `${base}.mdx`);
+  const fname = path.posix.join(bpath, `${base}.md`);
+  const fnamex = path.posix.join(bpath, `${base}.mdx`);
   if (fs.existsSync(fname)) {
     if (fs.existsSync(fnamex)) {
       throw new Error(`Both ${fname} and ${fnamex} exist. Please remove one.`);

@@ -12,10 +12,10 @@ import { CONFIG } from "@/utils/config";
 // This location is thus defined by CONFIG.staticPath (in production),
 // and defaults to CONFIG.notesPath (for development).
 const notesStaticDir = CONFIG.staticPath || CONFIG.notesPath;
-const nextPublicDir = path.join(process.cwd(), "public");
+const nextPublicDir = path.posix.join(process.cwd(), "public");
 
 const tryServe = async (base: string, segments: string[]) => {
-  const filePath = path.join(base, ...segments);
+  const filePath = path.posix.join(base, ...segments);
   if (!filePath.startsWith(base + path.sep)) {
     return null;
     // Keep them in the dark

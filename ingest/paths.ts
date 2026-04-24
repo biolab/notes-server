@@ -3,7 +3,7 @@ import fs from "fs";
 import { CONFIG } from "@/utils/config";
 
 export const joinedPath = (spath: string | string[]) =>
-  path.join(CONFIG.notesPath, ...(typeof spath === "string" ? [spath] : spath));
+  path.posix.join(CONFIG.notesPath, ...(typeof spath === "string" ? [spath] : spath));
 
 export const pathExists = (...spath: string[]) =>
   fs.existsSync(joinedPath(spath));

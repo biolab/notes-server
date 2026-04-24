@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     for (const file of files) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const filePath = path.join(dir, file.name);
+      const filePath = path.posix.join(dir, file.name);
       writeFileSync(filePath, buffer);
     }
 
