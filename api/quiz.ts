@@ -3,6 +3,9 @@
 import db from "@/utils/db";
 import { getUserId } from "@/utils/user";
 import { isAdminFor } from "@/api/user";
+import {getGroupId} from "@/api/book";
+import {QuestionDef} from "@/types";
+import {AnswerFile, AnswerValue} from "@/context/QuizContextProvider";
 
 /* Functions in this module get user's accessToken rather than id
    because id's can be faked.
@@ -34,6 +37,54 @@ export type PostAnswerResult =
    points: number,
    correctAnswer?: string };
 
+const getQuestion = async (questionId: string, bookId: number): Promise<QuestionDef> => {
+  const question = await db.get(`
+  SELECT id, answer, maxPoints, maxAttempts, type
+  FROM questions q
+  JOIN books_chapters bc ON q.chapterId = bc.chapterId
+  WHERE questionId = ? AND bc.bookId = ?`,
+    [questionId, bookId]
+  );
+  if (!question) {
+    throw Error("Question id and book id don't match");
+  }
+  return question;
+}
+
+const checkAllowedAttempts = async ({ userId, groupId, bookId, qId, maxAttempts}: {
+  userId: number;
+  groupId: number | null;
+  bookId: number;
+  qId: number;
+  maxAttempts: number | null;
+}) => {
+  const nPastAnswers = await db.all(`
+      SELECT id
+      FROM answers
+      WHERE userId = ? AND bookId = ? AND groupId IS ? AND questionId = ?
+      ORDER BY createdAt DESC
+  `, [userId, bookId, groupId, qId]) as {id: number}[];
+  if (maxAttempts && nPastAnswers.length >= maxAttempts) {
+    throw Error("Maximum number of attempts reached");
+  }
+  return {nPastAttempts: nPastAnswers.length, lastAttemptId: nPastAnswers[0]?.id};
+}
+
+export const getPostAnswerData = async (
+  { accessToken, group, bookId, questionId}:
+  { accessToken: string;
+    group: string | null | number;
+    bookId: number;
+    questionId: string;
+}) => {
+  const userId = await getUserId(accessToken);
+  const groupId = typeof group === "number" ? group : await getGroupId(group, bookId);
+  const question = await getQuestion(questionId, bookId);
+  const {nPastAttempts, lastAttemptId} = await checkAllowedAttempts(
+    {userId, groupId, bookId, qId: question.id!, maxAttempts: question.maxAttempts});
+  return {question, userId, groupId, nPastAttempts, lastAttemptId};
+}
+
 export const postAnswer = async (
   { accessToken, group, bookId, questionId, answer, isCorrect, points}: {
   accessToken: string;
@@ -44,30 +95,15 @@ export const postAnswer = async (
   isCorrect?: boolean;
   points?: number
 }): Promise<PostAnswerResult> => {
-  const userId = await getUserId(accessToken);
-  const groupId = group ? (await db.get(
-    `SELECT id FROM groups WHERE name = ?`,
-    [group]
-  ))?.id : null;
-
-  const question = await db.get(`
-    SELECT id, answer, maxPoints, maxAttempts, type FROM questions q
-    JOIN books_chapters bc ON q.chapterId = bc.chapterId
-    WHERE questionId = ? AND bc.bookId = ?
-    `, [questionId, bookId]
-  );
-  if (!question) {
-    return {status: "error", message: "Question id and book id don't match"};
+  let qData: Awaited<ReturnType<typeof getPostAnswerData>>;
+  try { qData = await getPostAnswerData({accessToken, group, bookId, questionId}); }
+  catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : String(error)};
   }
-  const nPastAnswers = (await db.get(`
-    SELECT COUNT(*) as count FROM answers
-    WHERE userId = ? AND bookId = ? AND groupId IS ?
-      AND questionId = ?
-    `, [userId, bookId, groupId, question.id])).count;
-  if (question.maxAttempts && nPastAnswers >= question.maxAttempts) {
-    return {status: "error", message: "Maximum number of attempts reached"};
+  const {question, userId, groupId, nPastAttempts} = qData;
+  if (question.type.startsWith("upload")) {
+    throw Error("This question requires file upload and cannot be answered with this endpoint.");
   }
-
   /* If we have the answer in the database, we check the submitted answer
      and assign points. Otherwise, we trust the received isCorrect and points.
    */
@@ -75,8 +111,8 @@ export const postAnswer = async (
     !question.answer ? isCorrect
     : question.type === "singlechoice" ? question.answer === answer
     : question.answer.trim().toLocaleLowerCase() === answer.trim().toLocaleLowerCase()
-  const actPoints =
-    !question.answer ? points
+  const actPoints = !question.answer
+    ? points || 0
     : actCorrect && question.maxPoints || 0;
 
   await db.run(
@@ -87,13 +123,49 @@ export const postAnswer = async (
 
   const shownAnswer =
     (question.maxAttempts
-     && nPastAnswers + 1 >= question.maxAttempts
+     && nPastAttempts + 1 >= question.maxAttempts
      && question.answer) ? { correctAnswer: question.answer } : {};
   return {
     status: "ok",
     isCorrect: actCorrect,
     points: actPoints,
     ...shownAnswer};
+};
+
+export const postFileAnswer = async (
+  { accessToken, group, bookId, questionId, dontCreate
+}: {
+  accessToken: string;
+  group: string | null;
+  bookId: number;
+  questionId: string;
+  dontCreate?: boolean;
+}) => {
+  let qData: Awaited<ReturnType<typeof getPostAnswerData>>;
+  try { qData = await getPostAnswerData({accessToken, group, bookId, questionId}); }
+  catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : String(error)};
+  }
+  const {question, userId, groupId, lastAttemptId} = qData;
+  if (!question.type.startsWith("upload")) {
+    return { status: "error", message: "Question is not of upload type" };
+  }
+  if (lastAttemptId) {
+    await db.run("UPDATE answers SET createdAt = CURRENT_TIMESTAMP  WHERE id = ?", [lastAttemptId]);
+    return { status: "ok", answerId: lastAttemptId };
+  }
+  else if (dontCreate) {
+    return { status: "error", message: "No existing answer found for this question" };
+  }
+  else {
+    const answerId = (await db.get(
+      `INSERT INTO answers (userId, bookId, groupId, questionId, answer)
+       VALUES (?, ?, ?, ?, ?)
+       RETURNING id`,
+      [userId, bookId, groupId, question.id, ""]
+    )).id;
+    return { status: "ok", answerId };
+  }
 };
 
 export type CorrectAnswers = { questionId: string, answer: string }[];
@@ -104,20 +176,42 @@ export const getAnswers = async ({ accessToken, bookId, group }: {
   group: string | undefined | null;
 }) => {
   const userId = await getUserId(accessToken);
-  const answers = (
-    await db.all(`
-      SELECT answers.answer, q.questionId, isCorrect, points
-      FROM answers
-      JOIN questions q ON answers.questionId = q.id
-      LEFT JOIN groups g ON answers.groupId = g.id
-      WHERE userId = ? AND bookId = ? AND g.name IS ?
-      ORDER BY q.position, answers.createdAt`,
-      [userId, bookId, group ?? null]
-    )).map(({isCorrect, ...rest}) => ({
-    // DB stores 0 and 1 even if the column is declared as BOOLEAN
-    isCorrect: isCorrect === null ? undefined : !!isCorrect,
-    ...rest
-  }));
+  const answers = [
+    ...(
+      await db.all(`
+        SELECT answers.answer, q.questionId, isCorrect, points
+        FROM answers
+        JOIN questions q ON answers.questionId = q.id
+        LEFT JOIN groups g ON answers.groupId = g.id
+        WHERE userId = ? AND bookId = ? AND g.name IS ? AND q.type NOT LIKE 'upload%'
+        ORDER BY answers.createdAt`,
+        [userId, bookId, group ?? null]
+      )).map(({answer, questionId, isCorrect, points}) => ({
+        type: "value",
+        answer,
+        questionId,
+        points,
+        // DB stores 0 and 1 even if the column is declared as BOOLEAN
+        isCorrect: isCorrect === null ? undefined : !!isCorrect,
+      }) as AnswerValue & {questionId: string}),
+    ...(
+      await db.all(`
+        SELECT q.questionId, group_concat(u.filename, "\n") as files
+        FROM answers
+        JOIN questions q ON answers.questionId = q.id
+        LEFT JOIN groups g ON answers.groupId = g.id
+        LEFT JOIN uploads u ON u.answerId = answers.id
+        WHERE userId = ? AND bookId = ? AND g.name IS ? AND q.type LIKE 'upload%'
+        GROUP BY answers.id
+        ORDER BY answers.createdAt`,
+        [userId, bookId, group ?? null]
+      )).map(({files, questionId}) => ({
+        type: "files",
+        questionId,
+        files: files ? files.split("\n") : [],
+      }) as AnswerFile & {questionId: string})
+  ];
+
   const correctAnswers =
     (await db.all(`
       SELECT q.questionId, q.answer
@@ -177,14 +271,21 @@ export const getAnswersInBook = async (
              u.name,
              u.surname,
              u.email,
-             a.answer,
+             CASE
+                 WHEN q.type LIKE 'upload%'
+                     THEN IFNULL(group_concat(up.filename, ", "), "")
+                 ELSE a.answer
+             END AS answer,
              a.isCorrect,
              a.points,
              q.questionId
       FROM answers a
       JOIN users u ON a.userId = u.id
       JOIN questions q ON a.questionId = q.id
+      LEFT JOIN uploads up ON up.answerId = a.id
       WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
+      GROUP BY a.id
+      HAVING (q.type NOT LIKE 'upload%') OR (q.type LIKE 'upload%' AND count(up.answerId) > 0)
       ORDER BY a.userId, a.groupId, a.createdAt`,
       [bookId, ...(groupId ? [groupId] : [])]
     )) as (AnswerRecord & UserDesc & {
@@ -231,7 +332,7 @@ export const getAnswersFilesInBook = async (
         SELECT a.groupId,
                q.id as qId,
                u.accessToken,
-               a.answer,
+               group_concat(up.filename, "\n") as answer,
                g.name as "group",
                u.id as userId,
                u.name,
@@ -243,6 +344,8 @@ export const getAnswersFilesInBook = async (
         JOIN users u ON a.userId = u.id
         JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
         LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
+        JOIN uploads up ON up.answerId = a.id
+        GROUP BY a.id
         WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
       )
       WHERE rn = 1; 
@@ -250,7 +353,7 @@ export const getAnswersFilesInBook = async (
       [bookId, ...(groupId ? [groupId] : [])]
     )) as (Omit<FileAnswersInBook, "fileNames"> & {answer: string})[]
   )
-  .map(({answer, ...rest}) => ({fileNames: answer.split(":"), ...rest}));
+  .map(({answer, ...rest}) => ({fileNames: answer.split("\n"), ...rest}));
 
 type UserFileAnswersInBook = {
   questionId: string;
@@ -278,7 +381,7 @@ export const getUserFilesInBook = async (
           a.groupId,
           q.id as qId,
           u.accessToken,
-          a.answer,
+          group_concat(up.filename, ":") as answer,
           g.name as "group",
           q.questionId,
           ROW_NUMBER() OVER (PARTITION BY q.id ORDER BY a.createdAt DESC) AS rn
@@ -286,9 +389,11 @@ export const getUserFilesInBook = async (
           JOIN users u ON u.id = ? AND a.userId = u.id
           JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
           LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
+          JOIN uploads up ON up.answerId = a.id
           WHERE a.bookId = ?
                 ${groupId ? "AND a.groupId = ?" : ""}
                 ${qId ? "AND q.id = ?" : ""}
+          GROUP BY a.id
           )
       WHERE rn = 1;
       `,

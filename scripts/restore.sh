@@ -83,6 +83,38 @@ WHERE NOT EXISTS (
       AND a.questionId = q.id
 );
 
+INSERT INTO uploads (answerId, filename, createdAt)
+WITH RECURSIVE split_lines(id, createdAt, remaining, entry) AS (
+    SELECT
+        a.id,
+        a.createdAt,
+        up.filename || char(10) AS remaining, -- Ensure there's a trailing newline
+        '' AS entry
+    FROM answers_restore_staging s
+    JOIN users     u ON u.email      = s.userEmail
+    JOIN books     b ON b.path       = s.bookPath
+    LEFT JOIN groups g ON g.name     = s.groupName
+    JOIN questions q ON q.questionId = s.questionId
+    JOIN answers   a ON a.userId = u.id
+                    AND a.bookId = b.id
+                    AND ((a.groupId IS NULL AND s.groupName IS NULL) OR (a.groupId = g.id))
+                    AND a.questionId = q.id
+    WHERE up.filename != ''
+
+    UNION ALL
+
+    SELECT
+        id,
+        createdAt,
+        substr(remaining, instr(remaining, char(10)) + 1), -- Everything after the first newline
+        substr(remaining, 1, instr(remaining, char(10)) - 1) -- Everything before the first newline
+    FROM split_lines
+    WHERE remaining != ''
+)
+SELECT id, entry, createdAt
+FROM split_lines
+WHERE entry != '';
+
 DROP TABLE answers_restore_staging;
 EOF
 

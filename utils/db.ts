@@ -11,6 +11,30 @@ if (!(process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI)) {
     driver: sqlite3.Database,
   });
 
+  if (process.env.NODE_ENV === "development" && !(db as any)._isPatched) {
+    const methods = ["get", "all", "run"] as const;
+
+    methods.forEach((method) => {
+      // We cast to any here to allow the override
+      const original = (db as any)[method].bind(db);
+
+      (db as any)[method] = async (sql: string, ...params: any[]) => {
+        try {
+          return await original(sql, ...params);
+        } catch (err: any) {
+          console.group(`🚨 SQLITE_ERROR in db.${method}()`);
+          console.error(`Query:`, sql);
+          console.error(`Params:`, params);
+          console.error(`Message:`, err.message);
+          console.groupEnd();
+          throw err;
+        }
+      };
+    });
+
+    (db as any)._isPatched = true;
+  }
+
   await db.exec("PRAGMA foreign_keys = ON");
 } else {
   db = {} as unknown as Database;

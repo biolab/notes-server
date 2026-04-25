@@ -248,6 +248,21 @@ export const rebuildDatabase = async () => {
         );
     `);
 
+    await handle("uploads");
+    await run(`
+        CREATE TABLE uploads
+        (
+            answerId INTEGER NOT NULL REFERENCES answers (id) ON DELETE CASCADE,
+            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            filename TEXT NOT NULL,
+            size INTEGER NOT NULL,
+            UNIQUE (answerId, filename)
+        );
+    `);
+    await run(`
+        CREATE INDEX IF NOT EXISTS idx_uploads_answerId ON uploads(answerId);
+    `);
+
     await handle("inheritables");
     await run(`
         CREATE TABLE inheritables
