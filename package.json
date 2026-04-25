@@ -45,7 +45,7 @@
     "sqlite3": "^5.1.7",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
-    "uuid": "^11.1.0",
+    "uuid": "^14.0.0",
     "uuid-by-string": "^4.0.0",
     "ws": "^8.18.3",
     "zod": "^4.3.6"
