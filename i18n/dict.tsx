@@ -152,7 +152,7 @@ const dict: {[lang: string]: {[key: string]: any}} = {
     "quiz-progress.no-answers": "Na vprašanja še niste odgovorjali.",
     "quiz-progress.remaining": (n: number) =>
       `\n${plsi(n, `Ostalo je še eno vprašanje|Ostali sta še dve vprašanji|Ostala so še ${n} vprašanja|Ostalo je še ${n} vprašanj`)}.`,
-    "quiz.select-files": (n: number, multiple: boolean) => n === 0 ? `Izberi ${multiple ? "datoteke" : "datotekeo"}`
+    "quiz.select-files": (n: number, multiple: boolean) => n === 0 ? `Izberi ${multiple ? "datoteke" : "datoteko"}`
                                                                   : multiple ? "Izberi dodatne datoteke" : "Izberi drugo datoteko",
     "quiz.upload-desc": (multiple: boolean) => `Izberite ${multiple ? "datoteke" : "datoteko"} za nalaganje ali ${multiple ? "jo" : "jih"} povlecite sem.`,
     "quiz.uploaded-file": "Naložili ste",

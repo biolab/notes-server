@@ -18,6 +18,9 @@ export const FileDockQuestion = ({id, multiple, accept, ref}: {
     const accepted = newFiles.filter(({name}) =>
       !accept?.length
       || accept.includes("." + (name.toLocaleLowerCase().split('.').pop() || "")));
+    if (!accepted.length) {
+      return;
+    }
     if (multiple) {
       await addFiles(accepted);
     } else {

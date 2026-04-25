@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { NextResponse } from "next/server";
 import { getUploadDir } from "@/utils/zip";
 import db from "@/utils/db";
-import {getUser} from "@/api/user";
+import { getUser } from "@/api/user";
 
 const MAX_PER_QUESTION = 50 * 1024 * 1024;
 const MAX_PER_USER = 200 * 1024 * 1024;
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     if (file.size + uploadedThisAnswer > MAX_PER_QUESTION)
       return error("total file size for this question exceeds limit");
 
-    const uploadedThisUser = (await db.get(`
+    const uploadedThisUser: number = (await db.get(`
       SELECT SUM(size) as total FROM uploads JOIN answers a ON a.id = uploads.answerId WHERE a.userId = ?`, [userId])
     )?.total || 0;
     if (uploadedThisUser + file.size > (user.name ? MAX_PER_USER : MAX_PER_ANON_USER))

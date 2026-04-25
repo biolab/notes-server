@@ -104,7 +104,7 @@ export const UserContextProvider = ({ children }: {
       getUser(accessToken)
         .then((user) => {
           if (user) {
-            logger("Fetched user: " + JSON.stringify(user))
+            logger("Fetched user: " + JSON.stringify(user));
             onUserLogin(user);
           }
           else {

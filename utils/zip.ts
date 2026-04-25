@@ -4,7 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import JSZip from "jszip";
 import { getBookSlug, getGroupName } from "@/api/book";
-import {getPostAnswerData, getQuestionIdFromId} from "@/api/quiz";
+import { getPostAnswerData, getQuestionIdFromId } from "@/api/quiz";
 import { CONFIG } from "@/utils/config";
 import fs from "fs";
 import db from "@/utils/db";
