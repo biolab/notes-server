@@ -9,7 +9,7 @@ const KNOWN_EXTRAS = ["books", "collections", "text-replacements"];
 
 export const getFiles = (p: string): string[] =>
   fs.readdirSync(p)
-    .map((name: string) => path.join(p, name))
+    .map((name: string) => path.posix.join(p, name))
     .flatMap((name: string) =>
       fs.statSync(name).isDirectory() ? getFiles(name) :
       name.endsWith('.ts') || name.endsWith('.tsx') ? [name] : [])

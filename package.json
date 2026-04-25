@@ -4,9 +4,9 @@
   "license": "Polyform-Noncommercial-1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p ${PORT:-3020}",
+    "dev": "next dev",
     "build": "next build",
-    "start": "next start -p ${PORT:-3020}",
+    "start": "next start",
     "lint": "next lint",
     "ingest": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/ingest.ts",
     "check-translations": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/check-translations.ts"

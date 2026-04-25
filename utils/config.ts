@@ -45,7 +45,7 @@ const ConfigSchema = z.object({
   .transform((data) => {
     // Above check already ensures that cwd ends with "notes-server" if base is not provided.
     const base = data.base ?? path.resolve(cwd, "..");
-    const subPath = (subdir: string) => path.join(base, subdir);
+    const subPath = (subdir: string) => path.posix.join(base, subdir);
     const tts = (str: string) => str.replace(/\/$/, "");
 
     const notesPath = tts(data.notesPath ?? (data.base ? subPath("repos") : base));

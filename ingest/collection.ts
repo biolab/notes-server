@@ -33,7 +33,7 @@ export const parseCollection = async (pathParts: string[]): Promise<RawCollectio
   const recursivePaths = (spath: string, type: string): string[] =>
     readPublicDir(spath)
       .filter((entry) => entry !== "_chapters")
-      .map((entry) => path.join(spath, entry))
+      .map((entry) => path.posix.join(spath, entry))
       .filter((newPath) => isDirectory(newPath))
       .flatMap((newPath) =>
         getMdFile(newPath, type) ? newPath
@@ -43,8 +43,8 @@ export const parseCollection = async (pathParts: string[]): Promise<RawCollectio
       );
 
   const resolveManualPath = (spath: string) =>
-    spath.startsWith("/") ? path.join(pathParts[0], spath.slice(1))
-    : path.join(...pathParts, spath);
+    spath.startsWith("/") ? path.posix.join(pathParts[0], spath.slice(1))
+    : path.posix.join(...pathParts, spath);
 
   const appendIndexName = (slug: string, base: string): [string, string] => {
     const indexName = getMdFile(slug, base);
@@ -56,7 +56,7 @@ export const parseCollection = async (pathParts: string[]): Promise<RawCollectio
 
   const books = (
     frontmatter.books?.map(resolveManualPath) ||
-    recursivePaths(path.join(...pathParts), "index")
+    recursivePaths(path.posix.join(...pathParts), "index")
   )
     .map((slug: string) => appendIndexName(slug, "index"))
     .map(([slug, indexName]: [string, string]) => ({
@@ -67,7 +67,7 @@ export const parseCollection = async (pathParts: string[]): Promise<RawCollectio
 
   const collections = (
     frontmatter.collections?.map(resolveManualPath) ||
-    recursivePaths(path.join(...pathParts), "collection")
+    recursivePaths(path.posix.join(...pathParts), "collection")
   )
     .map((slug: string) => appendIndexName(slug, "collection"))
     .map(([slug, indexName]: [string, string]) => ({
