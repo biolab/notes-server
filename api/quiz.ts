@@ -345,8 +345,8 @@ export const getAnswersFilesInBook = async (
         JOIN questions q ON a.questionId = q.id AND q.type LIKE 'upload%'
         LEFT JOIN groups g ON a.groupId = g.id OR (a.groupId IS NULL AND g.id IS NULL)
         JOIN uploads up ON up.answerId = a.id
-        GROUP BY a.id
         WHERE a.bookId = ? ${groupId ? "AND a.groupId = ?" : ""}
+        GROUP BY a.id
       )
       WHERE rn = 1; 
       `,
