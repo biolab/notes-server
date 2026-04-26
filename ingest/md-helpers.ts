@@ -8,13 +8,21 @@ import rehypeKatex from "rehype-katex";
 import rehypeExpressiveCode from "rehype-expressive-code";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 
-import { addRelativePath, forbiddenComponents, rewriteQuestions, replacer, constructReplacer } from "./plugins";
+import { addRelativeDir, forbiddenComponents, rewriteQuestions, replacer, constructReplacer } from "./plugins";
 import { getImageSize } from "./getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "./paths";
 
 
 export const getMdFile = (spath: string | string[], base = "index") => {
   const bpath = joinedPath(spath);
+  if (!fs.existsSync(bpath)) {
+    return null;
+  }
+
+  if (bpath.endsWith(".md") || bpath.endsWith(".mdx")) {
+    return bpath;
+  }
+
   // Don't be smart and call the above isDirectory function;
   // you'll add another `notesPath` to the path
   if (!fs.statSync(bpath).isDirectory()) {
@@ -39,7 +47,7 @@ export const getMdFile = (spath: string | string[], base = "index") => {
 export const readPublicDirMd = (spath: string | string[], base = "index") => {
   const bpath = typeof spath == "string" ? [spath] : spath;
   return readPublicDir(...bpath).filter(
-    (dir) => !!getMdFile([...bpath, dir], base),
+    (dir) => isDirectory(...bpath, dir) && !!getMdFile([...bpath, dir], base),
   );
 };
 
@@ -130,6 +138,7 @@ export const serializedContent = async (
   source: string, language: string, relativePath: string,
   forbidden: string[] = []
 ) => {
+  const relativeDir = /.*\.mdx?$/.test(relativePath) ? path.dirname(relativePath) : relativePath;
   const compiled = await compile(source, {
     outputFormat: 'function-body',
     providerImportSource: '@mdx-js/react',
@@ -142,7 +151,7 @@ export const serializedContent = async (
     ],
     rehypePlugins: [
       rehypeKatex,
-      addRelativePath( { relativePath }),
+      addRelativeDir( { relativeDir }),
       getImageSize,
       rewriteQuestions,
       [rehypeExpressiveCode, rehypeExpressiveCodeOptions]

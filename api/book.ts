@@ -78,7 +78,7 @@ export const getBook = async (id: number): Promise<BookProps> => {
     );
 
     chapters.push({
-      chapterDir: chapter.path,
+      chapterPath: chapter.path,
       chapterId: chapter.id,
       frontmatter: {title: chapter.title, omitAsChapter: chapter.omitAsChapter === 1},
       questions,

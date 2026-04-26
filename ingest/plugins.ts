@@ -27,20 +27,20 @@ export const replacer = ({language, extra_replacements}: {language: string, extr
 }
 
 
-export const addRelativePath = ({relativePath}: {relativePath: string}) => () => (tree: Root) => {
-  const publisher = relativePath.split("/")[0];
+export const addRelativeDir = ({relativeDir}: {relativeDir: string}) => () => (tree: Root) => {
+  const publisher = relativeDir.split("/")[0];
   const pubStart = `/${publisher}/`;
   const updatedLink = (url: string) =>
     /https?:\/\//.test(url) || url.startsWith(pubStart) ? url
     : url.startsWith("//") ? url.slice(1)
     : url.startsWith("/") ? `/${publisher}${url}`
-    : `/${relativePath}/${url}`;
+    : `/${relativeDir}/${url}`;
 
   visit(
     tree,
     (node: any) => ["element", "mdxJsxFlowElement", "mdxJsxTextElement"].includes(node.type),
     (node: any) => {
-      if (!relativePath) {
+      if (!relativeDir) {
         return;
       }
       if (node.type === "element") {

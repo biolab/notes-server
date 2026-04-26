@@ -279,7 +279,7 @@ export const Book = (
                 {...chapterDef}
                 bookId={bookId}
                 chapterId={chapterDef.chapterId}
-                key={chapterDef.chapterDir}
+                key={chapterDef.chapterPath}
                 index={index}
                 setIsChapterIndexVisible={setIsChapterIndexVisible}
                 chapterNumber={chapterNumbers[index]}
