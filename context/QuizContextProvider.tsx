@@ -35,6 +35,7 @@ export type AnswerWithQuestionId = Answer & {
 export interface QuestionI {
   questionId: string;
   maxPoints: number;
+  maxAttempts: number;
   chapterIndex: number;
   answers: Answer[];
   submissionErrored?: boolean | string;
@@ -52,11 +53,12 @@ export interface QuizStateI {
 const getQuestionsFromChapters = (chapters: ChapterDef[]): Questions =>
   Object.fromEntries(
     chapters.flatMap((chapter, chapterIndex) =>
-      (chapter.questions || []).map(({questionId, maxPoints}) => [
+      (chapter.questions || []).map(({questionId, maxPoints, maxAttempts}) => [
         questionId,
         {
           questionId,
-          maxPoints: maxPoints || 0,
+          maxPoints: maxPoints ?? 1,
+          maxAttempts: maxAttempts ?? 0,
           chapterIndex,
           answers: [],
         }
@@ -204,6 +206,7 @@ export const QuizContext = React.createContext<{
   getLastAnswer: (questionId: string) => Answer | null;
   getCorrectAnswer: (questionId: string) => string | undefined;
   submissionErrored: (questionId: string) => boolean | string;
+  getQuestionSettings: (questionId: string) => { maxPoints: number, maxAttempts: number };
   chapterStats: (chapterIndex: number) => {
     nQuestions: number;
     answered: number;
@@ -227,6 +230,7 @@ export const QuizContext = React.createContext<{
   getLastAnswer: () => null,
   getCorrectAnswer: () => undefined,
   submissionErrored: () => false,
+  getQuestionSettings: () => ({ maxPoints: 1, maxAttempts: 0 }),
   chapterStats: () => ({ nQuestions: 0, answered: 0, correct: 0, wrong: 0,
                          achievedPoints: 0, correctness: [], questionIds: []})
 });
@@ -488,6 +492,18 @@ export const QuizContextProvider = ({
     [quizState]
   );
 
+  const getQuestionSettings = React.useCallback((questionId: string) => {
+    const question = quizState.questions[questionId];
+    if (!question) {
+      return { maxPoints: 1, maxAttempts: 0 };
+    }
+    return {
+      maxPoints: question.maxPoints,
+      maxAttempts: question.maxAttempts
+    }
+  }, [quizState]
+  );
+
   const contextValue = React.useMemo(
     () => ({
       quizState,
@@ -504,6 +520,7 @@ export const QuizContextProvider = ({
       getCorrectAnswer: (questionId: string) => quizState.questions[questionId]?.correctAnswer,
       getAnswers,
       getLastAnswer,
+      getQuestionSettings,
       submissionErrored: (questionId: string) => quizState.questions[questionId]?.submissionErrored || false
     }),
     [
@@ -511,6 +528,7 @@ export const QuizContextProvider = ({
       answerQuestion,
       getAnswers,
       getLastAnswer,
+      getQuestionSettings,
       addFiles,
       removeFile,
       nQuestions,

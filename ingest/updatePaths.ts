@@ -1,4 +1,5 @@
 import { Database } from "sqlite";
+import fs from "fs";
 
 import { elide } from "@/utils/string";
 
@@ -9,6 +10,8 @@ import { gatherRedirections, updateRedirections } from "./redirections";
 import { catchErrors, hasError, logError, resetError } from "./errors";
 import { MailPath } from "@/ingest/mail";
 import { InheritableResources } from "@/ingest/inheritables";
+import {joinedPath} from "@/ingest/paths";
+import {load} from "js-yaml";
 
 const checkMoved = (moved: [string, string][]) => {
   moved.forEach(([from]) => {
@@ -207,6 +210,23 @@ const buildCollectionParentMap = (collections: {[slug: string]: RawCollectionDef
   });
   return parentOf;
 }
+
+const readDefaults = (resourcePaths: InheritableResources) =>
+  resourcePaths
+    .filter(({type}) => type === "defaults")
+    .map(({path}): [string, any] => {
+      const fpath = joinedPath([path, "defaults.yml"]);
+      try {
+        const defaults = fs.readFileSync(fpath, "utf-8");
+        const data = load(defaults);
+        return [path, data];
+      }
+      catch (e) {
+        logError(path, `Failed to read defaults from ${fpath}: ${e instanceof Error ? e.message : e}`);
+        return [path, {}];
+      }
+    })
+    .sort((a, b) => a[0].split("/").length - b[0].split("/").length); // shallow paths first
 
 const assignLanguages = (
   collections: RawCollectionDef[],
@@ -575,7 +595,9 @@ const insertResourcePaths = async (
   buildId: number
 ) => {
   await Promise.all(
-    paths.map(({path, type}) => {
+    paths
+    .filter(({db}) => db)
+    .map(({path, type}) => {
       db.run(`
         INSERT INTO inheritables (path, type, lastBuildId)
         VALUES (?, ?, ?)
@@ -657,16 +679,18 @@ export const updatePaths = async (
   relaxed: string[],
 ): Promise<boolean | number> => {
   resetError();
+
+  const collectedDefaults = readDefaults(resourcePaths);
   const books = (await Promise.all(
     bookSlugs.map((book) => catchErrors(
       book.join("/"),
-      async () => await parseBook(book, prevBuild))))
+      async () => await parseBook(book, prevBuild, collectedDefaults))))
   ).filter(x => x) as RawBookDef[];
   const allBookSlugs = new Set(books.map(({ slug }) => slug));
   const collections = (await Promise.all(
     collectionSlugs.map((collection) => catchErrors(
       collection.join("/"),
-      async () => await parseCollection(collection))))
+      async () => await parseCollection(collection, collectedDefaults))))
   ).filter(x => x) as RawCollectionDef[];
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
@@ -718,7 +742,7 @@ export const updatePaths = async (
 
 export const updateRoot = async (db: Database) => {
   const rootCollection =
-    getMdFile([], "collection") ? await parseCollection([]) : null;
+    getMdFile([], "collection") ? await parseCollection([], []) : null;
   if (rootCollection?.frontmatter.public) {
     const buildId = (await db.get(
       `INSERT INTO builds (path) VALUES (?) RETURNING id`,

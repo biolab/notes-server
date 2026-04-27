@@ -11,7 +11,37 @@ import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-s
 import { addRelativeDir, forbiddenComponents, rewriteQuestions, replacer, constructReplacer } from "./plugins";
 import { getImageSize } from "./getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "./paths";
+import {ChapterFrontmatter, CollectionFrontmatter, RawBookFrontmatter} from "@/types";
 
+
+export type QuestionDefaults = {
+  ungraded?: boolean;
+  accept?: string;
+  attempts?: number;
+  points?: number;
+}
+
+export type Defaults = {
+  book: Partial<RawBookFrontmatter>;
+  collection: Partial<CollectionFrontmatter>;
+  chapter: Partial<ChapterFrontmatter>;
+  question: QuestionDefaults;
+}
+
+type DefaultKey = keyof Defaults;
+
+export type CollectedDefaults = [string, Defaults][];
+
+export function defaultsFor<K extends DefaultKey>(configs: CollectedDefaults, targetPath: string, itemType: K): Defaults[K] {
+  return Object.assign({},
+    ...configs
+      .filter(([confPath, data]) =>
+        !!data?.[itemType] &&
+        (targetPath === confPath || targetPath.startsWith(`${confPath}/`))
+      )
+      .map(([, defaults]) => defaults[itemType])
+  );
+}
 
 export const getMdFile = (spath: string | string[], base = "index") => {
   const bpath = joinedPath(spath);
@@ -75,23 +105,26 @@ export function checkedMatter<T>(
   indexMd: string,
   defaultMatter: T,
   extraMatter: Record<string, unknown> = {},
-  slug: string | null,
+  slug: string,
+  defaultData: Record<string, any>,
   typeCheckers: Record<string, (value: any) => string | boolean> = {},
 ): {
   frontmatter: T;
   content: string;
 } {
-  const { data, content } = matter(indexMd);
-  if (Object.keys(data).length == 0 && content.trim().startsWith("#")) {
+  const { data: bdata, content } = matter(indexMd);
+  if (Object.keys(bdata).length == 0 && content.trim().startsWith("#")) {
     const [first, ...rest] = content.split("\n");
     return {
       frontmatter: {
         ...defaultMatter,
+        ...defaultData,
         title: first.replace(/^[ #]+/, "") },
       content: rest.join("\n")
     }
   }
 
+  const data = {...defaultData, ...bdata};
   const allowed = { ...defaultMatter, ...extraMatter };
   const errors = [
     allowed["title"] !== undefined && data["title"] === undefined ? "missing 'title'" : "",
@@ -106,7 +139,7 @@ export function checkedMatter<T>(
       .filter(Boolean);
   if (errors.length) {
     throw new Error(
-      `Invalid frontmatter${slug ? ` in ${slug}` : ""}:` +
+      `Invalid frontmatter in ${slug}:` +
       (errors.length === 1
        ? ` ${errors[0]}`
        : `\n${errors.map((e) => `- ${e}`).join("\n")}`));

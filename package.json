@@ -25,6 +25,7 @@
     "dotenv": "^17.2.1",
     "exceljs": "^4.4.0",
     "gray-matter": "^4.0.3",
+    "js-yaml": "^4.1.1",
     "jszip": "^3.10.1",
     "markdown-it": "^12.3.2",
     "mime": "^4.0.7",

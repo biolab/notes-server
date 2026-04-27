@@ -10,10 +10,12 @@ import { logError } from "./errors";
 
 
 import { determineQuestionType } from "@/utils/questions";
+import {QuestionDefaults} from "@/ingest/md-helpers";
 
 export const extractQuizzes = async (
   mdxContent: string,
-  slug: string
+  slug: string,
+  defaults: QuestionDefaults
 ): Promise<QuestionDef[]> => {
   const questions: QuestionDef[] = [];
   if (!/<\s*Question[\s\/>]/.test(mdxContent)) {
@@ -133,8 +135,9 @@ export const extractQuizzes = async (
 
           const questionId = getProp(where, "id") || question;
           const points = getNumProp(where, "points");
-          const attempts = getNumProp(where, "attempts") ?? getNumProp(where, "trials");
-          const ungraded = getBoolProp(where, "ungraded") ?? false;
+          const attempts = getNumProp(where, "attempts") ?? getNumProp(where, "trials") ?? defaults.attempts;
+          const ungradedProp = getBoolProp(where, "ungraded");
+          const ungraded = ungradedProp ?? defaults.ungraded ?? false;
           const options = getPropArray(where, "options");
           const answer = getProp(where, "answer");
           const correctOptions = options
@@ -145,7 +148,9 @@ export const extractQuizzes = async (
           const longtext = getBoolProp(where, "longtext");
           const upload = getBoolProp(where, "upload");
           const uploads = getBoolProp(where, "uploads");
-          const accept = getProp(where, "accept");
+          const isUpload = upload || uploads;
+          const acceptProp = getProp(where, "accept");
+          const accept = acceptProp ?? defaults.accept;
           const type = determineQuestionType({options, longtext, upload, uploads});
           const newErrors: string[] = (
             [
@@ -166,23 +171,20 @@ export const extractQuizzes = async (
               [ longtext && options,
                 "longtext is incompatible with options"
               ],
-              [ (upload || uploads) && (longtext || options || answer || hasScorer),
+              [ isUpload && (longtext || options || answer || hasScorer),
                 "upload(s) is incompatible with longtext, options, answer and scorer"
               ],
-              [ accept && !(upload || uploads),
+              [ acceptProp && !isUpload,
                 "Accept is only meaningful with upload or uploads"
               ],
-              [ !hasAnswer && !hasScorer && !ungraded && !(longtext || upload || uploads),
+              [ !hasAnswer && !hasScorer && !ungraded && !(longtext || isUpload),
                 `Mark question as ungraded or provide answer or scorer`
-              ],
-              [ ungraded && points && points > 0,
-                `Ungraded questions should not have points`
               ],
               [
                 hasAnswer && hasScorer,
                 `Provide either answer or scorer, not both`
               ],
-              [ ungraded && (points || hasAnswer || hasScorer),
+              [ ungradedProp && (points || hasAnswer || hasScorer),
                 `Ungraded questions should not have points, answer or scorer`
               ],
               [
@@ -208,9 +210,9 @@ export const extractQuizzes = async (
             question,
             type,
             options,
-            answer: correctOptions?.[0] || answer,
-            maxAttempts: attempts ?? 1,
-            maxPoints: ungraded ? 0 : (points ?? 1),
+            answer: isUpload ? (accept || null) : (correctOptions?.[0] || answer),
+            maxAttempts: (isUpload && attempts !== 1) ? 0 : (attempts ?? 1),
+            maxPoints: ungraded ? 0 : (points ?? defaults.points ?? 1),
           });
         }
       }
