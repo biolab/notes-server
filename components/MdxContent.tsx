@@ -51,24 +51,14 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
           {...rest, answers: answers[id || question]}))
         .filter(({answers}) => answers && answers.length > 0);
 
-      const acceptList = accept?.toLocaleLowerCase()
-        ?.replaceAll("*", "")
-        .replaceAll(";", " ")
-        .replaceAll(",", " ")
-        .split(/\s+/)
-        || undefined;
-
       return (
         <Question
           {...restProps}
           question={question}
           id={id || question}
           type={type}
-          accept={acceptList}
           scorer={scorer}
           options={options}
-          maxPoints={ungraded ? 0 : (points ?? 1)}
-          maxAttempts={attempts ?? 1}
           usersAnswers={usersAnswers}
         />
       );

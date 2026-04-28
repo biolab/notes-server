@@ -6,7 +6,7 @@ import { UserDesc } from "@/api/quiz";
 import { QuestionTypes } from "@/types";
 import { corrColor, corrSym } from "@/utils/questions";
 import { useIntl } from "@/i18n";
-import {useFileAnswer, useLastAnswer} from "@/context/QuizContextProvider";
+import {QuizContext, useFileAnswer, useLastAnswer} from "@/context/QuizContextProvider";
 import { FileDropFunction, FileQuestion } from "./UploadQuestion";
 import { LongTextQuestion, TextQuestion } from "./TextQuestions";
 import { SingleChoiceQuestion } from "./SingleChoiceQuestion";
@@ -24,8 +24,6 @@ interface IQuestion extends QuizPropsBase {
   id: string;
   type: QuestionTypes;
   scorer: ((option: string) => (boolean | undefined)) | undefined
-  maxPoints: number;
-  maxAttempts: number;
   accept?: string[];
   usersAnswers?: (
     UserDesc &
@@ -39,11 +37,12 @@ interface IQuestion extends QuizPropsBase {
 }
 
 export default function Question(props: IQuestion) {
-  return props.type.startsWith("upload") ? UploadQuestion(props) : ValueQuestion(props);
+  const { maxAttempts, maxPoints } = React.useContext(QuizContext).getQuestionSettings(props.id)!;
+  return props.type.startsWith("upload") ? UploadQuestion({...props, maxAttempts}) : ValueQuestion({...props, maxPoints, maxAttempts});
 }
 
 function ValueQuestion({type, id, question, options = [], checker, scorer,
-                        maxPoints = 0, maxAttempts = 1, children, usersAnswers}: IQuestion) {
+                        maxPoints = 0, maxAttempts = 1, children, usersAnswers}: IQuestion & { maxPoints: number, maxAttempts: number }) {
   const { t } = useIntl();
   const [answer, setAnswer] = React.useState<null | string>(null);
   const [submitted, setSubmitted] = React.useState(false);
@@ -211,7 +210,7 @@ function ValueQuestion({type, id, question, options = [], checker, scorer,
 }
 
 
-function UploadQuestion({type, id, question, maxAttempts = 1, accept}: IQuestion) {
+function UploadQuestion({type, id, question, maxAttempts = 1}: IQuestion & { maxAttempts: number }) {
   const { t } = useIntl();
   const { files, submissionErrored } = useFileAnswer(id);
 
@@ -245,6 +244,14 @@ function UploadQuestion({type, id, question, maxAttempts = 1, accept}: IQuestion
     },
     [setIsDragging])
 
+  const accept = React.useContext(QuizContext).getCorrectAnswer(id);
+  const acceptList = accept?.toLocaleLowerCase()
+      ?.replaceAll("*", "")
+      .replaceAll(";", " ")
+      .replaceAll(",", " ")
+      .split(/\s+/)
+    || undefined;
+
   return <>
     <a id={`question-${id}`} />
     <div
@@ -266,8 +273,8 @@ function UploadQuestion({type, id, question, maxAttempts = 1, accept}: IQuestion
       <form>
         <fieldset disabled={submitDisabled}>
           { maxAttempts === 1
-            ? <FileQuestion id={id} ref={onFileDropRef} accept={accept} multiple={type === "uploads"} />
-            : <FileDockQuestion id={id} ref={onFileDropRef} accept={accept} multiple={type === "uploads"} />
+            ? <FileQuestion id={id} ref={onFileDropRef} accept={acceptList} multiple={type === "uploads"} />
+            : <FileDockQuestion id={id} ref={onFileDropRef} accept={acceptList} multiple={type === "uploads"} />
           }
         </fieldset>
         { submissionErrored &&

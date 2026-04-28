@@ -3,12 +3,14 @@ import { isDirectory, pathExists, readPublicDir } from "./paths";
 
 const resources = [
   {type: "favicon", file: "favicon.png"},
-  {type: "css", file: "style.css"}
+  {type: "css", file: "style.css"},
+  {type: "defaults", file: "defaults.yml", db: false},
 ];
 
 export type InheritableResources = {
     type: string,
-    path: string
+    path: string,
+    db?: boolean
 }[];
 
 export const getInheritableResources = (prefix: string): InheritableResources => [

@@ -6,7 +6,7 @@ import { RawBookFrontmatter, CollectionFrontmatter,
 } from "@/types";
 
 import { bookMatter } from "./book";
-import { checkedMatter, getMdFile, isListOfStrings, parseMd } from "./md-helpers";
+import { checkedMatter, CollectedDefaults, defaultsFor, getMdFile, isListOfStrings, parseMd } from "./md-helpers";
 import { isDirectory, readPublicDir } from "./paths";
 
 
@@ -18,16 +18,16 @@ export type RawCollectionDef = {
   collections: { slug: string; frontmatter: CollectionFrontmatter }[];
 }
 
-const collectionMatter = (indexMd: string, slug: string | null = null) =>
+const collectionMatter = (indexMd: string, slug: string, defaults: Partial<CollectionFrontmatter>) =>
   checkedMatter(
-    indexMd, defaultCollectionFrontmatter, extraCollectionMatter, slug,
+    indexMd, defaultCollectionFrontmatter, extraCollectionMatter, slug, defaults,
     { admins: isListOfStrings }
   );
 
-export const parseCollection = async (pathParts: string[]): Promise<RawCollectionDef> => {
+export const parseCollection = async (pathParts: string[], defaults: CollectedDefaults): Promise<RawCollectionDef> => {
   const fullPath = pathParts.join("/");
   const indexMd = fs.readFileSync(getMdFile(pathParts, "collection")!, "utf-8");
-  const { frontmatter, content } = collectionMatter(indexMd, fullPath);
+  const { frontmatter, content } = collectionMatter(indexMd, fullPath, defaultsFor(defaults, fullPath, "collection"));
   const mdxContent = parseMd(content);
 
   const recursivePaths = (spath: string, type: string): string[] =>
@@ -61,7 +61,8 @@ export const parseCollection = async (pathParts: string[]): Promise<RawCollectio
     .map((slug: string) => appendIndexName(slug, "index"))
     .map(([slug, indexName]: [string, string]) => ({
       slug,
-      frontmatter: bookMatter(fs.readFileSync(indexName, "utf-8"), slug)
+      frontmatter: bookMatter(fs.readFileSync(indexName, "utf-8"), slug,
+        defaultsFor(defaults, slug, "book"))
         .frontmatter,
     }));
 
@@ -72,7 +73,8 @@ export const parseCollection = async (pathParts: string[]): Promise<RawCollectio
     .map((slug: string) => appendIndexName(slug, "collection"))
     .map(([slug, indexName]: [string, string]) => ({
       slug,
-      frontmatter: collectionMatter(fs.readFileSync(indexName, "utf-8"), slug)
+      frontmatter: collectionMatter(fs.readFileSync(indexName, "utf-8"), slug,
+        defaultsFor(defaults, slug, "collection"))
         .frontmatter,
     }));
 

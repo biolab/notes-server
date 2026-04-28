@@ -4,7 +4,7 @@ import path from "path";
 import { RawBookFrontmatter, ChapterDefBase, ChapterFrontmatter } from "@/types";
 
 import { pathExists } from "./paths";
-import { checkedMatter, getMdFile, isListOfStrings, parseMd, readPublicDirMd } from "./md-helpers";
+import { checkedMatter, CollectedDefaults, defaultsFor, getMdFile, isListOfStrings, parseMd, readPublicDirMd } from "./md-helpers";
 import { catchErrors, catchErrorsSync, logError } from "./errors";
 import { extractQuizzes } from "./questions";
 
@@ -32,9 +32,9 @@ const extraBookMatter = {
   chapters: [] as string[],
 } satisfies Record<string, unknown>;
 
-export const bookMatter = (indexMd: string, slug: string | null = null) =>
+export const bookMatter = (indexMd: string, slug: string, defaults: Partial<RawBookFrontmatter>) =>
   checkedMatter(
-    indexMd, bookFrontmatterDefaults, extraBookMatter, slug,
+    indexMd, bookFrontmatterDefaults, extraBookMatter, slug, defaults,
     {
       groups: (value) =>
         Array.isArray(value)
@@ -49,8 +49,8 @@ export const bookMatter = (indexMd: string, slug: string | null = null) =>
     }
   );
 
-const chapterMatter = (chapterMd: string, slug: string | null = null) =>
-  checkedMatter(chapterMd, chapterFrontmatterDefaults, {}, slug);
+const chapterMatter = (chapterMd: string, slug: string, defaults: Partial<ChapterFrontmatter>) =>
+  checkedMatter(chapterMd, chapterFrontmatterDefaults, {}, slug, defaults);
 
 export interface RawChapterDef extends ChapterDefBase {
   mdxContent: string | null;
@@ -66,11 +66,12 @@ export type RawBookDef = {
 export const parseBook = async (
   pathParts: string[],
   prevBuild: Date,
+  defaults: CollectedDefaults
 ): Promise<RawBookDef> => {
   const fullPath = pathParts.join("/");
   const bookFile = getMdFile(pathParts)!;
   const indexMd = fs.readFileSync(bookFile!, "utf-8");
-  const { frontmatter, content } = bookMatter(indexMd);
+  const { frontmatter, content } = bookMatter(indexMd, fullPath, defaultsFor(defaults, fullPath, "book"));
   const mdxContent = parseMd(content);
 
   const chapterPaths =
@@ -85,6 +86,9 @@ export const parseBook = async (
       .sort();
 
   const chapters = [];
+  // Defaults for chapters and questions are taken from the book's path, not the chapter's
+  const chapterDefaults = defaultsFor(defaults, fullPath, "chapter");
+  const questionDefaults = defaultsFor(defaults, fullPath, "question");
   for (const chapterPath of chapterPaths) {
     const errorPath = `${chapterPath} (in ${fullPath}):\n  `;
     if (!pathExists(chapterPath)) {
@@ -106,13 +110,13 @@ export const parseBook = async (
     if (!index) { continue; }
 
     const chapterMd = fs.readFileSync(index, "utf-8");
-    const parsedMatter = catchErrorsSync(errorPath, () => chapterMatter(chapterMd, chapterPath));
+    const parsedMatter = catchErrorsSync(errorPath, () => chapterMatter(chapterMd, chapterPath, chapterDefaults));
     if (!parsedMatter) { continue; }
 
     const mdxContent = catchErrorsSync(errorPath, () => parseMd(parsedMatter.content));
     if (!mdxContent) { continue; }
 
-    const questions = await catchErrors(errorPath, () => extractQuizzes(mdxContent, chapterPath));
+    const questions = await catchErrors(errorPath, () => extractQuizzes(mdxContent, chapterPath, questionDefaults));
     if (!questions) { continue; }
 
     chapters.push({
