@@ -1,5 +1,6 @@
 import React from "react";
 import { useIntl } from "@/i18n";
+import { useBatchSubmission } from "@/context/QuizContextProvider";
 
 type TextQuestionProps = {
   answer: string | null;
@@ -15,32 +16,43 @@ export const BaseTextQuestion = (
 ) => {
   const { t } = useIntl();
   const [formatError, setFormatError] = React.useState<null | string>(null);
+  const batchSubmission = useBatchSubmission();
+
+  const doSubmit = React.useCallback((answer_: string) => {
+    const errored = checker ? checker(answer_.trim().toLowerCase()) : null;
+    setFormatError(errored);
+    if (!errored && onSubmit) {
+      onSubmit(answer_);
+    }
+  }, [checker, onSubmit, setFormatError]);
 
   const onSubmitText = React.useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    if (!onSubmit || !answer) {
-      return;
+    if (answer) {
+      doSubmit(answer);
     }
-    const errored = checker ? checker(answer.trim().toLowerCase()) : null;
-    setFormatError(errored);
-    if (!errored) {
-      onSubmit(answer);
-    }
-  }, [onSubmit, answer, checker, setFormatError]);
+  }, [answer, doSubmit]);
 
   const onChange = React.useCallback((e: {target: {value: string}}) => {
-    setSubmitted(false);
+    if (batchSubmission) {
+      doSubmit(e.target.value);
+    }
+    else {
+      setSubmitted(false);
+      setFormatError(null);
+    }
     setAnswer(e.target.value);
-    setFormatError(null);
-  }, [setSubmitted, setAnswer, setFormatError]);
+  }, [setSubmitted, setAnswer, setFormatError, doSubmit, batchSubmission]);
 
   return <>
     {long ? <textarea value={answer || ""} onChange={onChange}/>
           : <input type="text" value={answer || ""} onChange={onChange}/>}
     { long && formatError && <p className="checker-message">{formatError}</p> }
-    <button disabled={!onSubmit} onClick={onSubmitText}>
-      {t("quiz.submit-button")}
-    </button>
+    { !batchSubmission &&
+      <button disabled={!onSubmit} onClick={onSubmitText}>
+        {t("quiz.submit-button")}
+      </button>
+    }
     { !long && formatError && <p className="checker-message">{formatError}</p> }
   </>
 }
