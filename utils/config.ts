@@ -82,7 +82,8 @@ const ConfigSchema = z.object({
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
 
-const configFile = process.env.NOTES_CONFIG || path.resolve(cwd, "notes.config.yml");
+const configFile = process.env.NOTES_CONFIG ?
+  /*turbopackIgnore: true*/ process.env.NOTES_CONFIG : path.resolve(cwd, "notes.config.yml");
 
 const fileContents = () => {
   if (fs.existsSync(configFile)) {

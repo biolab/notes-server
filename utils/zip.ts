@@ -55,7 +55,7 @@ export const getUploadDir = async ({bookId, groupId, qId, accessToken}: {
   }
 
   return {dir: path.resolve(
-    CONFIG.uploadsPath,
+    /* turbopackIgnore: true */ CONFIG.uploadsPath,
     ...[bookSlug, group || "no-group", questionId].map(hash24),
     accessToken)};
 }
@@ -92,7 +92,7 @@ export const removeFile = async (
   else {
     try {
       const safeFile = path.basename(file);
-      await fs.promises.rm(path.join(dir!, safeFile), {force: true});
+      await fs.promises.rm(path.join(/* turbopackIgnore: true */ dir!, safeFile), {force: true});
       await db.run(`DELETE FROM uploads WHERE answerId = ? AND filename = ?`, [lastAttemptId, safeFile]);
     }
     catch (err) {
