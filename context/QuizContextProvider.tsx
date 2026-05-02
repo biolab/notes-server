@@ -48,7 +48,6 @@ type Questions = {[questionID: string]: QuestionI};
 
 export interface QuizStateI {
   questions: Questions;
-  chaptersWithQuiz: number[];
   quizThreshold: number;
 }
 
@@ -81,9 +80,6 @@ const getQuizState = ({
 }) => {
   const state: QuizStateI = {
     questions: getQuestionsFromChapters(chapters),
-    chaptersWithQuiz: chapters
-      .map((chapter, index) => (chapter.questions?.length ? index : -1))
-      .filter((index) => index !== -1),
     quizThreshold,
   };
   (answers || []).forEach((answer) => {
