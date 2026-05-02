@@ -5,14 +5,14 @@ import { usePathname } from "next/navigation";
 import Image from "../Image";
 import { toast } from "react-toastify";
 
-import { AnswersInBook, CorrectAnswers, getAnswers, getAnswersInBook } from "@/api/quiz";
+import { AnswersInBook, CorrectAnswers, getLastAnswers, getAnswersInBook } from "@/api/quiz";
 import { BookProps, getPublicCollection } from "@/api/book";
 import { isAdminFor } from "@/api/user";
 
 import { logger } from "@/utils/logger";
 import { getT, IntlContextProvider } from "@/i18n";
 import { UserContext } from "@/context/UserContextProvider";
-import { AnswerWithQuestionId, QuizContextProvider } from "@/context/QuizContextProvider";
+import { AnswerState, QuizContextProvider } from "@/context/QuizContextProvider";
 import Layout from "../Layout/Layout";
 
 import Login from "../Login";
@@ -34,7 +34,7 @@ export const Book = (
   const [ isAdmin, setIsAdmin ] = useState<boolean>(false);
   const [answers, setAnswers] =
     useState<"pending" | null | {
-      answers: AnswerWithQuestionId[],
+      answers: AnswerState[],
       correctAnswers: CorrectAnswers}>("pending");
   const hasGroups = useMemo(() => frontmatter.groups.length > 0, [frontmatter]);
   const [groupRequired, setGroupRequired] = useState<boolean | null>(null);
@@ -56,7 +56,7 @@ export const Book = (
     ) {
       return;
     }
-    getAnswers({ accessToken: user.accessToken, bookId, group: userGroup})
+    getLastAnswers({ accessToken: user.accessToken, bookId, group: userGroup})
       .then((response) => {
         logger("Quiz answers fetched:", response);
         setAnswers(response);
