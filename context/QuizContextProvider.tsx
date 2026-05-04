@@ -28,8 +28,9 @@ export type AnswerFile = { type: "files" } & AnswerFileData;
 
 export type Answer = (AnswerValue | AnswerFile);
 
-export type AnswerWithQuestionId = Answer & {
+export type AnswerState = Answer & {
   questionId: string;
+  nAttempts: number;
 }
 
 export interface QuestionI {
@@ -37,7 +38,8 @@ export interface QuestionI {
   maxPoints: number;
   maxAttempts: number;
   chapterIndex: number;
-  answers: Answer[];
+  lastAnswer: Answer | null;
+  nAttempts: number;
   submissionErrored?: boolean | string;
   correctAnswer?: string;
 }
@@ -46,7 +48,6 @@ type Questions = {[questionID: string]: QuestionI};
 
 export interface QuizStateI {
   questions: Questions;
-  chaptersWithQuiz: number[];
   quizThreshold: number;
 }
 
@@ -59,8 +60,9 @@ const getQuestionsFromChapters = (chapters: ChapterDef[]): Questions =>
           questionId,
           maxPoints: maxPoints ?? 1,
           maxAttempts: maxAttempts ?? 0,
+          nAttempts: 0,
           chapterIndex,
-          answers: [],
+          lastAnswer: null,
         }
       ]
   )));
@@ -73,19 +75,17 @@ const getQuizState = ({
 }: {
   chapters: ChapterDef[];
   quizThreshold: number;
-  answers: AnswerWithQuestionId[] | null;
+  answers: AnswerState[] | null;
   correctAnswers: CorrectAnswers
 }) => {
   const state: QuizStateI = {
     questions: getQuestionsFromChapters(chapters),
-    chaptersWithQuiz: chapters
-      .map((chapter, index) => (chapter.questions?.length ? index : -1))
-      .filter((index) => index !== -1),
     quizThreshold,
   };
   (answers || []).forEach((answer) => {
     const {questionId, ...answerWOutId} = answer;
-    state.questions[questionId].answers.push(answerWOutId as Answer);
+    state.questions[questionId].lastAnswer = (answerWOutId as Answer);
+    state.questions[questionId].nAttempts = answer.nAttempts;
     }
   );
   correctAnswers.forEach(({questionId, answer}) => {
@@ -118,35 +118,34 @@ const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
           ...prev,
           correctAnswer,
           submissionErrored: false,
-          answers: [...(prev?.answers ?? []) as AnswerValue[], {type: "value", ...data}]
+          lastAnswer: {type: "value", ...data},
+          nAttempts: (prev?.nAttempts ?? 0) + 1
         }
       }
       break;
     }
 
     case "REMOVEFILE": {
-      if (!prev || !prev.answers.length) {
+      if (!prev?.lastAnswer) {
         return state;
       }
-      const prevFiles = (prev.answers[prev.answers.length - 1] as AnswerFile).files;
+      const prevFiles = (prev.lastAnswer as AnswerFile).files;
       questions = {
         ...state.questions,
         [questionId]: {
           ...prev,
           submissionErrored: false,
-          answers: [
-            ...prev.answers as AnswerFile[],
-            { type: "files",
-              files: prevFiles.filter((n) => n !== action.value.file),
-            } as AnswerFile
-          ]
+          lastAnswer: {
+            type: "files",
+            files: prevFiles.filter((n) => n !== action.value.file),
+          } as AnswerFile
         }
       }
       break;
     }
 
     case "REMOVEFILES": {
-      if (!prev || !prev.answers.length) {
+      if (!prev?.lastAnswer) {
         return state;
       }
       questions = {
@@ -154,27 +153,21 @@ const reducer = (state: QuizStateI, action: ActionType): QuizStateI => {
         [questionId]: {
           ...prev,
           submissionErrored: false,
-          answers: [
-            ...prev.answers as AnswerFile[],
-            { type: "files", files: [] } as AnswerFile
-          ]
+          lastAnswer: { type: "files", files: [] } as AnswerFile
         }
       }
       break;
     }
 
     case "ADDFILE": {
-      const prevAnswers = prev?.answers ?? ([] as Answer[]);
-      const prevFiles = prevAnswers.length ? (prevAnswers[prevAnswers.length - 1] as AnswerFile).files : [] as string[];
+      const prevFiles = (prev?.lastAnswer as AnswerFile | null)?.files || [] as string[];
       questions = {
         ...state.questions,
         [questionId]: {
           ...prev,
           submissionErrored: false,
-          answers: [
-            ...prevAnswers,
+          lastAnswer:
             {type: "files", files: [...prevFiles.filter((f) => f !== action.value.file), action.value.file]}
-          ]
         }
       }
       break;
@@ -205,7 +198,6 @@ export const QuizContext = React.createContext<{
   removeFile: (questionId: string, fileName: string) => Promise<boolean>;
   sendAnswer: (questionId: string) => Promise<AnswerValueData & { questionId: string } | false>;
   recordAnswerLocally: (value: AnswerValueData & { questionId: string, correctAnswer?: string }) => void;
-  getAnswers: (questionId: string) => Answer[];
   getLastAnswer: (questionId: string) => Answer | null;
   displayedAnswer: (questionId: string) => string | null;
   getAttempts: (questionId: string) => number;
@@ -234,7 +226,6 @@ export const QuizContext = React.createContext<{
   sendAnswer: async () => false,
   recordAnswerLocally: () => {},
   batchSubmission: false,
-  getAnswers: () => [],
   getLastAnswer: () => null,
   displayedAnswer: () => null,
   getAttempts: () => 0,
@@ -258,7 +249,7 @@ export const QuizContextProvider = ({
   quizThreshold: number;
   chapters: ChapterDef[];
   bookId: number;
-  answers: AnswerWithQuestionId[] | null;
+  answers: AnswerState[] | null;
   correctAnswers: { questionId: string, answer: string}[];
   batchSubmission?: boolean;
 }) => {
@@ -303,14 +294,12 @@ export const QuizContextProvider = ({
   }, [user, bookId, userGroup, t]);
 
   const sendAnswerById = React.useCallback(async (questionId: string): Promise<AnswerValueData & { questionId: string } | false> => {
-    const answers = quizState.questions[questionId]?.answers;
-    if (!answers || answers.length === 0) {
+    // Upload questions cannot appear in batch submission, so we can cast to AnswerValueData safely
+    const lastAnswer = quizState.questions[questionId]?.lastAnswer as AnswerValue | undefined | null;
+    if (!lastAnswer) {
       quizReducer({type: "ERROR", value: {questionId, error: t("quiz.no-answer-to-submit")}});
       return false;
     }
-
-    // Upload questions cannot appear in batch submission, so we can cast to AnswerValueData safely
-    const lastAnswer = answers[answers.length - 1] as AnswerValueData;
 
     const answerToSend: AnswerValueData & { questionId: string } = {
       questionId,
@@ -350,16 +339,9 @@ export const QuizContextProvider = ({
     [sendAnswer, recordAnswerLocally]
   );
 
-  const getAnswers = React.useCallback(
-    (questionId: string) => quizState.questions[questionId]?.answers ?? [],
-    [quizState]);
-
   const getLastAnswer = React.useCallback(
-    (questionId: string) => {
-      const answers = getAnswers(questionId);
-      return answers.length ? answers[answers.length - 1] : null;
-    },
-    [getAnswers]
+    (questionId: string) => quizState.questions[questionId]?.lastAnswer,
+    [quizState]
   );
 
   const addFiles = React.useCallback(async (questionId: string, files: File[]) => {
@@ -483,24 +465,11 @@ export const QuizContextProvider = ({
       chapterStats: (chapterIndex: number) => {
         const questionsInChapter = Object.values(quizState.questions)
           .filter((q) => q.chapterIndex === chapterIndex);
-        const answered = questionsInChapter
-          .filter((q) => q.answers.length > 0).length;
-        const correct = questionsInChapter
-          .filter((q) =>
-            q.answers.length > 0
-            && q.answers[q.answers.length - 1].isCorrect === true).length;
-        const wrong = questionsInChapter
-          .filter((q) =>
-            q.answers.length > 0
-            && q.answers[q.answers.length - 1].isCorrect === false).length;
-        const achievedPoints = questionsInChapter.reduce(
-          (acc, {answers}) =>
-            acc + (answers[answers.length - 1]?.points ?? 0),
-          0);
-        const correctness = questionsInChapter.map((q) =>
-          q.answers.length === 0
-            ? null
-            : q.answers[q.answers.length - 1].isCorrect);
+        const answered = questionsInChapter.filter((q) => !!q.lastAnswer).length;
+        const correct = questionsInChapter.filter((q) => q.lastAnswer?.isCorrect === true).length;
+        const wrong = questionsInChapter.filter((q) => q.lastAnswer?.isCorrect === false).length;
+        const achievedPoints = questionsInChapter.reduce((acc, {lastAnswer}) => acc + (lastAnswer?.points ?? 0), 0);
+        const correctness = questionsInChapter.map((q) => q.lastAnswer ? q.lastAnswer.isCorrect : null);
         const questionIds = questionsInChapter.map((q) => q.questionId);
         return {
           nQuestions: questionsInChapter.length,
@@ -513,28 +482,10 @@ export const QuizContextProvider = ({
         }
       },
 
-      correct: Object.values(quizState.questions)
-        .filter((q) =>
-            q.maxPoints
-            && q.answers.length > 0
-            && q.answers[q.answers.length - 1].isCorrect === true)
-        .length,
-
-      wrong: Object.values(quizState.questions)
-        .filter((q) =>
-            q.maxPoints
-            && q.answers.length > 0
-            && q.answers[q.answers.length - 1].isCorrect === false)
-        .length,
-
-      answered: Object.values(quizState.questions)
-        .filter((q) => q.answers.length)
-        .length,
-
-      achievedPoints: Object.values(quizState.questions).reduce(
-        (acc, {answers}) =>
-          acc + (answers[answers.length - 1]?.points ?? 0),
-        0)
+      correct: Object.values(quizState.questions).filter((q) => q.lastAnswer?.isCorrect === true).length,
+      wrong: Object.values(quizState.questions).filter((q) => q.lastAnswer?.isCorrect === false).length,
+      answered: Object.values(quizState.questions).filter((q) => !!q.lastAnswer).length,
+      achievedPoints: Object.values(quizState.questions).reduce((acc, {lastAnswer}) => acc + (lastAnswer?.points ?? 0), 0),
     }),
     [quizState]
   );
@@ -568,20 +519,15 @@ export const QuizContextProvider = ({
       batchSubmission,
       chapterStats,
       getCorrectAnswer: (questionId: string) => quizState.questions[questionId]?.correctAnswer,
-      getAnswers,
       getLastAnswer,
       getQuestionSettings,
-      displayedAnswer: (questionId: string) => {
-        const answers = quizState.questions[questionId]?.answers ?? [];
-        return answers.length ? (answers[answers.length - 1] as AnswerValue).answer : null;
-      },
-      getAttempts: (questionId: string) => quizState.questions[questionId]?.answers.length ?? 0,
+      displayedAnswer: (questionId: string) => (quizState.questions[questionId]?.lastAnswer as (AnswerValue | null))?.answer || null,
+      getAttempts: (questionId: string) => quizState.questions[questionId]?.nAttempts ?? 0,
       submissionErrored: (questionId: string) => quizState.questions[questionId]?.submissionErrored || false
     }),
     [
       quizState,
       answerQuestion,
-      getAnswers,
       getLastAnswer,
       getQuestionSettings,
       addFiles,
@@ -608,20 +554,20 @@ export const QuizContextProvider = ({
 
 export const useLastAnswer = (questionId: string) => {
   const {
-    getAnswers,
     getAttempts,
     submissionErrored,
     answerQuestion: aq,
+    getLastAnswer,
     getCorrectAnswer,
   } = React.useContext(QuizContext);
-  const answers = (getAnswers(questionId) || []) as AnswerValueData[];
+  const answer = getLastAnswer(questionId) as AnswerValueData;
   const value = {
     attempts: getAttempts(questionId),
     submissionErrored: submissionErrored(questionId),
     answerQuestion: async (value: AnswerValueData) => await aq({questionId, ...value}),
     correctAnswer: getCorrectAnswer(questionId)
   };
-  if (answers.length === 0) {
+  if (!answer) {
     return {
       ...value,
       isCorrect: null,
@@ -630,12 +576,12 @@ export const useLastAnswer = (questionId: string) => {
       attempts: 0,
       points: null}
   }
-  return {...value, ...answers[answers.length - 1] }
+  return {...value, ...answer }
 }
 
 export const useFileAnswer = (questionId: string) => {
   const { getLastAnswer, submissionErrored, addFiles, removeFile } = React.useContext(QuizContext);
-  const lastAnswer = getLastAnswer(questionId) as AnswerFile | null;
+  const lastAnswer = getLastAnswer(questionId) as (AnswerFile | null);
   return {
     files: lastAnswer?.files ?? [],
     attempts: lastAnswer ? 1 : 0,

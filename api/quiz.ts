@@ -170,7 +170,7 @@ export const postFileAnswer = async (
 
 export type CorrectAnswers = { questionId: string, answer: string }[];
 
-export const getAnswers = async ({ accessToken, bookId, group }: {
+export const getLastAnswers = async ({ accessToken, bookId, group }: {
   accessToken: string;
   bookId: number;
   group: string | undefined | null;
@@ -179,37 +179,46 @@ export const getAnswers = async ({ accessToken, bookId, group }: {
   const answers = [
     ...(
       await db.all(`
-        SELECT answers.answer, q.questionId, isCorrect, points
-        FROM answers
-        JOIN questions q ON answers.questionId = q.id
-        LEFT JOIN groups g ON answers.groupId = g.id
-        WHERE userId = ? AND bookId = ? AND g.name IS ? AND q.type NOT LIKE 'upload%'
-        ORDER BY answers.createdAt`,
+        SELECT answer, questionId, isCorrect, points, nAttempts FROM (
+          SELECT a.answer, q.questionId, a.isCorrect, a.points,
+                 ROW_NUMBER() OVER (PARTITION BY a.questionId ORDER BY a.createdAt DESC) AS rn,
+                 COUNT(*) OVER (PARTITION BY a.questionId) AS nAttempts
+          FROM answers a
+          JOIN questions q ON a.questionId = q.id
+          LEFT JOIN groups g ON a.groupId = g.id
+          WHERE a.userId = ? AND a.bookId = ? AND g.name IS ? AND q.type NOT LIKE 'upload%'
+        ) t
+        WHERE rn = 1;`,
         [userId, bookId, group ?? null]
-      )).map(({answer, questionId, isCorrect, points}) => ({
+      )).map(({answer, questionId, isCorrect, points, nAttempts}) => ({
         type: "value",
         answer,
         questionId,
         points,
+        nAttempts,
         // DB stores 0 and 1 even if the column is declared as BOOLEAN
         isCorrect: isCorrect === null ? undefined : !!isCorrect,
-      }) as AnswerValue & {questionId: string}),
+      }) as AnswerValue & {questionId: string, nAttempts: number}),
     ...(
       await db.all(`
-        SELECT q.questionId, group_concat(u.filename, "\n") as files
-        FROM answers
-        JOIN questions q ON answers.questionId = q.id
-        LEFT JOIN groups g ON answers.groupId = g.id
-        LEFT JOIN uploads u ON u.answerId = answers.id
-        WHERE userId = ? AND bookId = ? AND g.name IS ? AND q.type LIKE 'upload%'
-        GROUP BY answers.id
-        ORDER BY answers.createdAt`,
+        SELECT questionId, group_concat(u.filename, "\n") as files, 1 as nAttempts FROM (
+          SELECT q.questionId, a.id as answerId,
+                 ROW_NUMBER() OVER (PARTITION BY a.questionId ORDER BY a.createdAt DESC) AS rn
+          FROM answers a
+          JOIN questions q ON a.questionId = q.id
+          LEFT JOIN groups g ON a.groupId = g.id
+          WHERE userId = ? AND bookId = ? AND g.name IS ? AND q.type LIKE 'upload%'
+        ) t
+        JOIN uploads u ON u.answerId = t.answerId
+        WHERE rn = 1
+        GROUP BY t.answerId;`,
         [userId, bookId, group ?? null]
-      )).map(({files, questionId}) => ({
+      )).map(({files, questionId, nAttempts}) => ({
         type: "files",
         questionId,
+        nAttempts,
         files: files ? files.split("\n") : [],
-      }) as AnswerFile & {questionId: string})
+      }) as AnswerFile & {questionId: string, nAttempts: number})
   ];
 
   const correctAnswers =

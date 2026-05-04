@@ -193,6 +193,9 @@ export const extractQuizzes = async (
                   [isUpload && (longtext || options || answer || hasScorer),
                     "upload(s) is incompatible with longtext, options, answer and scorer"
                   ],
+                  [isUpload && attemptsProp && attemptsProp > 1,
+                    "Upload questions allow only single (attempts={1}) or unlimited (attempts={0}) attempts"
+                  ],
                   [acceptProp && !isUpload,
                     "Accept is only meaningful with upload or uploads"
                   ],
