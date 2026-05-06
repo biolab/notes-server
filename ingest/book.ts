@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { RawBookFrontmatter, ChapterDefBase, ChapterFrontmatter } from "@/types";
+import { RawBookFrontmatter, ChapterDefBase, ChapterFrontmatter, UnlockChaptersOnAnswersOptions } from "@/types";
 
 import { pathExists } from "./paths";
 import { checkedMatter, CollectedDefaults, defaultsFor, getMdFile, isListOfStrings, parseMd, readPublicDirMd } from "./md-helpers";
@@ -23,6 +23,7 @@ const bookFrontmatterDefaults: RawBookFrontmatter = {
   coverImg: "",
   requireLogin: false,
   quizThreshold: 0,
+  unlockChaptersOnAnswers: UnlockChaptersOnAnswersOptions[0],
 } satisfies RawBookFrontmatter & Record<string, unknown>;
 
 const extraBookMatter = {
@@ -46,6 +47,8 @@ export const bookMatter = (indexMd: string, slug: string, defaults: Partial<RawB
         : "'groups' must be a list of strings, or string pairs without dashes",
       tokens: isListOfStrings,
       admins: isListOfStrings,
+      unlockChaptersOnAnswers: (value) => !["none", "attempt", "correct"].includes(value)
+        && `'unlockChaptersOnAnswers' must be one of 'none', 'attempt', or 'correct'`,
     }
   );
 
