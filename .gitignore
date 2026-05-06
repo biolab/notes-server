@@ -1,16 +1,10 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
-/.pnp
-.pnp.js
 yarn.lock
 /.idea
 
-# testing
-/coverage
-
 # next.js
+next-env.d.ts
 /.next/
 /out/
 
@@ -31,9 +25,3 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
-
-# vercel
-.vercel
-
-/public/books*
-/db/*sqlite*
