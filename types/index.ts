@@ -47,6 +47,7 @@ export interface BookFrontmatterBase {
   requireLogin: boolean;
   quizThreshold?: number;
   unlockChaptersOnAnswers: UnlockChaptersOnAnswersType;
+  env: Record<string, any>;
   chapters?: string[];
 }
 

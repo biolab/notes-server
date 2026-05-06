@@ -105,6 +105,7 @@ export const getBook = async (id: number): Promise<BookProps> => {
       title: book.title, subTitle: book.subtitle,
       requireLogin: book.requireLogin === 1, quizThreshold: book.quizThreshold,
       unlockChaptersOnAnswers: UnlockChaptersOnAnswersOptions[book.unlockChaptersOnAnswers],
+      env: JSON.parse(book.env || "{}") as Record<string, any>,
       public: book.public === 1, coverImg: book.coverImg,
       groups,
       tocInHeader: book.tocInHeader === 1, language: book.language,

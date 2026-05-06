@@ -24,6 +24,7 @@ const bookFrontmatterDefaults: RawBookFrontmatter = {
   requireLogin: false,
   quizThreshold: 0,
   unlockChaptersOnAnswers: UnlockChaptersOnAnswersOptions[0],
+  env: {},
 } satisfies RawBookFrontmatter & Record<string, unknown>;
 
 const extraBookMatter = {
@@ -49,6 +50,13 @@ export const bookMatter = (indexMd: string, slug: string, defaults: Partial<RawB
       admins: isListOfStrings,
       unlockChaptersOnAnswers: (value) => !["none", "attempt", "correct"].includes(value)
         && `'unlockChaptersOnAnswers' must be one of 'none', 'attempt', or 'correct'`,
+      env: (value) =>
+        !(value !== null
+          && typeof(value) === "object"
+          && !Array.isArray(value)
+          && [Object.prototype, null].includes(Object.getPrototypeOf(value))
+          && Object.keys(value).every((key) => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key))
+        ) && "'env' must be a plain mapping, and keys must be valid identifiers",
     }
   );
 
