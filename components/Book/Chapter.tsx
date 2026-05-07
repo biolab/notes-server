@@ -17,6 +17,7 @@ export const Chapter = ({
   index,
   setIsChapterIndexVisible,
   chapterNumber,
+  env,
   bookId,
   chapterId,
   allAnswers,
@@ -26,6 +27,7 @@ export const Chapter = ({
     React.SetStateAction<{ [key: number]: boolean }>
   >;
   chapterNumber: number;
+  env: Record<string, any>
   bookId: number;
   allAnswers?: AnswersInBook;
 }) => {
@@ -44,6 +46,7 @@ export const Chapter = ({
         bookId={bookId}
         chapterId={chapterId}
         t = {t}
+        env={env}
         allAnswers={allAnswers}
       />
     );

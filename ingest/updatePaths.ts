@@ -394,7 +394,7 @@ const insertBook = async (
     mdxContent, chapters, slug,
     frontmatter: {
       title, subTitle, public: isPublic, language, tocInHeader,
-      coverImg, requireLogin, quizThreshold, unlockChaptersOnAnswers, groups, tokens
+      coverImg, requireLogin, quizThreshold, unlockChaptersOnAnswers, env, groups, tokens
     }
   } = book;
   const content = await serializedContent(mdxContent, language, slug);
@@ -404,9 +404,9 @@ const insertBook = async (
         INSERT INTO books (lastBuildId,
                            path, title, subtitle,
                            public, language, tocInHeader,
-                           coverImg, requireLogin, quizThreshold, unlockChaptersOnAnswers,
+                           coverImg, requireLogin, quizThreshold, unlockChaptersOnAnswers, env,
                            content)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT DO UPDATE SET lastBuildId          = excluded.lastBuildId,
                                   title                = excluded.title,
                                   subtitle             = excluded.subtitle,
@@ -417,6 +417,7 @@ const insertBook = async (
                                   requireLogin         = excluded.requireLogin,
                                   quizThreshold        = excluded.quizThreshold,
                                   unlockChaptersOnAnswers = excluded.unlockChaptersOnAnswers,
+                                  env                  = excluded.env,
                                   content              = excluded.content
         RETURNING id
     `,
@@ -426,6 +427,7 @@ const insertBook = async (
       isPublic, language, tocInHeader,
       coverImg, requireLogin, quizThreshold,
       UnlockChaptersOnAnswersOptions.indexOf(unlockChaptersOnAnswers),
+      JSON.stringify(env ?? {}),
       content
     ]
   );

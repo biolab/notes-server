@@ -25,11 +25,12 @@ import { usePublicProvider } from "@/hooks/usePublicProvider";
 import { ChapterDef, LinkDesc, UnlockChaptersOnAnswersType } from "@/types";
 
 
-const Chapters = ({chapters: allChapters, bookId, chapterNumbers, unlockChaptersOnAnswers, setIsChapterIndexVisible, allAnswers}:
+const Chapters = ({chapters: allChapters, bookId, chapterNumbers, unlockChaptersOnAnswers, env, setIsChapterIndexVisible, allAnswers}:
   {chapters: ChapterDef[],
     bookId: number,
     chapterNumbers: Record<number, number>,
     unlockChaptersOnAnswers: UnlockChaptersOnAnswersType,
+    env: Record<string, any>,
     setIsChapterIndexVisible: React.Dispatch<React.SetStateAction<Record<number, boolean>>>,
     allAnswers?: AnswersInBook}
 ) => {
@@ -55,6 +56,7 @@ const Chapters = ({chapters: allChapters, bookId, chapterNumbers, unlockChapters
         index={index}
         setIsChapterIndexVisible={setIsChapterIndexVisible}
         chapterNumber={chapterNumbers[index]}
+        env={env}
         allAnswers={allAnswers}
       />
     ))}
@@ -307,7 +309,7 @@ export const Book = (
             <h1 className="mb-0 font-medium">{frontmatter.title}</h1>
             <p className="subtitle">{frontmatter.subTitle}</p>
 
-            <MdxContent content={content} bookId={bookId} t={t}/>
+            <MdxContent content={content} bookId={bookId} t={t} env={frontmatter.env}/>
 
             {!frontmatter.tocInHeader && chapters.length > 1 &&
               <ContentIndexControl
@@ -321,6 +323,7 @@ export const Book = (
               bookId={bookId}
               chapterNumbers={chapterNumbers}
               unlockChaptersOnAnswers={frontmatter.unlockChaptersOnAnswers}
+              env={frontmatter.env}
               setIsChapterIndexVisible={setIsChapterIndexVisible}
               allAnswers={showAnswers && allAnswers || undefined}
               />

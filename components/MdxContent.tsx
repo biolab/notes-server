@@ -24,11 +24,12 @@ export interface QuestionProps extends QuizPropsBase {
   attempts?: number;
 }
 
-export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
+export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
   content: string;
   bookId?: number;
   chapterId?: number;
   t: (key: string) => string;
+  env?: Record<string, any>;
   allAnswers?: AnswersInBook;
 }) => {
   if  (!content) {
@@ -167,13 +168,17 @@ export const MdxContent = ({content, chapterId, bookId, t, allAnswers}: {
       }, [children]),
   }
 
-  const fn = new Function('mdx', content);
+  const fn = new Function('mdx', 'env',
+    (env ? `const { ${Object.keys(env).join(', ')} } = env;\n`: "")
+    + content
+  );
   const { default: Content } = fn({
     jsxs: runtime.jsxs,
     jsx: runtime.jsx,
     Fragment: runtime.Fragment,
     useMDXComponents: () => components,
-  });
+  },
+  env ?? {});
   return (
     <MDXProvider>
       <Content components={components}/>

@@ -44,16 +44,18 @@ export const addRelativeDir = ({relativeDir}: {relativeDir: string}) => () => (t
         return;
       }
       if (node.type === "element") {
-        if (node.properties?.src) {
+        // `src` can be undefined or mdxJsxAttributeValueExpression (which we don't touch)
+        if (typeof node.properties?.src === "string") {
           node.properties.src = updatedLink(node.properties.src);
         }
-        if (node.properties?.href) {
+        if (typeof node.properties?.href === "string") {
           node.properties.href = updatedLink(node.properties.href);
         }
       }
       if (node.type === "mdxJsxFlowElement" || node.type === "mdxJsxTextElement") {
         node.attributes?.forEach((attr: any) => {
-          if (attr.name === "src" || attr.name === "href") {
+          if ((attr.name === "src" || attr.name === "href")
+              && typeof attr.value === "string") {
             attr.value = updatedLink(attr.value);
           }
         });
