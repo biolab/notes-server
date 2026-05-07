@@ -2,6 +2,7 @@ import sqlite3 from "sqlite3";
 import path from "node:path";
 import { open, Database } from "sqlite";
 import { CONFIG } from "@/utils/config";
+import { migrate } from "@/utils/migrateDb.mjs";
 
 let db: Database;
 
@@ -36,6 +37,7 @@ if (!(process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI)) {
   }
 
   await db.exec("PRAGMA foreign_keys = ON");
+  await migrate(db);
 } else {
   db = {} as unknown as Database;
 }
