@@ -12,6 +12,7 @@ import { MailPath } from "@/ingest/mail";
 import { InheritableResources } from "@/ingest/inheritables";
 import {joinedPath} from "@/ingest/paths";
 import {load} from "js-yaml";
+import { UnlockChaptersOnAnswersOptions } from "@/types";
 
 const checkMoved = (moved: [string, string][]) => {
   moved.forEach(([from]) => {
@@ -393,7 +394,7 @@ const insertBook = async (
     mdxContent, chapters, slug,
     frontmatter: {
       title, subTitle, public: isPublic, language, tocInHeader,
-      coverImg, requireLogin, quizThreshold, groups, tokens
+      coverImg, requireLogin, quizThreshold, unlockChaptersOnAnswers, groups, tokens
     }
   } = book;
   const content = await serializedContent(mdxContent, language, slug);
@@ -403,9 +404,9 @@ const insertBook = async (
         INSERT INTO books (lastBuildId,
                            path, title, subtitle,
                            public, language, tocInHeader,
-                           coverImg, requireLogin, quizThreshold,
+                           coverImg, requireLogin, quizThreshold, unlockChaptersOnAnswers,
                            content)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT DO UPDATE SET lastBuildId          = excluded.lastBuildId,
                                   title                = excluded.title,
                                   subtitle             = excluded.subtitle,
@@ -415,6 +416,7 @@ const insertBook = async (
                                   coverImg             = excluded.coverImg,
                                   requireLogin         = excluded.requireLogin,
                                   quizThreshold        = excluded.quizThreshold,
+                                  unlockChaptersOnAnswers = excluded.unlockChaptersOnAnswers,
                                   content              = excluded.content
         RETURNING id
     `,
@@ -423,6 +425,7 @@ const insertBook = async (
       slug, title, subTitle,
       isPublic, language, tocInHeader,
       coverImg, requireLogin, quizThreshold,
+      UnlockChaptersOnAnswersOptions.indexOf(unlockChaptersOnAnswers),
       content
     ]
   );

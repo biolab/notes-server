@@ -34,6 +34,8 @@ export interface ChapterDef extends ChapterDefBase {
 
 
 /* Books */
+export const UnlockChaptersOnAnswersOptions = ["none", "attempt", "correct"] as const
+export type UnlockChaptersOnAnswersType = typeof UnlockChaptersOnAnswersOptions[number];
 
 export interface BookFrontmatterBase {
   title: string;
@@ -44,6 +46,7 @@ export interface BookFrontmatterBase {
   coverImg: string;
   requireLogin: boolean;
   quizThreshold?: number;
+  unlockChaptersOnAnswers: UnlockChaptersOnAnswersType;
   chapters?: string[];
 }
 

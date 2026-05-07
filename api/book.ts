@@ -1,7 +1,7 @@
 "use server";
 
 import db from "@/utils/db";
-import { BookFrontmatter, ChapterDef, LinkDesc } from "@/types";
+import { BookFrontmatter, ChapterDef, LinkDesc, UnlockChaptersOnAnswersOptions } from "@/types";
 import { getPublicLink, GroupList, ItemDesc } from "@/api/content";
 import { getCollection } from "@/api/collection";
 
@@ -104,6 +104,7 @@ export const getBook = async (id: number): Promise<BookProps> => {
     frontmatter: {
       title: book.title, subTitle: book.subtitle,
       requireLogin: book.requireLogin === 1, quizThreshold: book.quizThreshold,
+      unlockChaptersOnAnswers: UnlockChaptersOnAnswersOptions[book.unlockChaptersOnAnswers],
       public: book.public === 1, coverImg: book.coverImg,
       groups,
       tocInHeader: book.tocInHeader === 1, language: book.language,

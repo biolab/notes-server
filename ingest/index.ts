@@ -57,6 +57,8 @@ export async function updateDb(
     driver: sqlite3.Database,
   });
   await db.exec("PRAGMA foreign_keys = ON");
+  const { migrate } = await import("../utils/migrateDb.mjs");
+  await migrate(db);
   let anyErrors = false;
 
   let moved: [string, string][] = [];

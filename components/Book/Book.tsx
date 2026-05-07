@@ -10,9 +10,9 @@ import { BookProps, getPublicCollection } from "@/api/book";
 import { isAdminFor } from "@/api/user";
 
 import { logger } from "@/utils/logger";
-import { getT, IntlContextProvider } from "@/i18n";
+import { getT, IntlContextProvider, useIntl } from "@/i18n";
 import { UserContext } from "@/context/UserContextProvider";
-import { AnswerState, QuizContextProvider } from "@/context/QuizContextProvider";
+import { AnswerState, QuizContext, QuizContextProvider } from "@/context/QuizContextProvider";
 import Layout from "../Layout/Layout";
 
 import Login from "../Login";
@@ -22,8 +22,50 @@ import { Chapter } from "./Chapter";
 import { SidenoteContext } from "@/components/Book/Sidenote";
 import { useHasMounted } from "@/hooks/useHasMounted";
 import { usePublicProvider } from "@/hooks/usePublicProvider";
-import { LinkDesc } from "@/types";
+import { ChapterDef, LinkDesc, UnlockChaptersOnAnswersType } from "@/types";
 
+
+const Chapters = ({chapters: allChapters, bookId, chapterNumbers, unlockChaptersOnAnswers, setIsChapterIndexVisible, allAnswers}:
+  {chapters: ChapterDef[],
+    bookId: number,
+    chapterNumbers: Record<number, number>,
+    unlockChaptersOnAnswers: UnlockChaptersOnAnswersType,
+    setIsChapterIndexVisible: React.Dispatch<React.SetStateAction<Record<number, boolean>>>,
+    allAnswers?: AnswersInBook}
+) => {
+  const {chapterStats} = useContext(QuizContext);
+  const {t} = useIntl();
+  const chapters = [];
+  for(let index = 0; index < allChapters.length; index++) {
+      chapters.push(allChapters[index]);
+      const stats = chapterStats(index);
+      if (unlockChaptersOnAnswers !== "none"
+          && stats
+          && stats.nQuestions != (unlockChaptersOnAnswers === "attempt" ? stats.answered : stats.correct)) {
+        break;
+      }
+    }
+  return <>
+    {chapters.map((chapterDef, index) => (
+      <Chapter
+        {...chapterDef}
+        bookId={bookId}
+        chapterId={chapterDef.chapterId}
+        key={chapterDef.chapterPath}
+        index={index}
+        setIsChapterIndexVisible={setIsChapterIndexVisible}
+        chapterNumber={chapterNumbers[index]}
+        allAnswers={allAnswers}
+      />
+    ))}
+    { allChapters.length !== chapters.length &&
+      <div className="chapter locked">
+        <h2>{t("book.locked-chapter")}</h2>
+        <p>{t(`book.locked-chapter-msg-${unlockChaptersOnAnswers}`)}</p>
+      </div>
+    }
+  </>
+}
 
 export const Book = (
   { frontmatter, content, chapters, slug, bookId, previous, next }: BookProps
@@ -274,18 +316,14 @@ export const Book = (
               />
             }
 
-            {chapters.map((chapterDef, index) => (
-              <Chapter
-                {...chapterDef}
-                bookId={bookId}
-                chapterId={chapterDef.chapterId}
-                key={chapterDef.chapterPath}
-                index={index}
-                setIsChapterIndexVisible={setIsChapterIndexVisible}
-                chapterNumber={chapterNumbers[index]}
-                allAnswers={showAnswers && allAnswers || undefined}
+            <Chapters
+              chapters={chapters}
+              bookId={bookId}
+              chapterNumbers={chapterNumbers}
+              unlockChaptersOnAnswers={frontmatter.unlockChaptersOnAnswers}
+              setIsChapterIndexVisible={setIsChapterIndexVisible}
+              allAnswers={showAnswers && allAnswers || undefined}
               />
-            ))}
             { !!next && <a href={next.href} className="next-book-link">
               {t("book.next-in-collection")}{next.title}</a>
               }
