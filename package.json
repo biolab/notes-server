@@ -4,9 +4,9 @@
   "license": "Polyform-Noncommercial-1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node -e \"process.exit(require('child_process').spawnSync('next', ['dev', '-p', process.env.PORT || '3020'], { stdio: 'inherit', shell: true }).status)\"",
     "build": "next build",
-    "start": "next start",
+    "start": "node -e \"process.exit(require('child_process').spawnSync('next', ['start', '-p', process.env.PORT || '3020'], { stdio: 'inherit', shell: true }).status)\"",
     "lint": "next lint",
     "ingest": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/ingest.ts",
     "check-translations": "npx ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/check-translations.ts"
