@@ -31,7 +31,7 @@ export const addRelativeDir = ({relativeDir}: {relativeDir: string}) => () => (t
   const publisher = relativeDir.split("/")[0];
   const pubStart = `/${publisher}/`;
   const updatedLink = (url: string) =>
-    /https?:\/\//.test(url) || url.startsWith(pubStart) ? url
+    /https?:\/\//.test(url) || url.startsWith(pubStart) || url[0] === "#" ? url
     : url.startsWith("//") ? url.slice(1)
     : url.startsWith("/") ? `/${publisher}${url}`
     : `/${relativeDir}/${url}`;
