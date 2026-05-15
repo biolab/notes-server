@@ -16,9 +16,10 @@ export type InheritableResources = {
 export const getInheritableResources = (prefix: string): InheritableResources => [
   ...resources
     .filter(({file}) => pathExists(prefix, file))
-    .map(({type}) => ({
+    .map(({type, db}) => ({
       type,
-      path: prefix
+      path: prefix,
+      db: db ?? true
     })),
   ...readPublicDir(prefix)
     .map((subdir) => `${prefix}/${subdir}`)
