@@ -24,9 +24,15 @@ const collectionMatter = (indexMd: string, slug: string, defaults: Partial<Colle
     { admins: isListOfStrings }
   );
 
+const DefaultCollectionContent = `# Notes`;
+
 export const parseCollection = async (pathParts: string[], defaults: CollectedDefaults): Promise<RawCollectionDef> => {
   const fullPath = pathParts.join("/");
-  const indexMd = fs.readFileSync(getMdFile(pathParts, "collection")!, "utf-8");
+  const mdFile = getMdFile(pathParts, "collection");
+  if (!mdFile && pathParts.length !== 0) {
+    throw new Error(`Collection ${fullPath} does not have an index.md(x) file`);
+  }
+  const indexMd = mdFile !== null ? fs.readFileSync(mdFile, "utf-8") : DefaultCollectionContent;
   const { frontmatter, content } = collectionMatter(indexMd, fullPath, defaultsFor(defaults, fullPath, "collection"));
   const mdxContent = parseMd(content);
 

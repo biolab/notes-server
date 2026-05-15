@@ -746,9 +746,8 @@ export const updatePaths = async (
 };
 
 export const updateRoot = async (db: Database) => {
-  const rootCollection =
-    getMdFile([], "collection") ? await parseCollection([], []) : null;
-  if (rootCollection?.frontmatter.public) {
+  const rootCollection = await parseCollection([], []);
+  if (rootCollection.frontmatter.public) {
     const buildId = (await db.get(
       `INSERT INTO builds (path) VALUES (?) RETURNING id`,
       [""])
