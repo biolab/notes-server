@@ -10,6 +10,7 @@ import Question, { QuizPropsBase } from "./Quiz/Question";
 import { Quiz } from "@/components/Quiz/Quiz";
 import Image from "./Image";
 import { ExpandingSideImg, Sidenote } from "@/components/Book/Sidenote";
+import { CodeTab, CodeTabs } from "@/components/Book/CodeTabs";
 
 
 export interface QuestionProps extends QuizPropsBase {
@@ -72,6 +73,8 @@ export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
     Sidenote,
     SideNote: Sidenote,
     ExpandingSideImg,
+
+    CodeTabs, CodeTab,
 
     FullWidth: ({ children }: { children: React.ReactNode }) =>
       <div className="full-width">
