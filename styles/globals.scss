@@ -211,6 +211,10 @@ $gap: var(--gap);
   }
 }
 
+.code-tab > :not(.expressive-code) {
+  margin: 12px;
+}
+
 @page {
   margin: 0.75in;
 }
