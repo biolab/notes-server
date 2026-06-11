@@ -8,7 +8,14 @@ import rehypeKatex from "rehype-katex";
 import rehypeExpressiveCode from "rehype-expressive-code";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 
-import { addRelativeDir, forbiddenComponents, rewriteQuestions, replacer, constructReplacer } from "./plugins";
+import {
+  addRelativeDir,
+  forbiddenComponents,
+  rewriteQuestions,
+  replacer,
+  constructReplacer,
+  removeTerminalFrames
+} from "./plugins";
 import { getImageSize } from "./getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "./paths";
 import {ChapterFrontmatter, CollectionFrontmatter, RawBookFrontmatter} from "@/types";
@@ -187,7 +194,8 @@ export const serializedContent = async (
       addRelativeDir( { relativeDir }),
       getImageSize,
       rewriteQuestions,
-      [rehypeExpressiveCode, rehypeExpressiveCodeOptions]
+      [rehypeExpressiveCode, rehypeExpressiveCodeOptions],
+      removeTerminalFrames
     ],
   });
   return compiled.value as string;
