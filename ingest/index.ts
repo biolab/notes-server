@@ -109,7 +109,14 @@ export async function updateDb(
     const mailPaths = getLoginMails(prefix);
 
     const doUpdate = async () => {
-      const res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
+      let res: number | boolean = false;
+      try {
+        res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
+      } catch (e) {
+        console.error(`Error updating ${prefix}:`, e);
+        await db.exec("ROLLBACK").catch(() => {});
+        return false;
+      }
       if (res !== false) {
         prevBuild = new Date();
       }
@@ -119,8 +126,7 @@ export async function updateDb(
       return res !== false;
     }
 
-    anyErrors = anyErrors || !
-      await doUpdate();
+    anyErrors = anyErrors || !await doUpdate();
 
     if (dev) {
       getDevWebSocketServer();
