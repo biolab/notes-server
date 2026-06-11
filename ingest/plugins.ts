@@ -145,3 +145,26 @@ export const rewriteQuestions = () => (tree: Root) => {
     }
   });
 };
+
+/* Life's too short to try to convince expressive code
+    to stop adding frames to terminal windows, so let's just remove them. */
+export const removeTerminalFrames = () => {
+  return (tree: Root) => {
+    visit(tree, 'element', (node: any) => {
+      if (!node.properties?.className) {
+        return;
+      }
+      const className = node.properties.className
+      if (Array.isArray(className)) {
+        node.properties.className = className.filter(
+          (c) => c !== 'is-terminal'
+        );
+      } else if (typeof className === 'string') {
+        node.properties.className = className
+          .split(' ')
+          .filter((c) => c !== 'is-terminal')
+          .join(' ')
+      }
+    })
+  }
+}
