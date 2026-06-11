@@ -245,12 +245,23 @@ export const Book = (
   // Expressive code insert scripts into mdx, which are not executed,
   // so we imitate what they would do.
   React.useEffect(() => {
-    const run = () => initCopyButtons(document);
+    const run = () => {
+      initCopyButtons(document);
+
+      document.querySelectorAll('.expressive-code pre').forEach((el) => {
+        // reading these forces layout flush
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        el.scrollWidth;
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        el.clientWidth;
+      })
+      window.dispatchEvent(new Event('resize'));
+    }
     run();
     const obs = new MutationObserver(() => { run(); })
     obs.observe(document.body, { childList: true, subtree: true });
     return () => obs.disconnect();
-  }, [])
+  }, []);
 
   // If there are no chapters, ensure enough space for any side notes in intro.
   // Doing this in presence of chapters would increase the left margin too much;
