@@ -3,7 +3,7 @@ dotenv.config({ path: ".env.local" });
 
 import { program } from "commander";
 import readline from "readline";
-import fs from "fs";
+import kill from "tree-kill";
 
 import { updateDb } from "@/ingest";
 import { rebuildDatabase } from "@/ingest/createDb";
@@ -17,6 +17,7 @@ const startNext = () => {
     {
       stdio: "inherit",
       shell: true,
+      detached: true,
       env: process.env
     }
   );
@@ -80,10 +81,14 @@ const ask = (question: string): Promise<string> => {
 
   if (dev) {
     const nextProcess = startNext();
-    const shutdown = () => {
-      nextProcess.kill("SIGTERM");
-      process.exit(0);
-    };
+    const shutdown = (reason?: unknown) => {
+      if (reason !== undefined) {
+        console.error("Error:", reason);
+      }
+      kill(nextProcess.pid!, "SIGTERM", () => process.exit());
+    }
+    process.on("uncaughtException", shutdown);
+    process.on("unhandledRejection", shutdown);
     process.on("SIGINT", shutdown);
     process.on("SIGTERM", shutdown);
   }
