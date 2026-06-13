@@ -35,7 +35,7 @@ program
   .option("--recreate", "Recreate the database from scratch", false)
   .option("-f, --force", "Force parsing of unchanged files", false)
   .option("-c, --check", "Check, but don't update the database", false)
-  .option("-e, --exceptions <path>", "Yaml file with moved books and books with relaxed checks", "")
+  .option("-e, --exceptions <path>", "Yaml file with moved books", "")
 
 program.parse(process.argv);
 const { path: prefix, dev, recreate, force, check, exceptions } = program.opts();

@@ -3,11 +3,11 @@ import fs from "fs";
 
 import { elide } from "@/utils/string";
 
-import { getMdFile, serializedContent } from "./md-helpers";
+import { serializedContent } from "./md-helpers";
 import { parseCollection, RawCollectionDef } from "./collection";
 import { parseBook, RawBookDef, RawChapterDef } from "./book";
 import { gatherRedirections, updateRedirections } from "./redirections";
-import { catchErrors, hasError, logError, resetError } from "./errors";
+import { catchErrors, hasError, logError, logWarning, printWarnings, resetError } from "./errors";
 import { MailPath } from "@/ingest/mail";
 import { InheritableResources } from "@/ingest/inheritables";
 import {joinedPath} from "@/ingest/paths";
@@ -23,13 +23,52 @@ const checkMoved = (moved: [string, string][]) => {
   });
 }
 
-const checkBooks = async (
+const extractBookQuestions = async (
+  book: RawBookDef,
+  db: Database
+) => {
+  type QuestionAndChapter = { chapter: string; questionId: string };
+  const bookQuestions: QuestionAndChapter[] = [];
+  for (const {chapterPath, mdxContent, questions} of book.chapters) {
+    if (!mdxContent) {
+      bookQuestions.push(...
+        (
+          (await db.all(`
+              SELECT questionId
+              FROM questions
+              JOIN chapters ON questions.chapterId = chapters.id
+              WHERE chapters.path = ?`,
+              [chapterPath])
+          ) as { questionId: string }[]
+        ).map(({questionId}) => ({chapter: chapterPath, questionId}))
+      );
+    } else {
+      bookQuestions.push(...
+        questions.map((question) => ({
+            chapter: chapterPath,
+            questionId: question.questionId
+          })
+        )
+      );
+    }
+  }
+  const questionsByChapters: {[questionId: string]: string[]} = {};
+  for (const { chapter, questionId } of bookQuestions) {
+    if (questionsByChapters[questionId] === undefined) {
+      questionsByChapters[questionId] = [];
+    }
+    questionsByChapters[questionId].push(`- ${chapter}`);
+  }
+
+  return {bookQuestions, questionsByChapters};
+}
+
+const checkQuestions = async (
   books: RawBookDef[],
   allBookSlugs: Set<string>,
   db: Database,
   pathPrefix: string,
   moved: [string, string][],
-  relaxed: string[],
 ) => {
   // All books that include questions with answers must exist (with the same slug)
   // JOIN answers ON questions.id = answers.questionId filters out the questions
@@ -43,23 +82,71 @@ const checkBooks = async (
      JOIN answers ON questions.id = answers.questionId
      ${pathPrefix ? "WHERE books.path LIKE ?" : ""}
      `,
-     pathPrefix ? [`${pathPrefix}/%`] : []
+    pathPrefix ? [`${pathPrefix}/%`] : []
   )).map(({path, ...rest}) => {
     const applicable = moved?.filter(([from]) => path.startsWith(from));
     if (!applicable?.length) {
-      return { path, ...rest };
+      return {path, ...rest};
     }
     const [from, to] = applicable[0];
     return {
       path: path.replace(from, to),
       ...rest
-    }});
+    }
+  });
   booksWithQuestions
-    .filter(({ path }) => !(allBookSlugs.has(path) || relaxed.includes(path)))
-    .forEach(({ path }) =>
-      logError(path, "Books that contain questions must not be removed.")
+    .filter(({path}) => !allBookSlugs.has(path))
+    .forEach(({path}) =>
+      logWarning(path, "A book that contains question(s) has been removed.")
     );
 
+  for (const book of books) {
+    const pastQuestions = (
+      (await db.all(
+        `
+                SELECT DISTINCT questions.questionId, a.id IS NOT NULL AS hasAnswer
+                FROM questions
+                         JOIN chapters ON questions.chapterId = chapters.id
+                         JOIN books_chapters ON chapters.id = books_chapters.chapterId
+                         JOIN books ON books_chapters.bookId = books.id
+                         LEFT JOIN answers a ON questions.id = a.questionId AND a.bookId = books.id
+                WHERE books.path = ?`,
+        [book.slug]
+      )) as {questionId: string, hasAnswer: boolean}[]
+    );
+    const { bookQuestions, questionsByChapters } = await extractBookQuestions(book, db);
+    const missingQuestions = pastQuestions.filter(
+      ({questionId, hasAnswer}) => hasAnswer && !questionsByChapters[questionId]
+    );
+    if (missingQuestions.length > 0) {
+      missingQuestions.forEach(({questionId}) => {
+        logWarning(
+          book.slug,
+          `Question "${elide(questionId)}" is missing.`
+        );
+      });
+      const knownIds = pastQuestions.map(({questionId}) => questionId);
+      const extras = bookQuestions.filter(
+        ({questionId}) => !knownIds.includes(questionId)
+      );
+      if (extras.length > 0) {
+        logWarning("", `Hint: if the above question(s) is an edit of an existing,
+            set its 'id' to its original text.`
+        );
+        extras.forEach(({chapter, questionId}) => {
+          logWarning("", `- ${chapter} "${elide(questionId)}"`);
+        });
+        logWarning("", "");
+      }
+    }
+  }
+}
+
+
+const checkBooks = async (
+  books: RawBookDef[],
+  db: Database,
+) => {
   for (const book of books) {
     if (book.frontmatter.groups && book.frontmatter.tokens) {
       logError(
@@ -94,96 +181,15 @@ const checkBooks = async (
       }
     }
 
-    /* Question-related checks
-       Note that any book-specific issues must be checked here, not in checkQuestions.
-       e.g., if the same question comes from another chapter, it's OK.
-       e.g. (2), if a chapter with a question is removed, it is not OK.
-     */
-
-    // Extract all questions in the book
-    type QuestionAndChapter = { chapter: string; questionId: string };
-    const bookQuestions: QuestionAndChapter[] = [];
-    for (const {chapterPath, mdxContent, questions} of book.chapters) {
-      if (!mdxContent) {
-        bookQuestions.push(...
-          (
-            (await db.all(`
-              SELECT questionId
-              FROM questions
-              JOIN chapters ON questions.chapterId = chapters.id
-              WHERE chapters.path = ?`,
-              [chapterPath])
-            ) as { questionId: string }[]
-          ).map(({questionId}) => ({chapter: chapterPath, questionId}))
-        );
-      } else {
-        bookQuestions.push(...
-          questions.map((question) => ({
-              chapter: chapterPath,
-              questionId: question.questionId
-            })
-          )
-        );
-      }
-    }
-
     // Check that no questions within the same book have the same questionId
-    const questionsByChapters: {[questionId: string]: string[]} = {};
-    for (const { chapter, questionId } of bookQuestions) {
-      if (questionsByChapters[questionId] === undefined) {
-        questionsByChapters[questionId] = [];
-      }
-      questionsByChapters[questionId].push(`- ${chapter}`);
-    }
-    for (const [questionId, chapters] of Object.entries(questionsByChapters)) {
-      if (chapters.length > 1) {
+    Object.entries((await extractBookQuestions(book, db)).questionsByChapters)
+      .filter(([, chapters]) => chapters.length > 1)
+      .forEach(([questionId, chapters]) => {
         logError(
           book.slug,
           `Duplicate question "${elide(questionId)} (...)" in\n${chapters.join("\n")}`
         );
-      }
-    }
-
-    // No question with answers may disappear from the book
-    if (!relaxed.includes(book.slug)) {
-      const pastQuestions = (
-        (await db.all(
-          `
-              SELECT DISTINCT questions.questionId, a.id IS NOT NULL AS hasAnswer
-              FROM questions
-                       JOIN chapters ON questions.chapterId = chapters.id
-                       JOIN books_chapters ON chapters.id = books_chapters.chapterId
-                       JOIN books ON books_chapters.bookId = books.id
-                       LEFT JOIN answers a ON questions.id = a.questionId AND a.bookId = books.id
-              WHERE books.path = ?`,
-          [book.slug]
-        )) as { questionId: string, hasAnswer: boolean }[]
-      );
-      const missingQuestions = pastQuestions.filter(
-        ({questionId, hasAnswer}) => hasAnswer && !questionsByChapters[questionId]
-      );
-      if (missingQuestions.length > 0) {
-        missingQuestions.forEach(({questionId}) => {
-          logError(
-            book.slug,
-            `Question "${elide(questionId)}" is missing.`
-          );
-        });
-        const knownIds = pastQuestions.map(({questionId}) => questionId);
-        const extras = bookQuestions.filter(
-          ({questionId}) => !knownIds.includes(questionId)
-        );
-        if (extras.length > 0) {
-          console.log(`Hint: if the above question(s) is an edit of an existing,
-          set its 'id' to its original text.`
-          );
-          extras.forEach(({chapter, questionId}) => {
-            console.log(`- ${chapter} "${elide(questionId)}"`);
-          });
-          console.log();
-        }
-      }
-    }
+      });
   }
 };
 
@@ -681,7 +687,6 @@ export const updatePaths = async (
   prevBuild: Date,
   pathPrefix: string,
   moved: [string, string][],
-  relaxed: string[],
 ): Promise<boolean | number> => {
   resetError();
 
@@ -701,9 +706,12 @@ export const updatePaths = async (
 
   checkMoved(moved);
   assignLanguages(collections, books);
-  await checkBooks(books, allBookSlugs, db, pathPrefix, moved, relaxed);
+  await checkBooks(books, db);
+  await checkQuestions(books, allBookSlugs, db, pathPrefix, moved);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   const redirections = gatherRedirections(pathPrefix);
+
+  printWarnings();
   if (hasError()) {
     return false;
   }
