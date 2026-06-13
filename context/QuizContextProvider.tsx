@@ -297,7 +297,7 @@ export const QuizContextProvider = ({
     // Upload questions cannot appear in batch submission, so we can cast to AnswerValueData safely
     const lastAnswer = quizState.questions[questionId]?.lastAnswer as AnswerValue | undefined | null;
     if (!lastAnswer) {
-      quizReducer({type: "ERROR", value: {questionId, error: t("quiz.no-answer-to-submit")}});
+      quizReducer({type: "ERROR", value: {questionId, error: "No answer to submit"}});
       return false;
     }
 
