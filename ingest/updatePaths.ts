@@ -14,15 +14,6 @@ import {joinedPath} from "@/ingest/paths";
 import {load} from "js-yaml";
 import { UnlockChaptersOnAnswersOptions } from "@/types";
 
-const checkMoved = (moved: [string, string][]) => {
-  moved.forEach(([from]) => {
-    const prefixes = moved.filter(([f,]) => f !== from && f.startsWith(from));
-    if (prefixes.length > 0) {
-      logError(from, `${from} is a sub-path of ${prefixes.map(([f,]) => f).join(", ")}.`);
-    }
-  });
-}
-
 const extractBookQuestions = async (
   book: RawBookDef,
   db: Database
@@ -67,13 +58,12 @@ const checkQuestions = async (
   books: RawBookDef[],
   allBookSlugs: Set<string>,
   db: Database,
-  pathPrefix: string,
-  moved: [string, string][],
+  pathPrefix: string
 ) => {
   // All books that include questions with answers must exist (with the same slug)
   // JOIN answers ON questions.id = answers.questionId filters out the questions
   // that do not have answers.
-  const booksWithQuestions = (await db.all(
+  (await db.all(
     `SELECT DISTINCT books.path
      FROM books
      JOIN books_chapters ON books.id = books_chapters.bookId
@@ -83,19 +73,7 @@ const checkQuestions = async (
      ${pathPrefix ? "WHERE books.path LIKE ?" : ""}
      `,
     pathPrefix ? [`${pathPrefix}/%`] : []
-  )).map(({path, ...rest}) => {
-    const applicable = moved?.filter(([from]) => path.startsWith(from));
-    if (!applicable?.length) {
-      return {path, ...rest};
-    }
-    const [from, to] = applicable[0];
-    return {
-      path: path.replace(from, to),
-      ...rest
-    }
-  });
-  booksWithQuestions
-    .filter(({path}) => !allBookSlugs.has(path))
+  )).filter(({path}) => !allBookSlugs.has(path))
     .forEach(({path}) =>
       logWarning(path, "A book that contains question(s) has been removed.")
     );
@@ -638,21 +616,6 @@ const insertLoginMails = async (
     }));
 }
 
-const movePaths = async (
-  moved: [string, string][],
-  db: Database
-) => {
-  for(const [from, to] of Object.entries(moved)) {
-    for(const table of ["books", "collections", "chapters", "inheritables"]) {
-      await db.run(
-        `UPDATE ${table}
-         SET path = ? || substr(path, ?)
-         WHERE path LIKE ?`,
-        [to, from.length + 1, from + "/%"]);
-    }
-  }
-}
-
 const cleanup = async (
   db: Database,
   pathPrefix: string,
@@ -686,7 +649,6 @@ export const updatePaths = async (
   buildId_: number | null | "new",
   prevBuild: Date,
   pathPrefix: string,
-  moved: [string, string][],
 ): Promise<boolean | number> => {
   resetError();
 
@@ -704,10 +666,9 @@ export const updatePaths = async (
   ).filter(x => x) as RawCollectionDef[];
   const allCollectionSlugs = new Set(collections.map(({ slug }) => slug));
 
-  checkMoved(moved);
   assignLanguages(collections, books);
   await checkBooks(books, db);
-  await checkQuestions(books, allBookSlugs, db, pathPrefix, moved);
+  await checkQuestions(books, allBookSlugs, db, pathPrefix);
   await checkCollections(collections, allCollectionSlugs, allBookSlugs);
   const redirections = gatherRedirections(pathPrefix);
 
@@ -736,7 +697,6 @@ export const updatePaths = async (
     );
     buildId = buildId_;
   }
-  await movePaths(moved, db);
   await insertChapters(books, db, buildId);
   await insertBooks(books, db, buildId);
   await insertCollections(collections, db, buildId);
