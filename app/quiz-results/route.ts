@@ -19,10 +19,11 @@ export async function GET(request: NextRequest) {
   if (!answers) {
     return new Response("Forbidden", {status: 403});
   }
-  const { frontmatter: { title }, chapters } = await getBook(bookId) || {};
+  const { frontmatter: { title, quizThreshold }, chapters } = await getBook(bookId) || {};
   const questions =
     chapters.flatMap(({questions}) =>
-      questions.map(({question, questionId}) => [question, questionId]))
+      questions.map(({question, questionId, maxPoints}) => [question, questionId, maxPoints] as [string, string, number | null]));
+  const threshold = (quizThreshold ?? 0) * questions.reduce((acc, [, , maxPoints]) => acc + (maxPoints ?? 0), 0);
 
   const workbook = new ExcelJS.Workbook();
 
@@ -40,6 +41,9 @@ export async function GET(request: NextRequest) {
     {header: 'Total', key: 'total', width: 10}
   ];
   answers.forEach(({name, surname, email, answers}) => {
+    const totals = Object.values(answers)
+      .map((ans) => (ans.length === 0 ? 0 : ans[ans.length - 1].points ?? 0));
+    const total = totals.length ? totals.reduce((a, b) => a + b, 0) : undefined;
     sheet1.addRow({
       name, surname, email,
       ...Object.fromEntries(
@@ -50,10 +54,13 @@ export async function GET(request: NextRequest) {
           : ans[ans.length - 1].points
         ])
       ),
-      total: Object.values(answers)
-        .map((ans) => ans.length === 0 ? 0 : ans[ans.length - 1].points || 0)
-        .reduce((a: number, b: number) => a + b, 0)
+      total
     });
+    if (total !== undefined && threshold) {
+      sheet1.lastRow!.getCell("total").font = {
+        color: {argb: total < threshold ? 'FFBB0000' : 'FF00BB00'}
+      }
+    }
   });
 
   function addAnswerWorksheet(name: string) {
