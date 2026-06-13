@@ -50,6 +50,7 @@ const dict: {[lang: string]: {[key: string]: any}} = {
     "quiz-progress.remaining": (n: number) => `\n${n} ${pl(n, "question")} remaining.`,
     "quiz.select-files": (n: number, multiple: boolean) => n === 0 ? `Select ${multiple ? "files" : "file"}`
                                                            : multiple ? "Select More Files" : "Select a different file",
+    "quiz.upload-desc": (multiple: boolean) => `Select ${multiple ? "files" : "a file"} or drop ${multiple ? "them" : "it"} here.`,
     "quiz.uploaded-file": "You have uploaded",
     "quiz.not-logged-in": "You are not logged in; your answer cannot be saved.",
     "quiz.file-too-large": "All files must be smaller than 9.9 MB",
@@ -160,6 +161,7 @@ const dict: {[lang: string]: {[key: string]: any}} = {
       `\n${plsi(n, `Ostalo je še eno vprašanje|Ostali sta še dve vprašanji|Ostala so še ${n} vprašanja|Ostalo je še ${n} vprašanj`)}.`,
     "quiz.select-files": (n: number, multiple: boolean) => n === 0 ? `Izberi ${multiple ? "datoteke" : "datoteko"}`
                                                                   : multiple ? "Izberi dodatne datoteke" : "Izberi drugo datoteko",
+    "quiz.upload-desc": (multiple: boolean) => `Izberite ${multiple ? "datoteke" : "datoteko"} za nalaganje ali ${multiple ? "jo" : "jih"} povlecite sem.`,
     "quiz.uploaded-file": "Naložili ste",
     "quiz.not-logged-in": "Niste prijavljeni; vaš odgovor ne more biti shranjen.",
     "quiz.file-too-large": "Vse datoteke morajo biti manjše od 9,9 MB",
