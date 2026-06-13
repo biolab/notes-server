@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
   const collection = await getCollection(collectionId) || {};
   const books = collection.books;
 
-  const booksWithQuestions = await getCollectionBooksWithQuestions(collectionId);
-  const actBooks = books.filter(({id}) => booksWithQuestions.includes(id));
+  const thresholds = await getCollectionBooksWithQuestions(collectionId);
+  const actBooks = books.filter(({id}) => thresholds[id] !== undefined);
 
   const workbook = new ExcelJS.Workbook();
 
@@ -47,6 +47,14 @@ export async function GET(request: NextRequest) {
         actBooks.map(({id, slug}) =>
           [slug, points?.[id] ?? ""])),
       total: Object.values(points || {}).reduce((a, b) => a + b, 0)
+    });
+    actBooks.forEach(({id}, i) => {
+      const cell = sheet1.getRow(sheet1.lastRow!.number).getCell(i + 4);
+      if (points?.[id] !== undefined && thresholds[id]) {
+        cell.font = {
+          color: { argb: points[id] < thresholds[id] ? 'FFBB0000' : 'FF00BB00' }
+        };
+      }
     });
   });
 

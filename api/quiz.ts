@@ -473,17 +473,21 @@ export const getCollectionHasQuestions = async (collectionId: number): Promise<b
     [collectionId]
   ));
 
-export const getCollectionBooksWithQuestions = async (collectionId: number): Promise<number[]> =>
-  (await db.all(
-    `SELECT b.id as bookId
+export const getCollectionBooksWithQuestions = async (collectionId: number): Promise<Record<number, number | null>> =>
+  Object.fromEntries(
+    (await db.all(
+      `SELECT b.id as bookId, b.quizThreshold * SUM(q.maxPoints) as threshold
        FROM collections
        JOIN collections_books cb ON collections.id = cb.collectionId
        JOIN books_chapters bc ON cb.bookId = bc.bookId
        JOIN books b ON cb.bookId = b.id
        JOIN questions q ON bc.chapterId = q.chapterId
-       WHERE collections.id = ?`,
-    [collectionId]
-  )).map(({bookId}) => bookId);
+       WHERE collections.id = ?
+       GROUP BY b.id
+       `,
+     [collectionId]
+    )).map(({bookId, threshold}) => [bookId, threshold])
+  );
 
 export type CollectionStats = {
   answered: number;
