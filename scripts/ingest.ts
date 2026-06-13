@@ -35,10 +35,9 @@ program
   .option("--recreate", "Recreate the database from scratch", false)
   .option("-f, --force", "Force parsing of unchanged files", false)
   .option("-c, --check", "Check, but don't update the database", false)
-  .option("-e, --exceptions <path>", "Yaml file with moved books", "")
 
 program.parse(process.argv);
-const { path: prefix, dev, recreate, force, check, exceptions } = program.opts();
+const { path: prefix, dev, recreate, force, check } = program.opts();
 
 if (prefix.includes("/") || prefix.includes("\\")) {
   console.error("Error: The path may contain only a top-level directory name.");
@@ -48,9 +47,8 @@ if (check && recreate) {
   console.error("Error: --check cannot be used with --recreate.");
   process.exit(1);
 }
-
-if (dev && (check || exceptions)) {
-  console.error("Error: --dev is incompatible with --check, and --exceptions.");
+if (dev && check) {
+  console.error("Error: --dev is incompatible with --check.");
   process.exit(1);
 }
 
@@ -74,7 +72,7 @@ const ask = (question: string): Promise<string> => {
     await rebuildDatabase();
   }
 
-  await updateDb(prefix, check, exceptions, force, dev).catch((err) => {
+  await updateDb(prefix, check, force, dev).catch((err) => {
     console.error("Error:", err);
     process.exit(1);
   });

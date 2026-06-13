@@ -1,8 +1,7 @@
-import { readFileSync, statSync } from "fs";
+import { statSync } from "fs";
 import path from "path";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
-import { load } from "js-yaml";
 import { Mutex } from 'async-mutex';
 import chokidar from "chokidar";
 
@@ -47,7 +46,6 @@ const watchForChanges = (
 export async function updateDb(
   prefix: string,
   check=false,
-  exceptionsFile: string | null = null,
   force=false,
   dev=false
 ) {
@@ -59,25 +57,6 @@ export async function updateDb(
   const { migrate } = await import("../utils/migrateDb.mjs");
   await migrate(db);
   let anyErrors = false;
-
-  let moved: [string, string][] = [];
-  if (exceptionsFile) {
-    const exceptions = load(readFileSync(exceptionsFile, 'utf-8')) as {
-      moved?: {[from: string]: string},
-      prefix?: string
-    };
-    if (exceptions.moved && typeof exceptions.moved !== "object") {
-      if (Array.isArray(exceptions.moved)) {
-        throw new Error("Exceptions file must be a mapping, not a list (no leading dashes!)");
-      }
-      throw new Error("Exceptions file must be a mapping");
-    }
-    const p = exceptions.prefix
-      ? (s: string) => `${exceptions.prefix}/${s.replace(/^\//, "")}`
-      : (s: string) => s;
-    moved = Object.entries(exceptions.moved || {})
-        .map(([from, to]) => [p(from), p(to)]);
-  }
 
   const prefixes = prefix ? [prefix]
     : readPublicDir()
@@ -107,7 +86,7 @@ export async function updateDb(
     const doUpdate = async () => {
       let res: number | boolean = false;
       try {
-        res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, prevBuild, prefix, moved);
+        res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, prevBuild, prefix);
       } catch (e) {
         console.error(`Error updating ${prefix}:`, e);
         await db.exec("ROLLBACK").catch(() => {});
