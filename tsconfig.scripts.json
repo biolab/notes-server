@@ -3,7 +3,8 @@
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "types":["node"]
   },
   "include": ["scripts/**/*.ts"]
 }
