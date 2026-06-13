@@ -1,7 +1,6 @@
 import { readFileSync, statSync } from "fs";
 import path from "path";
 import sqlite3 from "sqlite3";
-import { Database } from "sqlite";
 import { open } from "sqlite";
 import { load } from "js-yaml";
 import { Mutex } from 'async-mutex';
@@ -62,11 +61,9 @@ export async function updateDb(
   let anyErrors = false;
 
   let moved: [string, string][] = [];
-  let relaxed: string[] = [];
   if (exceptionsFile) {
     const exceptions = load(readFileSync(exceptionsFile, 'utf-8')) as {
       moved?: {[from: string]: string},
-      relaxed?: string[],
       prefix?: string
     };
     if (exceptions.moved && typeof exceptions.moved !== "object") {
@@ -80,7 +77,6 @@ export async function updateDb(
       : (s: string) => s;
     moved = Object.entries(exceptions.moved || {})
         .map(([from, to]) => [p(from), p(to)]);
-    relaxed = (exceptions.relaxed || []).map(p);
   }
 
   const prefixes = prefix ? [prefix]
@@ -111,7 +107,7 @@ export async function updateDb(
     const doUpdate = async () => {
       let res: number | boolean = false;
       try {
-        res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, prevBuild, prefix, moved, relaxed);
+        res = await updatePaths(bookPaths, collectionPaths, resourcePaths, mailPaths, db, buildId, prevBuild, prefix, moved);
       } catch (e) {
         console.error(`Error updating ${prefix}:`, e);
         await db.exec("ROLLBACK").catch(() => {});

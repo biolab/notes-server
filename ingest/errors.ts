@@ -1,4 +1,5 @@
 let error = false;
+const warnings: string[] = [];
 
 export const logError = (where: string, message: string | Error) => {
   if (!error) {
@@ -6,6 +7,18 @@ export const logError = (where: string, message: string | Error) => {
   }
   console.log(`${where}: ${message instanceof Error ? message.message : message}`);
   error = true;
+}
+
+export const logWarning = (where: string, message: string | Error) => {
+  const prefix = where ? `${where}: ` : "";
+  warnings.push(`${prefix}${message instanceof Error ? message.message : message}`);
+}
+
+export const printWarnings = () => {
+  if (warnings.length > 0) {
+    console.log("\n** Warnings **\n");
+    warnings.forEach((warning) => console.log(warning));
+  }
 }
 
 export async function catchErrors<T>(
