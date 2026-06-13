@@ -64,7 +64,9 @@ const Chapters = ({chapters: allChapters, bookId, chapterNumbers, unlockChapters
     { allChapters.length !== chapters.length &&
       <div className="chapter locked">
         <h2>{t("book.locked-chapter")}</h2>
-        <p>{t(`book.locked-chapter-msg-${unlockChaptersOnAnswers}`)}</p>
+        <p>{unlockChaptersOnAnswers === "attempt"
+             ? t("book.locked-chapter-msg-attempt")
+             : t("book.locked-chapter-msg-correct")}</p>
       </div>
     }
   </>

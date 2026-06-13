@@ -29,7 +29,7 @@ export default function Impersonate()  {
   return (
     <Layout title={t("user.impersonate")}>
       {user === null || users.length == 0 ? t("loading")
-      : !user.admin ? t("login.not-admin")
+      : !user.admin ? t("impersonate.not-admin")
       : <div>
           <div className="d-flex">
             <select

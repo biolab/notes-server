@@ -7,6 +7,8 @@ import dict from "@/i18n/dict";
 const DIRS = ["api", "app", "components", "context", "hooks", "utils"];
 const KNOWN_EXTRAS = ["books", "collections", "text-replacements"];
 
+let errors = false;
+
 export const getFiles = (p: string): string[] =>
   fs.readdirSync(p)
     .map((name: string) => path.posix.join(p, name))
@@ -20,7 +22,7 @@ const keys = [...new Set(DIRS.flatMap(getFiles)
       .matchAll(/[\^\W]t\(([^)]+)\)/g)])
     .map((m) => m[1])
     .flatMap((args) =>
-      [...args.matchAll(/(["'`])([^"'`]+)\1/g)]
+      [...args.matchAll(/(["'])([^"']+)\1/g)]
         .map(m => m[2]))
 )];
 
@@ -47,8 +49,11 @@ Object.entries(dict)
           console.log(`    - ${k} (expected ${typeof dict["en"][k]}, got ${typeof d[k]})`));
       }
       console.log("\n");
+      errors = true;
     }
     else {
       console.log(`All good in ${lang}!`);
     }
   });
+
+process.exit(errors ? 1 : 0);
