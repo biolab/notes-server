@@ -168,3 +168,27 @@ export const removeTerminalFrames = () => {
     })
   }
 }
+
+export const backtickRunScript = () =>
+  (tree: Root, file: any) => {
+    visit(tree, "mdxJsxFlowElement", (node) => {
+      if (node.name !== "RunScript" && node.name !== "script") {
+        return;
+      }
+      const start = node.children[0]?.position?.start?.offset;
+      const end = node.children[node.children.length - 1]?.position?.end?.offset;
+      if (start == null || end == null) {
+        return;
+      }
+      const text = String(file.value).slice(start, end).trim();
+      const code = text.startsWith("{`") && text.endsWith("`}")
+       ?  text.slice(2, text.length - 2) : text;
+      node.name = "RunScript";
+      node.children = [];
+      node.attributes = [{
+        type: "mdxJsxAttribute",
+        name: "code",
+        value: code
+      }];
+    });
+  }
