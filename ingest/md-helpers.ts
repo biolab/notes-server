@@ -107,7 +107,12 @@ ${paragraph}
                              .map((x: string) => `data-${x.trim()}`)
                              .join(" ")}></div>`
     )
-    .replaceAll("<\\!!!", "<!!!");
+    .replaceAll("<\\!!!", "<!!!")
+    .replaceAll(/<RunScript>(?!\s*\{`)([\s\S]*?)<\/RunScript>/g,
+                "<RunScript>{`\n$1\n`}</RunScript>\n\n")
+    .replaceAll(/<script>([\s\S]*?)<\/script>/g,
+                "<RunScript>{`\n$1\n`}</RunScript>\n\n")
+;
 
 export function checkedMatter<T>(
   indexMd: string,
