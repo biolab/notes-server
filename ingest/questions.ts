@@ -30,9 +30,6 @@ export const extractQuizzes = async (
     {
       outputFormat: "function-body",
       remarkPlugins: [
-        // Keep the parser stack aligned with serializedContent so quiz extraction
-        // accepts the same chapter markdown as the main MDX pipeline.
-        remarkGfm,
         remarkMath
       ],
       rehypePlugins: [
