@@ -3,6 +3,7 @@ import path from "path";
 
 import matter from "gray-matter";
 import { compile } from "@mdx-js/mdx";
+import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeExpressiveCode from "rehype-expressive-code";
@@ -185,6 +186,7 @@ export const serializedContent = async (
     jsxImportSource: 'react',
     development: false,
     remarkPlugins: [
+      remarkGfm,
       remarkMath,
       replacer({ language }),
       forbiddenComponents({ forbidden })

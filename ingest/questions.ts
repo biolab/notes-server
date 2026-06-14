@@ -2,6 +2,7 @@ import { compile } from "@mdx-js/mdx";
 import * as babelParser from "@babel/parser";
 import * as t from "@babel/types";
 import traverse, { NodePath } from "@babel/traverse";
+import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
@@ -29,6 +30,9 @@ export const extractQuizzes = async (
     {
       outputFormat: "function-body",
       remarkPlugins: [
+        // Keep the parser stack aligned with serializedContent so quiz extraction
+        // accepts the same chapter markdown as the main MDX pipeline.
+        remarkGfm,
         remarkMath
       ],
       rehypePlugins: [
