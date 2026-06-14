@@ -168,3 +168,19 @@ export const removeTerminalFrames = () => {
     })
   }
 }
+
+export const removeScripts = () => {
+  return (tree: Root) => {
+    visit(tree, (node: any) => Array.isArray(node.children), (node: any) => {
+      if (!node.children) {
+        return;
+      }
+
+      // React does not execute script tags rendered from client-side MDX.
+      // Expressive Code injects them for copy buttons, and we wire those up ourselves.
+      node.children = node.children.filter(
+        (child: any) => !(child.type === 'element' && child.tagName === 'script')
+      );
+    });
+  }
+}

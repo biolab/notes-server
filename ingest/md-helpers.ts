@@ -14,7 +14,8 @@ import {
   rewriteQuestions,
   replacer,
   constructReplacer,
-  removeTerminalFrames
+  removeTerminalFrames,
+  removeScripts
 } from "./plugins";
 import { getImageSize } from "./getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "./paths";
@@ -195,7 +196,8 @@ export const serializedContent = async (
       getImageSize,
       rewriteQuestions,
       [rehypeExpressiveCode, rehypeExpressiveCodeOptions],
-      removeTerminalFrames
+      removeTerminalFrames,
+      removeScripts
     ],
   });
   return compiled.value as string;
