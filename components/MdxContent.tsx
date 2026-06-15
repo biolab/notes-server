@@ -155,20 +155,19 @@ export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
         {children}
       </div>,
 
-    RunScript: ({children} : {
-      children: string;
-    }) =>
+    RunScript: ({code}: {code: string}) => {
       React.useEffect(() => {
         if (window === undefined) {
           return;
         }
-
         try {
-          eval(children);
+          eval(code);
         } catch (err) {
           console.error("RunScript error:", err);
         }
-      }, [children]),
+      }, [code])
+      return null;
+    },
   }
 
   const fn = new Function('mdx', 'env',

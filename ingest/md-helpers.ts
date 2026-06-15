@@ -15,7 +15,8 @@ import {
   rewriteQuestions,
   replacer,
   constructReplacer,
-  removeTerminalFrames
+  removeTerminalFrames,
+  backtickRunScript,
 } from "./plugins";
 import { getImageSize } from "./getImageSize";
 import { isDirectory, joinedPath, readPublicDir } from "./paths";
@@ -189,7 +190,8 @@ export const serializedContent = async (
       remarkGfm,
       remarkMath,
       replacer({ language }),
-      forbiddenComponents({ forbidden })
+      forbiddenComponents({ forbidden }),
+      backtickRunScript
     ],
     rehypePlugins: [
       rehypeKatex,
