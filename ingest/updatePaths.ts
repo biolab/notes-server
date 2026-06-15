@@ -625,8 +625,8 @@ const cleanup = async (
     ["chapters", "books", "collections", "inheritables", "loginmails"].map((table) =>
       db.run(
         `DELETE FROM ${table}
-         WHERE path LIKE ? || '%' AND lastBuildId <> ?`,
-        [pathPrefix ? pathPrefix + "/" : "", buildId]
+         WHERE path LIKE ? AND lastBuildId <> ?`,
+        [pathPrefix ? pathPrefix + "/%" : "", buildId]
       )
     )
   );
