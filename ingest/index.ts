@@ -65,6 +65,9 @@ export async function updateDb(
         && statSync(joinedPath(entry)).isDirectory()
       );
   for(const prefix of prefixes) {
+    if (prefix === "/") {
+      continue;
+    }
     let prevBuild = new Date(process.env.NEXT_PUBLIC_DEVELOPMENT && !force &&
       (await db.get(
         `SELECT MAX(timestamp) as time, path FROM builds WHERE path = ?`,
@@ -109,7 +112,7 @@ export async function updateDb(
     }
   }
 
-  if (!prefix && !check) {
+  if ((!prefix || prefixes.includes("/")) && !check) {
     await updateRoot(db);
   }
 

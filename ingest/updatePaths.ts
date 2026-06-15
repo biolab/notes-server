@@ -9,7 +9,7 @@ import { parseBook, RawBookDef, RawChapterDef } from "./book";
 import { gatherRedirections, updateRedirections } from "./redirections";
 import { catchErrors, hasError, logError, logWarning, printWarnings, resetError } from "./errors";
 import { MailPath } from "@/ingest/mail";
-import { InheritableResources } from "@/ingest/inheritables";
+import { InheritableResources, inheritableResourcesFromPath } from "@/ingest/inheritables";
 import {joinedPath} from "@/ingest/paths";
 import {load} from "js-yaml";
 import { UnlockChaptersOnAnswersOptions } from "@/types";
@@ -625,8 +625,8 @@ const cleanup = async (
     ["chapters", "books", "collections", "inheritables", "loginmails"].map((table) =>
       db.run(
         `DELETE FROM ${table}
-         WHERE path LIKE ? || '%' AND lastBuildId <> ?`,
-        [pathPrefix ? pathPrefix + "/" : "", buildId]
+         WHERE (path = ? OR path LIKE ?) AND lastBuildId <> ?`,
+        [pathPrefix, pathPrefix ? pathPrefix + "/%" : "", buildId]
       )
     )
   );
@@ -639,6 +639,12 @@ const cleanup = async (
     [buildId, buildId]
   );
 }
+
+const getNewBuildId = async (db: Database, pathPrefix: string): Promise<number> =>
+  (await db.get(
+    `INSERT INTO builds (path) VALUES (?) RETURNING id`,
+    [pathPrefix || ""]
+  )).id;
 
 export const updatePaths = async (
   bookSlugs: string[][],
@@ -683,10 +689,7 @@ export const updatePaths = async (
   await db.exec("BEGIN TRANSACTION");
   let buildId: number;
   if (buildId_ === "new") {
-    buildId = (await db.get(
-      `INSERT INTO builds (path) VALUES (?) RETURNING id`,
-      [pathPrefix || ""]
-    )).id;
+    buildId = await getNewBuildId(db, pathPrefix);
   }
   else {
     await db.run(
@@ -714,15 +717,15 @@ export const updatePaths = async (
 };
 
 export const updateRoot = async (db: Database) => {
+  const buildId = await getNewBuildId(db, "");
+
   const rootCollection = await parseCollection([], []);
   if (rootCollection.frontmatter.public) {
-    const buildId = (await db.get(
-      `INSERT INTO builds (path) VALUES (?) RETURNING id`,
-      [""])
-    ).id;
     await insertCollections([rootCollection], db, buildId);
   }
-  else {
-    await db.run(`DELETE FROM collections WHERE path = ''`);
-  }
+
+  const resources = inheritableResourcesFromPath("");
+  await insertResourcePaths(resources, db, buildId);
+
+  await cleanup(db, "", buildId);
 }

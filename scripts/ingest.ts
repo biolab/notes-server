@@ -30,7 +30,7 @@ const startNext = () => {
 
 
 program
-  .option("-p, --path <path>", "Top-level subdirectory to update/check", "")
+  .option("-p, --path <path>", "Top-level subdirectory to update/check; use `-p /` for root", "")
   .option("--dev", "Run in development mode", false)
   .option("--recreate", "Recreate the database from scratch", false)
   .option("-f, --force", "Force parsing of unchanged files", false)
@@ -39,7 +39,7 @@ program
 program.parse(process.argv);
 const { path: prefix, dev, recreate, force, check } = program.opts();
 
-if (prefix.includes("/") || prefix.includes("\\")) {
+if (prefix !== "/" && (prefix.includes("/") || prefix.includes("\\"))) {
   console.error("Error: The path may contain only a top-level directory name.");
   process.exit(1);
 }
