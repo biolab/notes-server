@@ -13,14 +13,17 @@ export type InheritableResources = {
     db?: boolean
 }[];
 
+export const inheritableResourcesFromPath = (prefix: string): InheritableResources =>
+  resources
+  .filter(({file}) => pathExists(prefix, file))
+  .map(({type, db}) => ({
+    type,
+    path: prefix,
+    db: db ?? true
+  }));
+
 export const getInheritableResources = (prefix: string): InheritableResources => [
-  ...resources
-    .filter(({file}) => pathExists(prefix, file))
-    .map(({type, db}) => ({
-      type,
-      path: prefix,
-      db: db ?? true
-    })),
+  ...inheritableResourcesFromPath(prefix),
   ...readPublicDir(prefix)
     .map((subdir) => `${prefix}/${subdir}`)
     .filter((path) => isDirectory(path))
