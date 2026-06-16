@@ -1,25 +1,13 @@
 import { isDirectory, pathExists, readPublicDir } from "./paths";
-
-
-const resources = [
-  {type: "favicon", file: "favicon.png"},
-  {type: "css", file: "style.css"},
-  {type: "defaults", file: "defaults.yml", db: false},
-];
-
-export type InheritableResources = {
-    type: string,
-    path: string,
-    db?: boolean
-}[];
+import { InheritableResources, ResourceType, resources } from "@/types";
 
 export const inheritableResourcesFromPath = (prefix: string): InheritableResources =>
-  resources
-  .filter(({file}) => pathExists(prefix, file))
-  .map(({type, db}) => ({
-    type,
+  Object.entries(resources)
+  .filter(([, {file}]) => pathExists(prefix, file))
+  .map(([type, {db}]) => ({
+    type: type as ResourceType,
     path: prefix,
-    db: db ?? true
+    db
   }));
 
 export const getInheritableResources = (prefix: string): InheritableResources => [

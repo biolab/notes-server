@@ -91,3 +91,18 @@ export const extraCollectionMatter = {
 } satisfies Record<string, unknown>;
 
 export type LinkDesc = { href: string, title: string } | false;
+
+
+export const resources = {
+  favicon: {file: "favicon.png", db: true},
+  css: {file: "style.css", db: true},
+  defaults: {file: "defaults.yml", db: false},
+} as const;
+
+export type ResourceType = keyof typeof resources;
+
+export type InheritableResources = {
+  type: ResourceType;
+  path: string;
+  db: boolean;
+}[];

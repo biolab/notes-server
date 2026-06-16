@@ -1,7 +1,7 @@
 "use server";
 
 import db from "@/utils/db";
-import { LinkDesc } from "@/types";
+import { LinkDesc, resources, ResourceType } from "@/types";
 
 export type ItemDesc = {
   id: number;
@@ -22,21 +22,21 @@ export const getItem = async (path: string): Promise<ItemDef | undefined> =>
   await db.get(`SELECT 'book' as type, id, title FROM books WHERE path = ?`, [path])
   || await db.get(`SELECT 'collection' as type, id, title FROM collections WHERE path = ?`, [path]);
 
-export const getInheritable = async (path: string, type: string, postName: string | undefined = undefined): Promise<string | undefined> => {
+export const getInheritable = async (path: string, type: ResourceType): Promise<string | undefined> => {
   const row = await db.get(`
     SELECT path
     FROM inheritables
     WHERE type = ? AND ? LIKE path || '%'
     ORDER BY LENGTH(path) DESC
     LIMIT 1;`, [type, path ? path + "/" : ""]);
+  const {file} = resources[type];
   return row === undefined ? undefined
-      : !postName ? row?.path
-      : row.path ? `/${row.path}/${postName}`
-      : `/${postName}`;
+      : row.path ? `/${row.path}/${file}`
+      : `/${file}`;
 }
 
 export const getCss = async (path: string): Promise<string | undefined> =>
-  await getInheritable(path, "css", "style.css");
+  await getInheritable(path, "css");
 
 export const getMetadata = async (path: string):
   Promise<{title?: string, description?: string, icons?: {icon: string}} | undefined> => {
@@ -48,7 +48,7 @@ export const getMetadata = async (path: string):
     SELECT title, subtitle as description
     FROM ${item.type}s
     WHERE id = ?`, [item.id]);
-  const icon = await getInheritable(path, "favicon", "favicon.png");
+  const icon = await getInheritable(path, "favicon");
     return {
     title, description,
     ...icon ? {icons: {icon}} : {}
