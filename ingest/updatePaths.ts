@@ -9,10 +9,10 @@ import { parseBook, RawBookDef, RawChapterDef } from "./book";
 import { gatherRedirections, updateRedirections } from "./redirections";
 import { catchErrors, hasError, logError, logWarning, printWarnings, resetError } from "./errors";
 import { MailPath } from "@/ingest/mail";
-import { InheritableResources, inheritableResourcesFromPath } from "@/ingest/inheritables";
+import { inheritableResourcesFromPath } from "@/ingest/inheritables";
 import {joinedPath} from "@/ingest/paths";
 import {load} from "js-yaml";
-import { UnlockChaptersOnAnswersOptions } from "@/types";
+import { UnlockChaptersOnAnswersOptions, InheritableResources } from "@/types";
 
 const extractBookQuestions = async (
   book: RawBookDef,
