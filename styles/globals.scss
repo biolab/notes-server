@@ -88,7 +88,7 @@ $gap: var(--gap);
     transform: translateX(calc(-100% - $gap));
 
     img {
-      margin-top: 8px !important;
+      margin-top: 8px;
       margin-bottom: 8px !important;
     }
 
@@ -112,70 +112,162 @@ $gap: var(--gap);
 
   div.expanding-side-img {
     transform-origin: top left;
-    position: relative;
-    animation: toAbsolute 0.5s forwards;
     max-width: $aside-width;
     padding: 0;
     object-fit: contain;
 
-    @keyframes toAbsolute {
-      0% { position: relative; }
-      100% { position: absolute; }
-    }
-
     img {
-      border-top-left-radius: 4px;
-      border-top-right-radius: 4px;
+      border-radius: 5px;
     }
 
     img.retina {
       zoom: 0.5;
     }
 
-    .children {
+    &::after {
+      content: "";
+      position: absolute;
+      top: 8px;
+      right: 0;
+      width: 32px;
+      height: 32px;
+
+      background-color: rgb(80 80 80 / 70%);
+      background-image: url("/icons/magnifying-glass.svg");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 18px;
+
+      border-radius: 4px;
+    }
+
+    .caption-cont .children {
       display: -webkit-box;
-      -webkit-line-clamp: 2;   // number of lines
+      -webkit-line-clamp: 2; // number of lines
       -webkit-box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
-    &:hover {
-      position: relative;
-      width: $prose-width;
-      max-width: min($prose-width, calc(100vw - 4rem));
-      transform-origin: top left;
-      animation: none;
-      transition:
-              width 0.5s,
-              max-width 0.5s;
-      z-index: 100;
-      transform: translateX(calc(0px - $aside-width - $gap));
-      background-color: #eee;
-      border-radius: 4px;
-
-      img {
-        max-width: $prose-width;
-        transition: all 0.5s;
-      }
-
-      .caption.no-children, .children {
-        padding: 16px;
-      }
-
-      .caption.with-children {
-        padding: 16px 16px 0 16px;
-        font-weight: 800 !important;
-      }
-
-      .children {
-        -webkit-line-clamp: unset;
-        overflow: visible;
-        text-overflow: unset;
-        display: block; // or whatever layout you need
-      }
-    }
   }
+}
+
+div.expanding-side-img-container div.overlay {
+  visibility: hidden;
+
+  position: fixed;
+  top: 50% !important;
+  left: 50% !important;
+  width: 10vw;
+  height: 10vh;
+  transition: width 0.2s, height 0.2s;
+  transform: translate(-50%, -50%);
+
+  text-align: center;
+  z-index: 100;
+
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .figure {
+    display: inline-block;
+    width: auto;
+    position: relative;
+    margin: auto;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    overflow: hidden;
+  }
+
+  img {
+    width: auto;
+    height: auto;
+    display: block;
+    margin: 0 !important;
+    border: 1px solid gray;
+  }
+
+  .caption-cont:has(.no-children) {
+    visibility: hidden;
+   }
+
+  .children {
+    padding: 0 16px;
+    width: 100%;
+  }
+
+  .caption.with-children {
+    padding: 0px 16px 0 16px;
+    font-weight: 800 !important;
+  }
+
+  .figure .caption-cont::after {
+    content: "";
+    position: absolute;
+    top: auto;
+    bottom: 0px;
+    left: 0;
+    width: 32px;
+    height: 32px;
+
+    background-color: rgb(80 80 80 / 70%);
+    background-image: url("/icons/eye.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px;
+
+    border-radius: 4px;
+  }
+
+  .figure .caption-cont:has(:hover)::after {
+    opacity: 0
+  }
+
+  .caption-cont:has(.children) {
+    background-color: #fff4;
+  }
+
+  .caption-cont {
+    position: absolute;
+    bottom: 0;
+    background-color: white;
+    overflow: visible;
+    text-overflow: unset;
+    height: 32px;
+  }
+
+  .caption-cont:hover {
+    transition: opacity 0.2s linear;
+    background-color: #fffd;
+    padding: 16px 16px 0 16px;
+    height: auto;
+  }
+
+  .children {
+    text-align: left;
+  }
+}
+
+div.expanding-side-img-container:has(:hover) .overlay, div.expanding-side-img-container.overlay:has(.figure:hover) {
+  width: 100vw;
+  height: 100vh;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #dddd;
+  visibility: visible;
+  pointer-events: none;
+
+  .figure img {
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+}
+
+div.expanding-side-img-container:has(:hover) .figure, div.expanding-side-img-container.overlay .figure:hover {
+  opacity: 1;
+  pointer-events: visible;
 }
 
 @media print, ( max-width: 680px ) {

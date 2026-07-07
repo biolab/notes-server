@@ -126,13 +126,32 @@ export const ExpandingSideImg = ({src, alt, retina, caption, children}: {
 }) => {
   const ref = useSidenoteRegistration();
 
-  return <div className="expanding-side-img" ref={ref}>
+  return <div className="expanding-side-img-container">
+    <div className="expanding-side-img" ref={ref}>
     <Image
       src={src}
       alt={alt || caption || "image"}
       className={retina ? " retina" : ""}
     />
-    {caption && <div className={"caption" + (children ? " with-children" : " no-children")}>{caption}</div>}
-    {children && <div className="children">{children}</div>}
+    <div className="caption-cont">
+      {caption && <div className={"caption" + (children ? " with-children" : " no-children")}>{caption}</div>}
+      {children && <div className="children">{children}</div>}
+    </div>
+    </div>
+    <div className="overlay">
+      <div className="figure">
+      <Image
+        src={src}
+        alt={alt || caption || "image"}
+        className={retina ? " retina" : ""}
+      />
+      {(caption || children) &&
+        <div className="caption-cont">
+          {caption && <div className={"caption" + (children ? " with-children" : " no-children")}>{caption}</div>}
+          {children && <div className="children">{children}</div>}
+        </div>
+      }
+      </div>
+    </div>
   </div>
 }
