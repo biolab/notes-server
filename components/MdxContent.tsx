@@ -33,6 +33,23 @@ export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
   env?: Record<string, any>;
   allAnswers?: AnswersInBook;
 }) => {
+  React.useEffect(() => {
+    const resize = (img: HTMLImageElement) => {
+      // Set only maxHeight to avoid overriding maxWidth set to images in side columns
+      img.style.maxHeight = `${img.naturalHeight / 2}px`;
+    };
+
+    const images = document.querySelectorAll<HTMLImageElement>("img.retina");
+    images.forEach(img => {
+      if (img.complete) {
+        resize(img);
+      }
+      else {
+        img.addEventListener("load", () => resize(img), {once: true});
+      }
+    });
+  }, []);
+
   if  (!content) {
     return;
   }
