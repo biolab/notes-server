@@ -1,0 +1,19 @@
+
+$img-margin: 8px;
+$max-size: 140;
+
+:root {
+  --aside-width: 260px;
+  --prose-width: 940px;
+  --gap: 32px;
+
+  @media (max-width: 680px) {
+    --aside-width: 0;
+    --prose-width: 100vw;  // Using 100% allows some elements to expand
+    --gap: 0;
+  }
+}
+
+$aside-width: var(--aside-width);
+$prose-width: var(--prose-width);
+$gap: var(--gap);

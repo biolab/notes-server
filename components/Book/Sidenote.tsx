@@ -1,5 +1,6 @@
 "use client";
 
+import "./expanding-side-img.scss"
 import React, { ReactNode, createContext, useRef, useCallback, useMemo } from "react";
 import Image from "@/components/Image";
 
@@ -134,23 +135,23 @@ export const ExpandingSideImg = ({src, alt, retina, caption, children}: {
       className={retina ? " retina" : ""}
     />
     <div className="caption-cont">
-      {caption && <div className={"caption" + (children ? " with-children" : " no-children")}>{caption}</div>}
+      {caption && <div className="caption"><p>{caption}</p></div>}
       {children && <div className="children">{children}</div>}
     </div>
     </div>
     <div className="overlay">
       <div className="figure">
-      <Image
-        src={src}
-        alt={alt || caption || "image"}
-        className={retina ? " retina" : ""}
-      />
-      {(caption || children) &&
-        <div className="caption-cont">
-          {caption && <div className={"caption" + (children ? " with-children" : " no-children")}>{caption}</div>}
-          {children && <div className="children">{children}</div>}
-        </div>
-      }
+        <Image
+          src={src}
+          alt={alt || caption || "image"}
+          className={retina ? " retina" : ""}
+        />
+        {(caption || children) &&
+          <div className="caption-overlay">
+            {caption && <div className="caption">{caption}</div>}
+            {children && <div className="children">{children}</div>}
+          </div>
+        }
       </div>
     </div>
   </div>
