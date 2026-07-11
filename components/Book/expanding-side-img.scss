@@ -168,13 +168,15 @@ div.expanding-side-img-container {
 
     img {
       border-radius: 5px;
+      max-height: $aside-width;
+
     }
 
     &::after {
       content: "";
       position: absolute;
       top: 0;
-      right: 0;
+      left: 0;
       width: 32px;
       height: 32px;
 
