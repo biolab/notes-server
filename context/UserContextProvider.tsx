@@ -1,7 +1,7 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { createUser, applyTemporaryToken, getUser, User } from "@/api/user";
 import { logger } from "@/utils/logger";
@@ -51,8 +51,9 @@ export const removeAccessTokenFromLocalStorage = () => {
   localStorage.removeItem(USER_LS_KEY);
 }
 
-export const UserContextProvider = ({ children }: {
+export const UserContextProvider = ({ children, token: accessTokenFromQuery }: {
   children: ReactNode;
+  token?: string | undefined;
 }) => {
   const [user, setUser] = React.useState<User | null>(null);
   const [userGroup, setUserGroup] = React.useState<string | null>(null);
@@ -77,8 +78,6 @@ export const UserContextProvider = ({ children }: {
   }, [onUserLogin]);
 
   const [init, setInit] = React.useState(false);
-  const searchParams = useSearchParams();
-  const accessTokenFromQuery = searchParams.get("token");
   const pathname = usePathname();
 
   React.useEffect(() => {
