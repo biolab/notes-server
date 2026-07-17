@@ -25,6 +25,18 @@ export interface QuestionProps extends QuizPropsBase {
   attempts?: number;
 }
 
+const Video = ({src, allow}: {src: string, allow?: string | undefined}) =>
+    <div className="youtube-video">
+      <iframe
+        width="853"
+        height="480"
+        src={src}
+        allow={allow}
+        allowFullScreen
+        title="Embedded video"
+      />
+    </div>;
+
 export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
   content: string;
   bookId?: number;
@@ -59,10 +71,12 @@ export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
       if (chapterId === undefined || bookId === undefined) {
         throw new Error("Questions can appear only in chapters");
       }
-      const { scorer, options, ungraded,
-              longtext, upload, uploads, points, attempts, id, question,
-              accept,
-              ...restProps } = props;
+      const {
+        scorer, options, ungraded,
+        longtext, upload, uploads, points, attempts, id, question,
+        accept,
+        ...restProps
+      } = props;
 
       const type = determineQuestionType({options, longtext, upload, uploads});
 
@@ -93,12 +107,12 @@ export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
 
     CodeTabs, CodeTab,
 
-    FullWidth: ({ children }: { children: React.ReactNode }) =>
+    FullWidth: ({children}: {children: React.ReactNode}) =>
       <div className="full-width">
         {children}
       </div>,
 
-    WidgetIframe: ({ src, width, height, className }: {
+    WidgetIframe: ({src, width, height, className}: {
       src: string,
       width?: string,
       height?: string,
@@ -122,7 +136,7 @@ export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
       );
     },
 
-    ReplayImg: ({ src, alt }: { src: string; alt?: string }) => {
+    ReplayImg: ({src, alt}: {src: string; alt?: string}) => {
       const [_src, setSrc] = React.useState(src ? src + "?" : null);
       const replay = React.useCallback(() => {
         setSrc(
@@ -135,7 +149,7 @@ export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
       }
       return (
         <>
-          <Image className="replay-img" src={_src} alt={alt} />
+          <Image className="replay-img" src={_src} alt={alt}/>
           <a className="replay-img-button" onClick={replay}>
             {t("chapter.replay")}
           </a>
@@ -143,22 +157,14 @@ export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
       );
     },
 
-    YouTube: ({ embedId }: { embedId: string }) =>
-      React.useMemo(
-        () => (
-          <div className="youtube-video">
-            <iframe
-              width="853"
-              height="480"
-              src={`https://www.youtube.com/embed/${embedId}`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              title="Embedded youtube"
-            />
-          </div>
-        ),
-        [embedId]
-      ),
+    YouTube: ({embedId}: {embedId: string}) =>
+      <Video
+        src={`https://www.youtube.com/embed/${embedId}`}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      />,
+
+    ArnesVideo: ({embedId}: {embedId: string}) =>
+      <Video src={`https://video.arnes.si/en/embed/${embedId}`} />,
 
     CcByNcNd: () =>
       <img src="/icons/cc-by-nc-nd.png" alt="CC BY-NC-ND" /> /* eslint-disable-line @next/next/no-img-element */,
