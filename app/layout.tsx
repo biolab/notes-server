@@ -2,10 +2,8 @@ import { ToastContainer } from "react-toastify";
 import "../styles/globals.scss";
 
 import type { Metadata } from "next";
-import React, { Suspense } from "react";
+import React from "react";
 
-import { UserContextProvider } from "@/context/UserContextProvider";
-import { SidenoteProvider } from "@/components/Book/Sidenote";
 import { CONFIG } from "@/utils/config";
 import { DevRefreshHandler } from "@/components/DevRefreshHandler";
 
@@ -24,14 +22,8 @@ export default function RootLayout({ children }: Readonly<{
     <html>
       <body>
         <DevRefreshHandler wsPort={CONFIG.wsPort} />
-        <Suspense>
-          <UserContextProvider>
-            <SidenoteProvider>
-              {children}
-              <ToastContainer />
-            </SidenoteProvider>
-          </UserContextProvider>
-        </Suspense>
+          {children}
+          <ToastContainer />
       </body>
     </html>
   );

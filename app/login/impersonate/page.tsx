@@ -2,13 +2,13 @@
 
 import React, { useContext, useEffect, useState } from "react";
 
-import { impersonateUser, UserContext } from "@/context/UserContextProvider";
+import { impersonateUser, UserContext, UserContextProvider } from "@/context/UserContextProvider";
 import Layout from "@/components/Layout/Layout";
 import { useIntlFromBrowser } from "@/i18n";
 import { getUsers, UserList } from "@/api/user";
 
 
-export default function Impersonate()  {
+function Impersonate()  {
   const { user } = useContext(UserContext);
   const { t } = useIntlFromBrowser();
 
@@ -55,5 +55,13 @@ export default function Impersonate()  {
         </div>
       }
     </Layout>
+  );
+}
+
+export default function Page() {
+  return (
+    <UserContextProvider>
+      <Impersonate/>
+    </UserContextProvider>
   );
 }

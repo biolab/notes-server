@@ -8,6 +8,8 @@ import { getCss, getItem, getMetadata } from "@/api/content";
 import { Book } from "@/components/Book/Book";
 import { Collection } from "@/components/Collection/Collection";
 import { BookResults, CollectionResults } from "@/components/Quiz/Results";
+import { UserContextProvider } from "@/context/UserContextProvider";
+import { SidenoteProvider } from "@/components/Book/Sidenote";
 
 
 export type PathList = { path: string[] };
@@ -26,6 +28,11 @@ export default async function CollectionOrBookPage(
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>}
 ) {
   const path = ((await params).path ?? []).join("/");
+  const { token: tokenParam, results: resultsParam } = (await searchParams) as ({
+    token: string | string[] | undefined,
+    results: boolean | undefined
+  });
+  const token = Array.isArray(tokenParam) ? tokenParam[0] : tokenParam;
 
   for (const [from, to] of await getRedirections()) {
     if (from === path || path.startsWith(from + "/")) {
@@ -34,7 +41,7 @@ export default async function CollectionOrBookPage(
     }
   }
 
-  const results = (await searchParams).results !== undefined;
+  const results = resultsParam !== undefined;
   const item = await getItem(path);
   if (!item) {
     notFound();
@@ -42,19 +49,31 @@ export default async function CollectionOrBookPage(
   const css = await getCss(path);
   if (item.type === "book") {
     const book = await getBook(item.id);
-    return results
-      ? <BookResults {...book} />
-      : <>
-          {css && <link rel="stylesheet" href={css} precedence="high"/> }
-          <Book {...book} />
-        </>;
-    } else {
-               const collection = await getCollection(item.id);
-    return results
-      ? <CollectionResults {...collection} />
-      : <>
-        {css && <link rel="stylesheet" href={css} precedence="high"/> }
-        <Collection {...collection} />
-      </>
+    return (
+      <UserContextProvider token={token}>
+        <SidenoteProvider>
+          { results ? <BookResults {...book} /> :
+            <>
+              {css && <link rel="stylesheet" href={css} precedence="high"/> }
+              <Book {...book} />
+            </>
+          }
+        </SidenoteProvider>
+      </UserContextProvider>
+    );
+  } else {
+    const collection = await getCollection(item.id);
+    return (
+      <UserContextProvider token={token}>
+        <SidenoteProvider>
+          { results ? <CollectionResults {...collection} /> :
+            <>
+              {css && <link rel="stylesheet" href={css} precedence="high"/> }
+              <Collection {...collection} />
+            </>
+          }
+        </SidenoteProvider>
+      </UserContextProvider>
+    );
   }
 }
