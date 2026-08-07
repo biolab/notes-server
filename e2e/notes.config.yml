@@ -1,0 +1,4 @@
+notesPath: e2e/fixtures/notes
+staticPath: e2e/fixtures/notes
+dbPath: e2e/.runtime/db
+uploadsPath: e2e/.runtime/uploads

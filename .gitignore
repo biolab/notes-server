@@ -7,6 +7,9 @@ yarn.lock
 next-env.d.ts
 /.next/
 /out/
+/playwright-report/
+/test-results/
+/e2e/.runtime/
 
 # production
 /build

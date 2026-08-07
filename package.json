@@ -8,6 +8,9 @@
     "build": "next build",
     "start": "node -e \"process.exit(require('child_process').spawnSync('next', ['start', '-p', process.env.PORT || '3020'], { stdio: 'inherit', shell: true }).status)\"",
     "lint": "next lint",
+    "e2e:bootstrap": "node -e \"const fs = require('fs'); for (const f of ['notes.sqlite', 'notes.sqlite-shm', 'notes.sqlite-wal']) fs.rmSync('e2e/.runtime/db/' + f, { force: true });\" && NOTES_CONFIG=e2e/notes.config.yml NEXT_PUBLIC_DEVELOPMENT=true SHOW_UNPUBLISHED=true ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/ingest.ts --recreate --force",
+    "test:e2e": "playwright test",
+    "test:e2e:mobile": "playwright test --project=mobile-webkit-iphone",
     "ingest": "ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/ingest.ts",
     "check-translations": "ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/check-translations.ts",
     "move": "ts-node -r tsconfig-paths/register --project tsconfig.scripts.json scripts/move.ts"
@@ -56,6 +59,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.1.8",
     "@tailwindcss/typography": "^0.5.16",
     "@types/babel__traverse": "^7.20.7",
