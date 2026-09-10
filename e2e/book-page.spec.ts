@@ -315,8 +315,8 @@ test("renders side images on narrow screens", async ({ page }, testInfo) => {
   expect(diagnostics.img.naturalHeight).toBeGreaterThan(0);
   expect(diagnostics.wrapper.bounds?.width ?? 0).toBeGreaterThan(0);
   expect(diagnostics.wrapper.bounds?.height ?? 0).toBeGreaterThan(0);
-  expect(diagnostics.img.bounds.width).toBeGreaterThan(0);
-  expect(diagnostics.img.bounds.height).toBeGreaterThan(0);
+  expect(diagnostics.img.bounds?.width ?? 0).toBeGreaterThan(0);
+  expect(diagnostics.img.bounds?.height ?? 0).toBeGreaterThan(0);
   await expect(
     sideImage,
     "Expected the side image to be visible on mobile and desktop"
@@ -351,10 +351,10 @@ test("renders side images on narrow screens", async ({ page }, testInfo) => {
   expect(diagnostics.wrapper.bounds!.right).toBeLessThanOrEqual(
     diagnostics.containerBounds!.right + GEOMETRY_TOLERANCE
   );
-  expect(diagnostics.img.bounds.left).toBeGreaterThanOrEqual(
+  expect(diagnostics.img.bounds?.left ?? 0).toBeGreaterThanOrEqual(
     diagnostics.wrapper.bounds!.left - GEOMETRY_TOLERANCE
   );
-  expect(diagnostics.img.bounds.right).toBeLessThanOrEqual(
+  expect(diagnostics.img.bounds?.right ?? 0).toBeLessThanOrEqual(
     diagnostics.wrapper.bounds!.right + GEOMETRY_TOLERANCE
   );
   expect(
