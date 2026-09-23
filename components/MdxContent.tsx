@@ -129,7 +129,7 @@ export const MdxContent = ({content, chapterId, bookId, t, env, allAnswers}: {
               width={width || "100%"}
               height={height || "900px"}
               src={src}
-              style={{zoom: 0.9}}
+              style={{zoom: 1}}
             />
           )}
         </>
