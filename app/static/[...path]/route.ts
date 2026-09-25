@@ -14,19 +14,18 @@ import { CONFIG } from "@/utils/config";
 const notesStaticDir = CONFIG.staticPath || CONFIG.notesPath;
 const nextPublicDir = path.posix.join(process.cwd(), "public");
 
-const tryServe = async (base: string, segments: string[]) => {
+const tryPath = async (base: string, segments: string[]) => {
   const filePath = path.posix.join(base, ...segments);
   if (!filePath.startsWith(base + path.sep)) {
     return null;
-    // Keep them in the dark
-    // throw new Error("Path traversal attempt");
   }
   try {
-    return await fs.readFile(filePath);
+    await fs.access(filePath);
+    return filePath;
   } catch {
     return null;
   }
-}
+};
 
 export async function GET(
   request: NextRequest,
@@ -34,16 +33,78 @@ export async function GET(
 ) {
   const segments = (await params).path;
 
-  const content =
-    await tryServe(notesStaticDir, segments)
-    || await tryServe(nextPublicDir, segments);
-  if (!content) {
+  const filePath =
+    (await tryPath(notesStaticDir, segments)) ??
+    (await tryPath(nextPublicDir, segments));
+
+  if (!filePath) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const mimeType = mime.getType(segments[segments.length - 1]) || "application/octet-stream";
-  return new NextResponse(
-    new Blob([new Uint8Array(content)]),
-    { headers: { "Content-Type": mimeType } }
-  );
+  const stat = await fs.stat(filePath);
+  const size = stat.size;
+  const mimeType =
+    mime.getType(segments[segments.length - 1]) ||
+    "application/octet-stream";
+
+  const range = request.headers.get("range");
+  if (!range) {
+    return new NextResponse(await fs.readFile(filePath), {
+      headers: {
+        "Content-Type": mimeType,
+        "Content-Length": size.toString(),
+        "Accept-Ranges": "bytes",
+      },
+    });
+  }
+
+  const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+  if (!match) {
+    return new NextResponse(null, {
+      status: 416,
+      headers: {
+        "Content-Range": `bytes */${size}`,
+      },
+    });
+  }
+
+  let start: number;
+  let end: number;
+  if (match[1] === "") {
+    // bytes=-N
+    const length = Number(match[2]);
+    start = Math.max(0, size - length);
+    end = size - 1;
+  } else {
+    start = Number(match[1]);
+    end = match[2] === "" ? size - 1 : Number(match[2]);
+  }
+  if (start >= size || start > end) {
+    return new NextResponse(null, {
+      status: 416,
+      headers: {
+        "Content-Range": `bytes */${size}`,
+      },
+    });
+  }
+
+  end = Math.min(end, size - 1);
+  const length = end - start + 1;
+  const handle = await fs.open(filePath, "r");
+  const buffer = Buffer.alloc(length);
+  try {
+    await handle.read(buffer, 0, length, start);
+  } finally {
+    await handle.close();
+  }
+
+  return new NextResponse(new Uint8Array(buffer), {
+    status: 206,
+    headers: {
+      "Content-Type": mimeType,
+      "Content-Length": length.toString(),
+      "Content-Range": `bytes ${start}-${end}/${size}`,
+      "Accept-Ranges": "bytes",
+    },
+  });
 }
