@@ -23,11 +23,12 @@ const existsAsFile = async (base: string, pathname: string) => {
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const decodedPathname = decodeURIComponent(pathname);
   if (!pathname.startsWith("/api") &&
       !pathname.startsWith("/_next") &&
-      /[^/]+\.[^/]+$/.test(pathname) && (
-        await existsAsFile(notesStaticDir, pathname) ||
-        await existsAsFile(nextPublicDir, pathname))) {
+      /[^/]+\.[^/]+$/.test(decodedPathname) && (
+        await existsAsFile(notesStaticDir, decodedPathname) ||
+        await existsAsFile(nextPublicDir, decodedPathname))) {
     const url = req.nextUrl.clone();
     url.pathname = `/static${pathname}`;
     return NextResponse.rewrite(url);
