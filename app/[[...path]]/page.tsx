@@ -68,7 +68,7 @@ export default async function CollectionOrBookPage(
         <SidenoteProvider>
           { results ? <CollectionResults {...collection} /> :
             <>
-              {css && <link rel="stylesheet" href={css} precedence="high"/> }
+              {css && <link rel="stylesheet" href={css} /> }
               <Collection {...collection} />
             </>
           }
