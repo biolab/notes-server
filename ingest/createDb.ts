@@ -13,6 +13,7 @@ export const rebuildDatabase = async () => {
   }
   const conn = new sqlite3.Database(path.resolve(CONFIG.dbPath, "notes.sqlite"));
   const run = promisify(conn.run.bind(conn));
+  await run(`PRAGMA user_version = 0`);
 
   const LAST_BUILD_ID =  "lastBuildId INTEGER NOT NULL REFERENCES builds (id) ON DELETE RESTRICT"
 
